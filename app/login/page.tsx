@@ -177,15 +177,7 @@ function LoginForm() {
         </button>
       </form>
 
-      <p className="text-sm text-gray-400 mt-8 text-center">
-        New user?{" "}
-        <Link
-          href="/signup"
-          className="text-blue-400 hover:text-blue-300 font-medium hover:underline transition-colors"
-        >
-          Create an account
-        </Link>
-      </p>
+
     </div>
   );
 }
