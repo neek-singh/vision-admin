@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { loginStudent } from "@/app/actions/student-auth";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function StudentLoginPage() {
   const router = useRouter();
@@ -29,7 +30,15 @@ export default function StudentLoginPage() {
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-6">
       <div className="w-full max-w-md">
-        <div className="text-center mb-10">
+        <div className="text-center mb-10 flex flex-col items-center">
+          <div className="w-20 h-20 relative mb-6">
+            <Image 
+              src="/logo.png" 
+              alt="Vision IT Logo" 
+              fill 
+              className="object-contain"
+            />
+          </div>
           <h1 className="text-4xl font-black text-blue-950 mb-2">Vision Learn</h1>
           <p className="text-gray-500 font-medium">Student Login Panel</p>
         </div>

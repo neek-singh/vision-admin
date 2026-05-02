@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ReactNode, useState, useEffect } from "react";
+import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 import {
   LayoutDashboard,
@@ -132,7 +133,16 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         <div className={`h-16 flex items-center border-b border-slate-800 ${isCollapsed ? "justify-center" : "justify-between px-4"}`}>
           {!isCollapsed && (
             <Link href="/admin" className="font-bold text-xl text-white tracking-tight flex items-center gap-2">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-sm">V</div>
+              <div className="w-10 h-10 bg-white rounded-xl relative flex items-center justify-center p-1 shadow-sm">
+                <Image 
+                  src="/logo.png" 
+                  alt="Vision IT Logo" 
+                  width={32} 
+                  height={32} 
+                  className="object-contain"
+                  priority
+                />
+              </div>
               <span>Vision IT</span>
             </Link>
           )}

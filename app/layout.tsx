@@ -14,8 +14,13 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://admin.visionitinstitute.com"),
-  title: "Vision Admin | Control Center",
+  title: "Vision IT Computer Institute",
   description: "Administrative dashboard for Vision IT Computer Institute.",
+  icons: {
+    icon: "/logo.png",
+    shortcut: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 export default function RootLayout({

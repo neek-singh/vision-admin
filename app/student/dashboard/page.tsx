@@ -1,6 +1,7 @@
 import { getStudentSession, logoutStudent } from "@/app/actions/student-auth";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
+import Image from "next/image";
 import StudentProfile from "@/components/student/StudentProfile";
 import LMSModules from "@/components/student/LMSModules";
 import { BoneyardProfile, BoneyardCard } from "@/components/ui/Boneyard";
@@ -31,8 +32,13 @@ export default async function StudentDashboardPage() {
       {/* Header */}
       <header className="bg-white border-b border-gray-100 py-4 px-6 md:px-12 flex justify-between items-center sticky top-0 z-50">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black shadow-lg shadow-blue-200">
-            V
+          <div className="w-10 h-10 relative flex items-center justify-center">
+            <Image 
+              src="/logo.png" 
+              alt="Vision IT Logo" 
+              fill 
+              className="object-contain"
+            />
           </div>
           <span className="text-xl font-black text-blue-950 hidden md:block">Vision Learn</span>
         </div>

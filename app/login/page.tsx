@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 import {
   Mail,
@@ -103,8 +104,15 @@ function LoginForm() {
     <div className="relative w-full max-w-md bg-white/[0.03] backdrop-blur-2xl p-8 rounded-3xl border border-white/10 shadow-2xl z-10">
 
       <div className="mb-8 text-center flex flex-col items-center">
-        <div className="w-12 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center border border-blue-500/20 mb-4">
-          <ShieldCheck className="w-6 h-6 text-blue-400" />
+        <div className="w-20 h-20 bg-white rounded-2xl relative flex items-center justify-center p-3 mb-4 shadow-xl shadow-blue-500/10">
+          <Image 
+            src="/logo.png" 
+            alt="Vision IT Logo" 
+            width={64}
+            height={64}
+            className="object-contain"
+            priority
+          />
         </div>
         <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">
           Welcome Back

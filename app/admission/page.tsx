@@ -1,5 +1,5 @@
-import { createServerSupabaseClient } from "@/lib/supabase-server";
 import AdmissionForm from "./AdmissionForm";
+import Image from "next/image";
 
 export const revalidate = 3600; // Cache for 1 hour
 
@@ -14,7 +14,15 @@ export default async function AdmissionPage() {
   return (
     <div className="min-h-screen bg-gray-50/50 py-20">
       <div className="container mx-auto px-6 max-w-4xl">
-        <div className="text-center mb-12">
+        <div className="text-center mb-12 flex flex-col items-center">
+          <div className="w-20 h-20 relative mb-6">
+            <Image 
+              src="/logo.png" 
+              alt="Vision IT Logo" 
+              fill 
+              className="object-contain"
+            />
+          </div>
           <h1 className="text-4xl md:text-5xl font-black text-blue-950 mb-4">
             Join Vision Learn
           </h1>
