@@ -54,6 +54,7 @@ export default function StudentTable({ initialStudents }: { initialStudents: any
 
       setAssigningTo(null);
       setSelectedCourseId("");
+      router.refresh();
       alert("Course assigned successfully!");
     } catch (err) {
       console.error("Error assigning course:", err);
@@ -334,8 +335,9 @@ export default function StudentTable({ initialStudents }: { initialStudents: any
                       <td className="px-6 py-4">
                         <div className="flex flex-wrap gap-1.5 max-w-[200px]">
                           {student.enrollments?.map((enrollment: any) => (
-                            <span key={enrollment.id} className="px-2 py-0.5 bg-slate-100 border border-slate-200 rounded text-[10px] font-bold text-slate-700">
-                              {enrollment.courses?.title}
+                            <span key={enrollment.id} className="px-2 py-0.5 bg-slate-100 border border-slate-200 rounded text-[10px] font-bold text-slate-700 flex flex-col">
+                              <span>{enrollment.courses?.title}</span>
+                              <span className="text-[8px] text-slate-400 uppercase">{enrollment.courses?.course_code}</span>
                             </span>
                           ))}
                           <button 

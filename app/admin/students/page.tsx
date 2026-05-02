@@ -19,7 +19,7 @@ export default async function AdminStudentsPage({
       *,
       enrollments(
         id,
-        courses(id, title)
+        courses(id, title, course_code)
       )
     `)
     .order("created_at", { ascending: false });
