@@ -84,7 +84,7 @@ export default function QuestionsClient({ testId, initialQuestions }: { testId: 
                   required 
                   value={formData.question_text} 
                   onChange={(e) => setFormData({...formData, question_text: e.target.value})} 
-                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold resize-none" 
+                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold resize-none text-slate-900" 
                   rows={3}
                 />
               </div>
@@ -111,7 +111,7 @@ export default function QuestionsClient({ testId, initialQuestions }: { testId: 
                         setFormData({...formData, options: newOpts});
                       }}
                       placeholder={`Option ${String.fromCharCode(65 + idx)}`}
-                      className="flex-1 px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold"
+                      className="flex-1 px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900"
                     />
                   </div>
                 ))}

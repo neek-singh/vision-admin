@@ -22,7 +22,10 @@ import {
   Search,
   User,
   UserPlus,
-  ClipboardList
+  ClipboardList,
+  PenTool,
+  CheckCircle2,
+  Wallet
 } from "lucide-react";
 
 const navGroups = [
@@ -41,6 +44,13 @@ const navGroups = [
       { href: "/admin/students/add", label: "Add Student", icon: UserPlus },
       { href: "/admin/courses", label: "Manage Courses", icon: BookOpen },
       { href: "/admin/lms/content", label: "Course Content", icon: FileText },
+      { href: "/admin/lms/tests", label: "Manage Tests", icon: ClipboardList },
+      { href: "/admin/lms/materials", label: "Notes & Materials", icon: FileText },
+      { href: "/admin/lms/assignments", label: "Assignments", icon: PenTool },
+      { href: "/admin/lms/attendance", label: "Daily Attendance", icon: CheckCircle2 },
+      { href: "/admin/schedule", label: "Academic Schedule", icon: Calendar },
+      { href: "/admin/notifications", label: "Notifications", icon: Bell },
+      { href: "/admin/fees", label: "Fees Management", icon: Wallet },
     ]
   },
   {
@@ -72,7 +82,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     setIsMobileOpen(false);
     
     // Auto-set mode based on pathname
-    if (pathname.includes('/lms') || pathname.includes('/courses') || pathname.includes('/students') || pathname.includes('/admissions')) {
+    if (pathname.includes('/lms') || pathname.includes('/courses') || pathname.includes('/students') || pathname.includes('/admissions') || pathname.includes('/fees') || pathname.includes('/schedule')) {
       setAdminMode("lms");
     } else if (pathname.includes('/blogs') || pathname.includes('/gallery') || pathname.includes('/contacts') || pathname.includes('/batches')) {
       setAdminMode("web");

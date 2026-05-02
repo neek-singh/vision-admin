@@ -12,41 +12,88 @@ import {
   Trash2, 
   ExternalLink,
   Loader2,
-  X
+  X,
+  Pencil,
+  Code,
+  CheckCircle2,
+  BookOpen as BookOpenIcon
 } from "lucide-react";
 
 export default function MaterialsClient({ courses, initialMaterials }: { courses: any[], initialMaterials: any[] }) {
   const router = useRouter();
   const [isAdding, setIsAdding] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     course_id: "",
     title: "",
     type: "pdf",
     content_url: "",
     file_size: "",
-    duration: ""
+    duration: "",
+    code_content: ""
   });
+
+  const handleEdit = (material: any) => {
+    setFormData({
+      course_id: material.course_id,
+      title: material.title,
+      type: material.type || "pdf",
+      content_url: material.content_url || "",
+      file_size: material.file_size || "",
+      duration: material.duration || "",
+      code_content: material.code_content || ""
+    });
+    setEditingId(material.id);
+    setIsAdding(true);
+  };
+
+  const closeForm = () => {
+    setIsAdding(false);
+    setEditingId(null);
+    setFormData({ course_id: "", title: "", type: "pdf", content_url: "", file_size: "", duration: "", code_content: "" });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
-      const { error } = await supabase
-        .from("materials")
-        .insert([formData]);
+      if (editingId) {
+        const { error } = await supabase
+          .from("materials")
+          .update(formData)
+          .eq("id", editingId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("materials")
+          .insert([formData]);
+        if (error) throw error;
+      }
 
-      if (error) throw error;
-
-      setIsAdding(false);
-      setFormData({ course_id: "", title: "", type: "pdf", content_url: "", file_size: "", duration: "" });
+      closeForm();
       router.refresh();
     } catch (err) {
       console.error("Error adding material:", err);
       alert("Failed to add material");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleTogglePublish = async (id: string, currentStatus: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("materials")
+        .update({ is_published: !currentStatus })
+        .eq("id", id);
+      
+      if (error) throw error;
+      router.refresh();
+    } catch (err) {
+      console.error("Error toggling publish status:", err);
+      alert("Failed to update status");
     }
   };
 
@@ -77,8 +124,8 @@ export default function MaterialsClient({ courses, initialMaterials }: { courses
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <h3 className="font-bold text-slate-900">Add Study Material</h3>
-              <button onClick={() => setIsAdding(false)} className="p-1.5 hover:bg-slate-100 rounded-lg"><X size={18} /></button>
+              <h3 className="font-bold text-slate-900">{editingId ? 'Edit Study Material' : 'Add Study Material'}</h3>
+              <button onClick={closeForm} className="p-1.5 hover:bg-slate-100 rounded-lg"><X size={18} /></button>
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div className="space-y-4">
@@ -118,38 +165,54 @@ export default function MaterialsClient({ courses, initialMaterials }: { courses
                       <option value="pdf">PDF Document</option>
                       <option value="video">Video Lecture</option>
                       <option value="link">External Link</option>
+                      <option value="note">Note / Content</option>
                     </select>
                   </div>
                   <div>
                     <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">
-                      {formData.type === 'video' ? 'Duration' : 'File Size'}
+                      {formData.type === 'video' ? 'Duration' : formData.type === 'note' ? 'Reading Time' : 'File Size'}
                     </label>
                     <input 
                       type="text" 
-                      value={formData.type === 'video' ? formData.duration : formData.file_size}
-                      onChange={(e) => setFormData({...formData, [formData.type === 'video' ? 'duration' : 'file_size']: e.target.value})}
-                      placeholder={formData.type === 'video' ? "e.g. 15:20" : "e.g. 2.4 MB"}
+                      value={formData.type === 'video' ? formData.duration : formData.type === 'note' ? formData.duration : formData.file_size}
+                      onChange={(e) => setFormData({...formData, [formData.type === 'video' ? 'duration' : formData.type === 'note' ? 'duration' : 'file_size']: e.target.value})}
+                      placeholder={formData.type === 'video' ? "e.g. 15:20" : formData.type === 'note' ? "e.g. 5 Mins" : "e.g. 2.4 MB"}
                       className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-black" 
                     />
                   </div>
                 </div>
-                <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Content URL</label>
-                  <input 
-                    required
-                    type="url" 
-                    value={formData.content_url}
-                    onChange={(e) => setFormData({...formData, content_url: e.target.value})}
-                    placeholder="https://..."
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-black" 
-                  />
-                </div>
+
+                {formData.type === 'note' ? (
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Article / Note Content</label>
+                    <textarea 
+                      required
+                      rows={10}
+                      value={formData.code_content}
+                      onChange={(e) => setFormData({...formData, code_content: e.target.value, content_url: 'note'})}
+                      placeholder="Type your notes here... You can use headings and paragraphs."
+                      className="w-full px-6 py-4 bg-slate-900 border border-slate-700 rounded-2xl outline-none focus:border-blue-500 transition-all text-sm text-slate-100 leading-relaxed resize-none shadow-inner" 
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Content URL</label>
+                    <input 
+                      required
+                      type="url" 
+                      value={formData.content_url}
+                      onChange={(e) => setFormData({...formData, content_url: e.target.value})}
+                      placeholder="https://..."
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-black" 
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="pt-4 flex gap-3">
                 <button 
                   type="button"
-                  onClick={() => setIsAdding(false)}
+                  onClick={closeForm}
                   className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl transition-all"
                 >
                   Cancel
@@ -159,7 +222,7 @@ export default function MaterialsClient({ courses, initialMaterials }: { courses
                   className="flex-[2] py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20"
                 >
                   {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : <Plus size={18} />}
-                  Add Material
+                  {editingId ? 'Update Material' : 'Add Material'}
                 </button>
               </div>
             </form>
@@ -183,9 +246,15 @@ export default function MaterialsClient({ courses, initialMaterials }: { courses
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-3">
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                      material.type === 'pdf' ? 'bg-red-50 text-red-600' : material.type === 'video' ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'
+                      material.type === 'pdf' ? 'bg-red-50 text-red-600' : 
+                      material.type === 'video' ? 'bg-blue-50 text-blue-600' : 
+                      (material.type === 'note' || material.type === 'code') ? 'bg-amber-50 text-amber-600' :
+                      'bg-emerald-50 text-emerald-600'
                     }`}>
-                      {material.type === 'pdf' ? <FileText size={18} /> : material.type === 'video' ? <Video size={18} /> : <LinkIcon size={18} />}
+                      {material.type === 'pdf' ? <FileText size={18} /> : 
+                       material.type === 'video' ? <Video size={18} /> : 
+                       (material.type === 'note' || material.type === 'code') ? <BookOpenIcon size={18} /> :
+                       <LinkIcon size={18} />}
                     </div>
                     <div>
                       <p className="font-black text-slate-900 text-sm">{material.title}</p>
@@ -197,15 +266,33 @@ export default function MaterialsClient({ courses, initialMaterials }: { courses
                   <span className="text-xs font-bold text-slate-600">{material.courses?.title}</span>
                 </td>
                 <td className="px-6 py-4">
-                  <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-[10px] font-black uppercase tracking-widest">
-                    {material.type}
-                  </span>
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-[10px] font-black uppercase tracking-widest">
+                      {material.type}
+                    </span>
+                    <button 
+                      onClick={() => handleTogglePublish(material.id, material.is_published)}
+                      className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest transition-all ${
+                        material.is_published ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-500'
+                      }`}
+                    >
+                      {material.is_published ? 'Published' : 'Draft'}
+                    </button>
+                  </div>
                 </td>
                 <td className="px-6 py-4 text-right">
                   <div className="flex items-center justify-end gap-2">
-                    <a href={material.content_url} target="_blank" rel="noopener noreferrer" className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all">
-                      <ExternalLink size={18} />
-                    </a>
+                    <button 
+                      onClick={() => handleEdit(material)}
+                      className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                    >
+                      <Pencil size={18} />
+                    </button>
+                    {material.type !== 'note' && material.type !== 'code' && (
+                      <a href={material.content_url} target="_blank" rel="noopener noreferrer" className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all">
+                        <ExternalLink size={18} />
+                      </a>
+                    )}
                     <button 
                       onClick={() => handleDelete(material.id)}
                       className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"

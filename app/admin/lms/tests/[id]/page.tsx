@@ -3,13 +3,14 @@ import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { notFound } from "next/navigation";
 import QuestionsClient from "./QuestionsClient";
 
-export default async function TestQuestionsPage({ params }: { params: { id: string } }) {
+export default async function TestQuestionsPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const supabase = await createServerSupabaseClient();
   
   const { data: test } = await supabase
     .from("tests")
     .select(`*, courses(title)`)
-    .eq("id", params.id)
+    .eq("id", id)
     .single();
 
   if (!test) notFound();
@@ -17,7 +18,7 @@ export default async function TestQuestionsPage({ params }: { params: { id: stri
   const { data: questions } = await supabase
     .from("test_questions")
     .select("*")
-    .eq("test_id", params.id)
+    .eq("test_id", id)
     .order("order_index", { ascending: true });
 
   return (
@@ -29,7 +30,7 @@ export default async function TestQuestionsPage({ params }: { params: { id: stri
         </div>
       </div>
 
-      <QuestionsClient testId={params.id} initialQuestions={questions || []} />
+      <QuestionsClient testId={id} initialQuestions={questions || []} />
     </div>
   );
 }

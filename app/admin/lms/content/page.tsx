@@ -369,7 +369,7 @@ export default function CourseContentManagement() {
                   <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 group-focus-within:text-blue-600 transition-colors">Display Order</label>
                   <input 
                     type="number" value={newLesson.order_index}
-                    onChange={(e) => setNewLesson({...newLesson, order_index: parseInt(e.target.value)})}
+                    onChange={(e) => setNewLesson({...newLesson, order_index: parseInt(e.target.value) || 0})}
                     className="w-full px-0 py-3 bg-transparent border-b-2 border-slate-100 focus:border-blue-600 outline-none transition-all font-black text-black text-sm" 
                   />
                 </div>

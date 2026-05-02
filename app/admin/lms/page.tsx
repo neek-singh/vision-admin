@@ -14,7 +14,8 @@ import {
   PlayCircle,
   FileText,
   Loader2,
-  ExternalLink
+  ExternalLink,
+  ClipboardList
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
@@ -203,14 +204,20 @@ export default function LMSDashboard() {
             </h3>
             <div className="grid grid-cols-1 gap-2">
               <Link href="/admin/lms/content" className="w-full flex items-center gap-3 p-3 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition-all font-bold text-sm">
-                <PlayCircle size={18} /> Upload New Lesson
+                <PlayCircle size={18} /> Course Curriculum
               </Link>
-              <button className="w-full flex items-center gap-3 p-3 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-all font-bold text-sm">
-                <FileText size={18} /> Create New Test
-              </button>
-              <button className="w-full flex items-center gap-3 p-3 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-all font-bold text-sm">
-                <GraduationCap size={18} /> Issue Certificate
-              </button>
+              <Link href="/admin/lms/tests" className="w-full flex items-center gap-3 p-3 rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-100 transition-all font-bold text-sm">
+                <FileText size={18} /> Manage Tests
+              </Link>
+              <Link href="/admin/lms/materials" className="w-full flex items-center gap-3 p-3 rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 transition-all font-bold text-sm">
+                <BookOpen size={18} /> Notes & Materials
+              </Link>
+              <Link href="/admin/lms/assignments" className="w-full flex items-center gap-3 p-3 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-all font-bold text-sm">
+                <ClipboardList size={18} /> Assignments
+              </Link>
+              <Link href="/admin/lms/attendance" className="w-full flex items-center gap-3 p-3 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-all font-bold text-sm">
+                <CheckCircle2 size={18} /> Daily Attendance
+              </Link>
             </div>
           </div>
 

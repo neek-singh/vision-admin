@@ -14,7 +14,8 @@ export default async function AssignmentsAdminPage() {
     .from("assignments")
     .select(`
       *,
-      courses(title)
+      courses(title),
+      submissions:submissions(count)
     `)
     .order("created_at", { ascending: false });
 

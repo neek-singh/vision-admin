@@ -149,3 +149,20 @@ export async function assignCourseToStudent(studentId: string, courseId: string)
     revalidatePath("/admin/students");
     return { success: true };
 }
+
+export async function removeCourseFromStudent(enrollmentId: string) {
+    const supabase = await createServerSupabaseClient();
+
+    const { error } = await supabase
+        .from("enrollments")
+        .delete()
+        .eq("id", enrollmentId);
+
+    if (error) {
+        console.error("Unenrollment error:", error);
+        return { error: error.message };
+    }
+
+    revalidatePath("/admin/students");
+    return { success: true };
+}
