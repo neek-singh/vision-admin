@@ -64,37 +64,37 @@ export default function BatchForm({ initialData }: { initialData?: BatchData }) 
       {error && <p className="text-red-500 font-semibold text-sm">{error}</p>}
 
       <div>
-        <label className="block text-sm font-bold text-slate-700 mb-2">Course Title</label>
+        <label className="block text-sm font-black text-slate-900 mb-2">Course Title</label>
         <input
           type="text"
           name="course"
           value={formData.course}
           onChange={handleChange}
-          className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 font-medium"
+          className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 font-black text-black"
           placeholder="e.g., Full Stack Web Development"
         />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label className="block text-sm font-bold text-slate-700 mb-2">Start Date</label>
+          <label className="block text-sm font-black text-slate-900 mb-2">Start Date</label>
           <input
             type="text"
             name="date"
             value={formData.date}
             onChange={handleChange}
-            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 font-medium"
+            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 font-black text-black"
             placeholder="e.g., May 10, 2026"
           />
         </div>
         <div>
-          <label className="block text-sm font-bold text-slate-700 mb-2">Time Slots</label>
+          <label className="block text-sm font-black text-slate-900 mb-2">Time Slots</label>
           <input
             type="text"
             name="time"
             value={formData.time}
             onChange={handleChange}
-            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 font-medium"
+            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 font-black text-black"
             placeholder="e.g., 09:00 AM - 11:00 AM"
           />
         </div>
@@ -102,12 +102,12 @@ export default function BatchForm({ initialData }: { initialData?: BatchData }) 
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label className="block text-sm font-bold text-slate-700 mb-2">Batch Type</label>
+          <label className="block text-sm font-black text-slate-900 mb-2">Batch Type</label>
           <select
             name="type"
             value={formData.type}
             onChange={handleChange}
-            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 font-bold text-slate-800"
+            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 font-black text-black appearance-none bg-white"
           >
             <option value="Morning Batch">Morning Batch</option>
             <option value="Afternoon Batch">Afternoon Batch</option>
@@ -116,13 +116,13 @@ export default function BatchForm({ initialData }: { initialData?: BatchData }) 
           </select>
         </div>
         <div>
-          <label className="block text-sm font-bold text-slate-700 mb-2">Available Seats</label>
+          <label className="block text-sm font-black text-slate-900 mb-2">Available Seats</label>
           <input
             type="text"
             name="seats"
             value={formData.seats}
             onChange={handleChange}
-            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 font-medium"
+            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 font-black text-black"
             placeholder="e.g., Only 4 seats left"
           />
         </div>

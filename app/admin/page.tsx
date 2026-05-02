@@ -23,11 +23,13 @@ async function getSupabase() {
 
 // 📊 Stats Fetch
 async function getStats(supabase: any) {
-  const [blogs, gallery, admissions, contacts] = await Promise.all([
+  const [blogs, gallery, admissions, contacts, courses, students] = await Promise.all([
     supabase.from("blogs").select("id", { count: "exact", head: true }),
     supabase.from("gallery").select("id", { count: "exact", head: true }),
     supabase.from("admissions").select("id", { count: "exact", head: true }),
     supabase.from("contacts").select("id", { count: "exact", head: true }),
+    supabase.from("courses").select("id", { count: "exact", head: true }),
+    supabase.from("students").select("id", { count: "exact", head: true }),
   ]);
 
   return {
@@ -35,6 +37,8 @@ async function getStats(supabase: any) {
     gallery: gallery.count ?? 0,
     admissions: admissions.count ?? 0,
     contacts: contacts.count ?? 0,
+    courses: courses.count ?? 0,
+    students: students.count ?? 0,
   };
 }
 
@@ -77,39 +81,39 @@ export default async function AdminPage() {
 
   return (
     <main className="min-h-screen bg-gray-50 px-6 py-10">
-      <div className="max-w-7xl mx-auto space-y-10">
+      <div className="max-w-7xl mx-auto space-y-12">
 
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-black text-blue-950">
-            Admin Dashboard 👑
+          <h1 className="text-4xl font-black text-blue-950">
+            Admin Overview 👑
           </h1>
-          <p className="text-gray-500">
-            Welcome back, manage your institute here.
+          <p className="text-gray-500 mt-2 font-medium">
+            Manage your entire Vision IT ecosystem from one place.
           </p>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          <Card label="Blogs" value={stats.blogs} />
-          <Card label="Gallery" value={stats.gallery} />
-          <Card label="Admissions" value={stats.admissions} />
-          <Card label="Contacts" value={stats.contacts} />
-        </div>
+        {/* Vision Learn Section */}
+        <section className="space-y-6">
+          <div className="flex items-center gap-3">
+            <div className="w-2 h-8 bg-blue-600 rounded-full"></div>
+            <h2 className="text-xl font-black text-blue-950 uppercase tracking-wider">Vision Learn (LMS)</h2>
+          </div>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <Card label="Total Students" value={stats.students} color="bg-blue-600" />
+            <Card label="Active Courses" value={stats.courses} color="bg-indigo-600" />
+            <Card label="New Admissions" value={stats.admissions} color="bg-violet-600" />
+            <Card label="LMS Activity" value="Active" color="bg-emerald-600" />
+          </div>
 
-        {/* Quick Links */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <QuickLink href="/admin/blogs" label="Manage Blogs" />
-          <QuickLink href="/admin/gallery" label="Gallery" />
-          <QuickLink href="/admin/admissions" label="Admissions" />
-          <QuickLink href="/admin/contacts" label="Contacts" />
-          <QuickLink href="/admin/stats" label="Manage Stats" />
-        </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <QuickLink href="/admin/lms" label="LMS Dashboard" />
+            <QuickLink href="/admin/admissions" label="Admissions" />
+            <QuickLink href="/admin/students" label="Manage Students" />
+            <QuickLink href="/admin/courses" label="Course Content" />
+          </div>
 
-        {/* Recent Data */}
-        <div className="grid md:grid-cols-2 gap-6">
-
-          {/* Admissions */}
           <Box title="Recent Admissions">
             {!recentAdmissions?.length ? (
               <Empty text="No admissions yet" />
@@ -123,9 +127,30 @@ export default async function AdminPage() {
               ))
             )}
           </Box>
+        </section>
 
-          {/* Contacts */}
-          <Box title="Recent Contacts">
+        {/* Vision Web Section */}
+        <section className="space-y-6">
+          <div className="flex items-center gap-3">
+            <div className="w-2 h-8 bg-orange-500 rounded-full"></div>
+            <h2 className="text-xl font-black text-blue-950 uppercase tracking-wider">Vision Web (Main)</h2>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <Card label="Total Blogs" value={stats.blogs} color="bg-orange-500" />
+            <Card label="Gallery Images" value={stats.gallery} color="bg-amber-500" />
+            <Card label="Contact Requests" value={stats.contacts} color="bg-rose-500" />
+            <Card label="Batches" value="Running" color="bg-sky-500" />
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <QuickLink href="/admin/blogs" label="Manage Blogs" color="bg-orange-500" />
+            <QuickLink href="/admin/gallery" label="Gallery" color="bg-orange-500" />
+            <QuickLink href="/admin/contacts" label="Contact Enquiries" color="bg-orange-500" />
+            <QuickLink href="/admin/batches" label="Batches" color="bg-orange-500" />
+          </div>
+
+          <Box title="Recent Contact Enquiries">
             {!recentContacts?.length ? (
               <Empty text="No contacts yet" />
             ) : (
@@ -138,8 +163,7 @@ export default async function AdminPage() {
               ))
             )}
           </Box>
-
-        </div>
+        </section>
       </div>
     </main>
   );
@@ -147,20 +171,23 @@ export default async function AdminPage() {
 
 // 🔹 UI Components
 
-function Card({ label, value }: any) {
+function Card({ label, value, color = "bg-blue-600" }: any) {
   return (
-    <div className="bg-white p-6 rounded-2xl shadow border">
-      <p className="text-gray-500 text-sm">{label}</p>
-      <p className="text-2xl font-bold text-blue-950">{value}</p>
+    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 group hover:shadow-md transition-shadow">
+      <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest mb-1">{label}</p>
+      <div className="flex items-end justify-between">
+        <p className="text-3xl font-black text-blue-950">{value}</p>
+        <div className={`w-8 h-1 rounded-full ${color}`}></div>
+      </div>
     </div>
   );
 }
 
-function QuickLink({ href, label }: any) {
+function QuickLink({ href, label, color = "bg-blue-600" }: any) {
   return (
     <Link
       href={href}
-      className="bg-blue-600 text-white p-4 rounded-xl text-center font-semibold hover:bg-blue-500"
+      className={`${color} text-white px-4 py-3 rounded-xl text-center text-xs font-black uppercase tracking-widest hover:opacity-90 transition-all shadow-sm hover:shadow-md active:scale-95`}
     >
       {label}
     </Link>

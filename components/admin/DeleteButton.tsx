@@ -9,11 +9,12 @@ import { deleteBatch } from "@/app/actions/batches";
 
 type DeleteButtonProps = {
   id: string;
-  table: "courses" | "blogs" | "gallery" | "admissions" | "batches";
+  table: "courses" | "blogs" | "gallery" | "admissions" | "batches" | "contacts" | "lms_modules" | "lessons" | "students";
   title?: string;
+  onSuccess?: () => void;
 };
 
-export default function DeleteButton({ id, table, title }: DeleteButtonProps) {
+export default function DeleteButton({ id, table, title, onSuccess }: DeleteButtonProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const router = useRouter();
 
@@ -46,9 +47,12 @@ export default function DeleteButton({ id, table, title }: DeleteButtonProps) {
       }
 
       // ✅ success feedback
-      alert("Deleted successfully");
-
-      router.refresh();
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        alert("Deleted successfully");
+        router.refresh();
+      }
     } catch (err: any) {
       console.error(err);
       alert(err.message || "Delete failed");

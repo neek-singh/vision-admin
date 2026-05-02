@@ -41,6 +41,15 @@ export async function middleware(request: NextRequest) {
   const isAdminRoute = pathname.startsWith("/admin");
   const isDashboardRoute = pathname.startsWith("/dashboard");
   const isAuthRoute = pathname.startsWith("/login");
+  const isStudentDashboard = pathname.startsWith("/student/dashboard");
+
+  // Protect student dashboard
+  if (isStudentDashboard) {
+    const studentSession = request.cookies.get("student_session");
+    if (!studentSession) {
+      return NextResponse.redirect(new URL("/student/login", request.url));
+    }
+  }
 
   // Redirect logged-in users away from login page
   if (user && isAuthRoute) {
@@ -105,5 +114,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/dashboard/:path*", "/login"],
+  matcher: ["/admin/:path*", "/dashboard/:path*", "/login", "/student/:path*"],
 };

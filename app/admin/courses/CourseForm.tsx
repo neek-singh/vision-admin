@@ -103,39 +103,39 @@ export default function CourseForm({ course }: { course?: Course }) {
         {activeTab === "basic" && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-2 col-span-full">
-              <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Course Title</label>
+              <label className="text-xs font-black text-gray-600 uppercase tracking-widest">Course Title</label>
               <input
                 type="text" required
-                className="w-full px-6 py-4 rounded-2xl border border-gray-200 focus:ring-4 focus:ring-blue-100 transition-all outline-none"
+                className="w-full px-6 py-4 rounded-2xl border border-gray-200 focus:ring-4 focus:ring-blue-100 transition-all outline-none font-black text-black"
                 value={formData.title || ""}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 placeholder="e.g. Full Stack Web Development"
               />
             </div>
             <div className="space-y-2 col-span-full">
-              <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Course Banner Image (Local URL)</label>
+              <label className="text-xs font-black text-gray-600 uppercase tracking-widest">Course Banner Image (Local URL)</label>
               <input
                 type="text"
-                className="w-full px-6 py-4 rounded-2xl border border-gray-200 focus:ring-4 focus:ring-blue-100 transition-all outline-none font-mono text-sm"
+                className="w-full px-6 py-4 rounded-2xl border border-gray-200 focus:ring-4 focus:ring-blue-100 transition-all outline-none font-mono text-sm font-black text-black"
                 value={formData.image_url || ""}
                 onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
                 placeholder="e.g. /courses/webdev.png"
               />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Duration</label>
+              <label className="text-xs font-black text-gray-600 uppercase tracking-widest">Duration</label>
               <input
                 type="text" required
-                className="w-full px-6 py-4 rounded-2xl border border-gray-200"
+                className="w-full px-6 py-4 rounded-2xl border border-gray-200 font-black text-black"
                 value={formData.duration || ""}
                 onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
                 placeholder="e.g. 6 Months"
               />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Learning Format</label>
+              <label className="text-xs font-black text-gray-600 uppercase tracking-widest">Learning Format</label>
               <select
-                className="w-full px-6 py-4 rounded-2xl border border-gray-200"
+                className="w-full px-6 py-4 rounded-2xl border border-gray-200 font-black text-black appearance-none bg-white"
                 value={formData.learning_format}
                 onChange={(e) => setFormData({ ...formData, learning_format: e.target.value })}
               >
@@ -145,37 +145,37 @@ export default function CourseForm({ course }: { course?: Course }) {
               </select>
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Original Fee (₹)</label>
+              <label className="text-xs font-black text-gray-600 uppercase tracking-widest">Original Fee (₹)</label>
               <input
                 type="number" required
-                className="w-full px-6 py-4 rounded-2xl border border-gray-200"
+                className="w-full px-6 py-4 rounded-2xl border border-gray-200 font-black text-black"
                 value={formData.fee ?? 0}
                 onChange={(e) => setFormData({ ...formData, fee: Number(e.target.value) })}
               />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Discount Fee (₹)</label>
+              <label className="text-xs font-black text-gray-600 uppercase tracking-widest">Discount Fee (₹)</label>
               <input
                 type="number"
-                className="w-full px-6 py-4 rounded-2xl border border-gray-200 bg-green-50/20"
+                className="w-full px-6 py-4 rounded-2xl border border-gray-200 bg-green-50/20 font-black text-emerald-700"
                 value={formData.discount_fee ?? 0}
                 onChange={(e) => setFormData({ ...formData, discount_fee: Number(e.target.value) })}
               />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Admission Closes On</label>
+              <label className="text-xs font-black text-gray-600 uppercase tracking-widest">Admission Closes On</label>
               <input
                 type="date"
-                className="w-full px-6 py-4 rounded-2xl border border-gray-200"
+                className="w-full px-6 py-4 rounded-2xl border border-gray-200 font-black text-black"
                 value={formData.admission_closes || ""}
                 onChange={(e) => setFormData({ ...formData, admission_closes: e.target.value })}
               />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Rating (1-5)</label>
+              <label className="text-xs font-black text-gray-600 uppercase tracking-widest">Rating (1-5)</label>
               <input
                 type="number" step="0.1"
-                className="w-full px-6 py-4 rounded-2xl border border-gray-200"
+                className="w-full px-6 py-4 rounded-2xl border border-gray-200 font-black text-black"
                 value={formData.rating ?? 0}
                 onChange={(e) => setFormData({ ...formData, rating: Number(e.target.value) })}
               />
@@ -186,19 +186,19 @@ export default function CourseForm({ course }: { course?: Course }) {
         {activeTab === "details" && (
           <div className="space-y-8">
             <div className="space-y-2">
-              <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Description / Summary</label>
+              <label className="text-xs font-black text-gray-600 uppercase tracking-widest">Description / Summary</label>
               <textarea
                 required rows={4}
-                className="w-full px-6 py-4 rounded-2xl border border-gray-200"
+                className="w-full px-6 py-4 rounded-2xl border border-gray-200 font-black text-black"
                 value={formData.description || ""}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Who is this program for?</label>
+              <label className="text-xs font-black text-gray-600 uppercase tracking-widest">Who is this program for?</label>
               <textarea
                 rows={2}
-                className="w-full px-6 py-4 rounded-2xl border border-gray-200"
+                className="w-full px-6 py-4 rounded-2xl border border-gray-200 font-black text-black"
                 value={formData.target_audience || ""}
                 onChange={(e) => setFormData({ ...formData, target_audience: e.target.value })}
                 placeholder="e.g. Graduates, Students, Working Professionals"
@@ -206,30 +206,30 @@ export default function CourseForm({ course }: { course?: Course }) {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-2">
-                <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Key Features (Comma separated)</label>
+                <label className="text-xs font-black text-gray-600 uppercase tracking-widest">Key Features (Comma separated)</label>
                 <textarea
                   rows={3}
-                  className="w-full px-6 py-4 rounded-2xl border border-gray-200"
+                  className="w-full px-6 py-4 rounded-2xl border border-gray-200 font-black text-black"
                   value={formData.key_features?.join(", ")}
                   onChange={(e) => handleArrayInput("key_features", e.target.value)}
                   placeholder="Feature 1, Feature 2..."
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Career Opportunities (Comma separated)</label>
+                <label className="text-xs font-black text-gray-600 uppercase tracking-widest">Career Opportunities (Comma separated)</label>
                 <textarea
                   rows={3}
-                  className="w-full px-6 py-4 rounded-2xl border border-gray-200"
+                  className="w-full px-6 py-4 rounded-2xl border border-gray-200 font-black text-black"
                   value={formData.career_opportunities?.join(", ")}
                   onChange={(e) => handleArrayInput("career_opportunities", e.target.value)}
                   placeholder="Role 1, Role 2..."
                 />
               </div>
               <div className="space-y-2 col-span-full">
-                <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Essential Skills You Develop (Comma separated)</label>
+                <label className="text-xs font-black text-gray-600 uppercase tracking-widest">Essential Skills You Develop (Comma separated)</label>
                 <input
                   type="text"
-                  className="w-full px-6 py-4 rounded-2xl border border-gray-200"
+                  className="w-full px-6 py-4 rounded-2xl border border-gray-200 font-black text-black"
                   value={formData.skills_developed?.join(", ")}
                   onChange={(e) => handleArrayInput("skills_developed", e.target.value)}
                 />
@@ -240,14 +240,17 @@ export default function CourseForm({ course }: { course?: Course }) {
 
         {activeTab === "syllabus" && (
           <div className="space-y-6">
-            <p className="text-sm text-amber-600 bg-amber-50 p-4 rounded-xl font-medium">
-              Note: For now, enter JSON format for Curriculum, Projects, and Tools. We will implement a visual builder soon.
+            <p className="text-sm text-blue-600 bg-blue-50 p-4 rounded-xl font-black flex items-center justify-between">
+              <span>
+                🚀 Visual Curriculum Builder is now active! Use the <strong>"Course Content"</strong> page for a better experience.
+              </span>
+              <Button href="/admin/lms/content" variant="ghost" size="sm" className="font-black underline">Open Builder</Button>
             </p>
             <div className="space-y-2">
-              <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Curriculum (JSON)</label>
+              <label className="text-xs font-black text-gray-600 uppercase tracking-widest">Curriculum (JSON)</label>
               <textarea
                 rows={6}
-                className="w-full px-6 py-4 rounded-2xl border border-gray-200 font-mono text-xs"
+                className="w-full px-6 py-4 rounded-2xl border border-gray-200 font-mono text-xs font-black text-black"
                 value={JSON.stringify(formData.curriculum, null, 2)}
                 onChange={(e) => {
                   try { setFormData({ ...formData, curriculum: JSON.parse(e.target.value) }); } catch {}
@@ -255,10 +258,10 @@ export default function CourseForm({ course }: { course?: Course }) {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Projects (JSON)</label>
+              <label className="text-xs font-black text-gray-600 uppercase tracking-widest">Projects (JSON)</label>
               <textarea
                 rows={4}
-                className="w-full px-6 py-4 rounded-2xl border border-gray-200 font-mono text-xs"
+                className="w-full px-6 py-4 rounded-2xl border border-gray-200 font-mono text-xs font-black text-black"
                 value={JSON.stringify(formData.projects, null, 2)}
                 onChange={(e) => {
                   try { setFormData({ ...formData, projects: JSON.parse(e.target.value) }); } catch {}
@@ -266,10 +269,10 @@ export default function CourseForm({ course }: { course?: Course }) {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Tools Covered (JSON)</label>
+              <label className="text-xs font-black text-gray-600 uppercase tracking-widest">Tools Covered (JSON)</label>
               <textarea
                 rows={4}
-                className="w-full px-6 py-4 rounded-2xl border border-gray-200 font-mono text-xs"
+                className="w-full px-6 py-4 rounded-2xl border border-gray-200 font-mono text-xs font-black text-black"
                 value={JSON.stringify(formData.tools_covered, null, 2)}
                 onChange={(e) => {
                   try { setFormData({ ...formData, tools_covered: JSON.parse(e.target.value) }); } catch {}

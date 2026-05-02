@@ -125,31 +125,37 @@ export default function BlogForm({ initialData }: { initialData?: BlogData }) {
       )}
 
       {/* Title */}
-      <input
-        name="title"
-        value={formData.title}
-        onChange={handleChange}
-        placeholder="Title"
-        className="w-full p-3 border rounded-xl"
-      />
+      <div>
+        <label className="block text-xs font-black text-slate-900 uppercase tracking-widest mb-2">Blog Title</label>
+        <input
+          name="title"
+          value={formData.title}
+          onChange={handleChange}
+          placeholder="Enter blog title"
+          className="w-full p-4 border border-slate-200 rounded-xl font-black text-black text-lg placeholder:text-slate-400"
+        />
+      </div>
 
       {/* Slug */}
-      <div className="flex gap-2">
-        <input
-          name="slug"
-          value={formData.slug}
-          onChange={handleChange}
-          placeholder="slug"
-          className="w-full p-3 border rounded-xl"
-        />
-        <Button type="button" onClick={generateSlug}>
-          Generate
-        </Button>
+      <div>
+        <label className="block text-xs font-black text-slate-900 uppercase tracking-widest mb-2">URL Slug</label>
+        <div className="flex gap-2">
+          <input
+            name="slug"
+            value={formData.slug}
+            onChange={handleChange}
+            placeholder="url-slug-here"
+            className="w-full p-3 border border-slate-200 rounded-xl font-black text-black placeholder:text-slate-400"
+          />
+          <Button type="button" onClick={generateSlug} className="font-bold">
+            Generate
+          </Button>
+        </div>
       </div>
 
       {/* Content */}
       <div>
-        <label className="block text-sm font-semibold text-gray-700 mb-2">
+        <label className="block text-xs font-black text-slate-900 uppercase tracking-widest mb-2">
           Blog Content (Supports HTML Code)
         </label>
         <textarea
@@ -158,7 +164,7 @@ export default function BlogForm({ initialData }: { initialData?: BlogData }) {
           onChange={handleChange}
           rows={15}
           placeholder="<h1>Blog Title</h1> <p>Start writing your HTML here...</p>"
-          className="w-full p-3 border rounded-xl font-mono text-sm"
+          className="w-full p-4 border border-slate-200 rounded-xl font-mono text-sm font-black text-black placeholder:text-slate-400"
         />
       </div>
 

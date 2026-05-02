@@ -11,17 +11,30 @@ export async function submitAdmission(formData: any) {
       data: { user },
     } = await supabase.auth.getUser();
 
-    const { student_name, email, phone, course_id, message } = formData;
+    const { 
+      name, 
+      father_name, 
+      email, 
+      phone, 
+      dob, 
+      course_id, 
+      address, 
+      qualification 
+    } = formData;
 
     const { data, error } = await supabase
       .from("admissions")
       .insert({
-        user_id: user?.id,
-        student_name,
+        user_id: user?.id || null,
+        student_name: name, // Map 'name' to 'student_name' if the table uses student_name
+        father_name,
         email,
         phone,
+        dob,
         course_id,
-        message: message || null,
+        address,
+        qualification,
+        status: "pending"
       })
       .select();
 

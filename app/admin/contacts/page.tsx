@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import DeleteButton from "@/components/admin/DeleteButton";
 
 export const revalidate = 0;
 
@@ -50,9 +51,11 @@ export default async function AdminContactsPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-black text-blue-950">Contact Requests</h1>
-        <p className="text-gray-500 mt-1">{list.length} total enquir{list.length !== 1 ? "ies" : "y"} received.</p>
+      <div className="flex justify-between items-end">
+        <div>
+          <h1 className="text-3xl font-black text-blue-950">Contact Requests</h1>
+          <p className="text-gray-500 mt-1">{list.length} total enquir{list.length !== 1 ? "ies" : "y"} received.</p>
+        </div>
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-x-auto">
@@ -64,12 +67,13 @@ export default async function AdminContactsPage() {
               <th className="px-6 py-4 font-semibold">Email</th>
               <th className="px-6 py-4 font-semibold">Message</th>
               <th className="px-6 py-4 font-semibold">Date</th>
+              <th className="px-6 py-4 font-semibold text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
             {list.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-6 py-16 text-center text-gray-400">No contact requests yet.</td>
+                <td colSpan={6} className="px-6 py-16 text-center text-gray-400">No contact requests yet.</td>
               </tr>
             ) : (
               list.map((row) => (
@@ -92,6 +96,9 @@ export default async function AdminContactsPage() {
                     <p className="line-clamp-2">{row.message || "—"}</p>
                   </td>
                   <td className="px-6 py-4 text-gray-400 whitespace-nowrap">{new Date(row.created_at).toLocaleDateString()}</td>
+                  <td className="px-6 py-4 text-right">
+                    <DeleteButton id={row.id} table="contacts" title={row.name} />
+                  </td>
                 </tr>
               ))
             )}
