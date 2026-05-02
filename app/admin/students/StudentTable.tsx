@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { assignCourseToStudent } from "@/app/actions/admin";
 import DeleteButton from "@/components/admin/DeleteButton";
 import { Loader2, Power, PowerOff, ShieldCheck, UserMinus, Settings, X, Check, Search as SearchIcon, PlusCircle, BookOpen } from "lucide-react";
 
@@ -44,28 +45,15 @@ export default function StudentTable({ initialStudents }: { initialStudents: any
 
     setIsSubmitting(true);
     try {
-      // Check if already enrolled
-      const isAlreadyEnrolled = assigningTo.enrollments?.some(
-        (e: any) => e.courses?.id === selectedCourseId
-      );
+      const result = await assignCourseToStudent(assigningTo.id, selectedCourseId);
 
-      if (isAlreadyEnrolled) {
-        alert("Student is already enrolled in this course.");
-        setIsSubmitting(false);
+      if (result?.error) {
+        alert(result.error);
         return;
       }
 
-      const { error } = await supabase.from("enrollments").insert({
-        student_id: assigningTo.id,
-        course_id: selectedCourseId,
-        progress_percentage: 0
-      });
-
-      if (error) throw error;
-
       setAssigningTo(null);
       setSelectedCourseId("");
-      router.refresh();
       alert("Course assigned successfully!");
     } catch (err) {
       console.error("Error assigning course:", err);

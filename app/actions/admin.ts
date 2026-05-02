@@ -61,7 +61,7 @@ export async function updateAdmissionStatus(
             const hashedPassword = await bcrypt.hash(plainPassword, 10);
 
             // 6. Insert into students table
-            const { error: studentError } = await supabase
+            const { data: newStudent, error: studentError } = await supabase
                 .from("students")
                 .insert({
                     student_id: studentId,
@@ -71,11 +71,24 @@ export async function updateAdmissionStatus(
                     course: admission.courses?.title || "N/A",
                     password: hashedPassword,
                     admission_id: id
-                });
+                })
+                .select()
+                .single();
 
             if (studentError) {
                 console.error("Student creation error:", studentError);
                 return { error: "Failed to create student account: " + studentError.message };
+            }
+
+            // 7. Create enrollment
+            if (newStudent) {
+                await supabase
+                    .from("enrollments")
+                    .insert({
+                        student_id: newStudent.id,
+                        course_id: admission.course_id,
+                        progress_percentage: 0
+                    });
             }
         } else {
             studentIdGenerated = existingStudent.student_id;
@@ -103,4 +116,36 @@ export async function updateAdmissionStatus(
             password: passwordGenerated
         } : null
     };
+}
+
+export async function assignCourseToStudent(studentId: string, courseId: string) {
+    const supabase = await createServerSupabaseClient();
+
+    // Check if already enrolled
+    const { data: existing } = await supabase
+        .from("enrollments")
+        .select("id")
+        .eq("student_id", studentId)
+        .eq("course_id", courseId)
+        .single();
+
+    if (existing) {
+        return { error: "Student is already enrolled in this course." };
+    }
+
+    const { error } = await supabase
+        .from("enrollments")
+        .insert({
+            student_id: studentId,
+            course_id: courseId,
+            progress_percentage: 0
+        });
+
+    if (error) {
+        console.error("Enrollment error:", error);
+        return { error: error.message };
+    }
+
+    revalidatePath("/admin/students");
+    return { success: true };
 }
