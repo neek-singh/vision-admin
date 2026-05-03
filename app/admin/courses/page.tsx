@@ -9,7 +9,10 @@ export default async function AdminCoursesPage() {
   const supabase = await createServerSupabaseClient();
   const { data: courses, error } = await supabase
     .from("courses")
-    .select("*")
+    .select(`
+      *,
+      enrollments:enrollments(count)
+    `)
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -32,6 +35,7 @@ export default async function AdminCoursesPage() {
               <tr className="bg-blue-50 text-blue-900 border-b border-gray-100">
                 <th className="px-6 py-4 font-semibold">Course Title</th>
                 <th className="px-6 py-4 font-semibold">Duration</th>
+                <th className="px-6 py-4 font-semibold text-center">Students</th>
                 <th className="px-6 py-4 font-semibold">Fee</th>
                 <th className="px-6 py-4 font-semibold text-right">Actions</th>
               </tr>
@@ -51,6 +55,13 @@ export default async function AdminCoursesPage() {
                       <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-bold">
                         {course.duration}
                       </span>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <div className="flex flex-col items-center">
+                        <span className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs font-black border border-emerald-100">
+                          {course.enrollments?.[0]?.count || 0} enrolled
+                        </span>
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       {course.discount_fee && course.discount_fee > 0 ? (

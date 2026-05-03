@@ -17,7 +17,7 @@ export default async function AdmissionPage() {
         <div className="text-center mb-12 flex flex-col items-center">
           <div className="w-20 h-20 relative mb-6">
             <Image 
-              src="/logo.png" 
+              src="https://res.cloudinary.com/ddiooxxks/image/upload/f_auto,q_auto/logo_unnut8.png" 
               alt="Vision IT Logo" 
               fill 
               className="object-contain"

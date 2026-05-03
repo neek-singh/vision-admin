@@ -34,7 +34,7 @@ export default async function StudentDashboardPage() {
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 relative flex items-center justify-center">
             <Image 
-              src="/logo.png" 
+              src="https://res.cloudinary.com/ddiooxxks/image/upload/f_auto,q_auto/logo_unnut8.png" 
               alt="Vision IT Logo" 
               fill 
               className="object-contain"

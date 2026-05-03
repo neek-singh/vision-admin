@@ -85,7 +85,7 @@ export default async function AdminBlogsPage() {
                 <th className="px-6 py-4">Title</th>
                 <th className="px-6 py-4">Status</th>
                 <th className="px-6 py-4">Date</th>
-                <th className="px-6 py-4 text-right">Actions</th>
+                <th className="px-6 py-4 text-right text-black">Actions</th>
               </tr>
             </thead>
 
@@ -107,8 +107,8 @@ export default async function AdminBlogsPage() {
                     <td className="px-6 py-4">
                       <span
                         className={`px-3 py-1 rounded-full text-xs ${blog.is_published
-                            ? "bg-green-100 text-green-700"
-                            : "bg-gray-100 text-gray-600"
+                          ? "bg-green-100 text-green-700"
+                          : "bg-gray-100 text-gray-600"
                           }`}
                       >
                         {blog.is_published ? "Published" : "Draft"}

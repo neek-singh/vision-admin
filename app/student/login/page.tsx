@@ -33,7 +33,7 @@ export default function StudentLoginPage() {
         <div className="text-center mb-10 flex flex-col items-center">
           <div className="w-20 h-20 relative mb-6">
             <Image 
-              src="/logo.png" 
+              src="https://res.cloudinary.com/ddiooxxks/image/upload/f_auto,q_auto/logo_unnut8.png" 
               alt="Vision IT Logo" 
               fill 
               className="object-contain"

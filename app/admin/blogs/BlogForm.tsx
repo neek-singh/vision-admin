@@ -11,6 +11,7 @@ type BlogData = {
   slug: string;
   excerpt: string;
   content: string;
+  image_url?: string;
   is_published: boolean;
 };
 
@@ -22,6 +23,7 @@ export default function BlogForm({ initialData }: { initialData?: BlogData }) {
     slug: initialData?.slug || "",
     excerpt: initialData?.excerpt || "",
     content: initialData?.content || "",
+    image_url: initialData?.image_url || "",
     is_published: initialData?.is_published || false,
   });
 
@@ -31,7 +33,7 @@ export default function BlogForm({ initialData }: { initialData?: BlogData }) {
   // 🔧 Handle input
   const handleChange = (e: any) => {
     const { name, value } = e.target;
-    
+
     if (name === "title") {
       const slug = value
         .toLowerCase()
@@ -39,7 +41,7 @@ export default function BlogForm({ initialData }: { initialData?: BlogData }) {
         .replace(/[^a-z0-9\s-]/g, "")
         .replace(/\s+/g, "-")
         .replace(/-+/g, "-");
-        
+
       setFormData({ ...formData, title: value, slug });
     } else {
       setFormData({ ...formData, [name]: value });
@@ -153,6 +155,30 @@ export default function BlogForm({ initialData }: { initialData?: BlogData }) {
         </div>
       </div>
 
+      {/* Featured Image */}
+      <div>
+        <label className="block text-xs font-black text-slate-900 uppercase tracking-widest mb-2">Featured Image URL</label>
+        <div className="space-y-3">
+          <input
+            name="image_url"
+            value={formData.image_url || ""}
+            onChange={handleChange}
+            placeholder="https://..."
+            className="w-full p-3 border border-slate-200 rounded-xl font-mono text-black text-sm"
+          />
+          {formData.image_url && (
+            <div className="relative w-40 h-24 rounded-xl overflow-hidden border border-slate-100 shadow-sm bg-slate-50">
+              <img
+                src={formData.image_url}
+                alt="Thumbnail Preview"
+                className="w-full h-full object-cover"
+                onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/400x300?text=Invalid+URL'; }}
+              />
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Content */}
       <div>
         <label className="block text-xs font-black text-slate-900 uppercase tracking-widest mb-2">
@@ -169,7 +195,7 @@ export default function BlogForm({ initialData }: { initialData?: BlogData }) {
       </div>
 
       {/* Publish */}
-      <label className="flex gap-2">
+      <label className="flex gap-2 text-black">
         <input
           type="checkbox"
           checked={formData.is_published}

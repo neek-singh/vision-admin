@@ -135,10 +135,10 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             <Link href="/admin" className="font-bold text-xl text-white tracking-tight flex items-center gap-2">
               <div className="w-10 h-10 bg-white rounded-xl relative flex items-center justify-center p-1 shadow-sm">
                 <Image 
-                  src="/logo.png" 
+                  src="https://res.cloudinary.com/ddiooxxks/image/upload/f_auto,q_auto/logo_unnut8.png" 
                   alt="Vision IT Logo" 
-                  width={32} 
-                  height={32} 
+                  width={36} 
+                  height={36} 
                   className="object-contain"
                   priority
                 />

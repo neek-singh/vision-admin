@@ -106,7 +106,7 @@ function LoginForm() {
       <div className="mb-8 text-center flex flex-col items-center">
         <div className="w-20 h-20 bg-white rounded-2xl relative flex items-center justify-center p-3 mb-4 shadow-xl shadow-blue-500/10">
           <Image 
-            src="/logo.png" 
+            src="https://res.cloudinary.com/ddiooxxks/image/upload/f_auto,q_auto/logo_unnut8.png" 
             alt="Vision IT Logo" 
             width={64}
             height={64}

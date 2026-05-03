@@ -61,6 +61,38 @@ export async function uploadImage(formData: FormData) {
   }
 }
 
+export async function addImageUrl(title: string, imageUrl: string) {
+  if (!title || !imageUrl) {
+    return { error: "Title and Image URL are required." };
+  }
+
+  try {
+    // Read existing JSON
+    let gallery: any[] = [];
+    if (fs.existsSync(galleryFilePath)) {
+      gallery = JSON.parse(fs.readFileSync(galleryFilePath, "utf-8"));
+    }
+
+    // Append new image
+    const newImage = {
+      id: Math.random().toString(36).slice(2),
+      title,
+      image_url: imageUrl,
+      created_at: new Date().toISOString(),
+    };
+
+    gallery.unshift(newImage);
+    fs.writeFileSync(galleryFilePath, JSON.stringify(gallery, null, 2), "utf-8");
+
+    revalidatePath("/gallery");
+    revalidatePath("/admin/gallery");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Failed to add image URL to JSON:", error);
+    return { error: error.message || "Failed to add image URL" };
+  }
+}
+
 export async function deleteImage(id: string, imageUrl: string) {
   try {
     // Read existing JSON
