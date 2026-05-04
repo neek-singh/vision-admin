@@ -5,9 +5,9 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { assignCourseToStudent, removeCourseFromStudent } from "@/app/actions/admin";
 import DeleteButton from "@/components/admin/DeleteButton";
-import { Loader2, Power, PowerOff, ShieldCheck, UserMinus, Settings, X, Check, Search as SearchIcon, PlusCircle, BookOpen, Trash2 } from "lucide-react";
+import { Loader2, Power, PowerOff, ShieldCheck, UserMinus, Settings, X, Check, Search as SearchIcon, PlusCircle, BookOpen, Trash2, Users } from "lucide-react";
 
-export default function StudentTable({ initialStudents }: { initialStudents: any[] }) {
+export default function StudentTable({ initialStudents, availableBatches = [] }: { initialStudents: any[], availableBatches?: string[] }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -22,6 +22,7 @@ export default function StudentTable({ initialStudents }: { initialStudents: any
   const [assigningTo, setAssigningTo] = useState<any | null>(null);
   const [availableCourses, setAvailableCourses] = useState<any[]>([]);
   const [selectedCourseId, setSelectedCourseId] = useState("");
+  const [selectedBatch, setSelectedBatch] = useState<string>("");
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,7 +46,7 @@ export default function StudentTable({ initialStudents }: { initialStudents: any
 
     setIsSubmitting(true);
     try {
-      const result = await assignCourseToStudent(assigningTo.id, selectedCourseId);
+      const result = await assignCourseToStudent(assigningTo.id, selectedCourseId, selectedBatch);
 
       if (result?.error) {
         alert(result.error);
@@ -54,6 +55,7 @@ export default function StudentTable({ initialStudents }: { initialStudents: any
 
       setAssigningTo(null);
       setSelectedCourseId("");
+      setSelectedBatch("");
       router.refresh();
       alert("Course assigned successfully!");
     } catch (err) {
@@ -446,6 +448,23 @@ export default function StudentTable({ initialStudents }: { initialStudents: any
                 </div>
               </div>
 
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Select Batch (Optional)</label>
+                <div className="relative">
+                   <select 
+                    value={selectedBatch}
+                    onChange={(e) => setSelectedBatch(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-emerald-500 transition-all text-sm font-black text-black appearance-none cursor-pointer"
+                  >
+                    <option value="">No Batch / All Batches</option>
+                    {availableBatches.map((batch: string) => (
+                      <option key={batch} value={batch}>{batch}</option>
+                    ))}
+                  </select>
+                  <Users className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" size={16} />
+                </div>
+              </div>
+
               <div className="flex gap-3">
                 <button 
                   type="button"
@@ -532,7 +551,10 @@ export default function StudentTable({ initialStudents }: { initialStudents: any
                             <span key={enrollment.id} className="px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-[10px] font-bold text-slate-700 flex items-center gap-2 group hover:border-rose-200 hover:bg-rose-50/30 transition-all">
                               <div className="flex flex-col flex-1">
                                 <span className="line-clamp-1">{enrollment.courses?.title}</span>
-                                <span className="text-[8px] text-slate-400 uppercase">{enrollment.courses?.course_code}</span>
+                                <span className="text-[8px] text-slate-400 uppercase">
+                                  {enrollment.courses?.course_code}
+                                  {enrollment.batch && <span className="text-emerald-600 font-black ml-1">• {enrollment.batch}</span>}
+                                </span>
                               </div>
                               <button 
                                 onClick={() => handleRemoveCourse(enrollment.id, enrollment.courses?.title, student.name)}

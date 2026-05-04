@@ -1,5 +1,6 @@
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import StudentTable from "./StudentTable";
+import fs from "fs";
 
 export const revalidate = 0;
 
@@ -19,6 +20,7 @@ export default async function AdminStudentsPage({
       *,
       enrollments(
         id,
+        batch,
         courses(id, title, course_code)
       )
     `)
@@ -34,6 +36,21 @@ export default async function AdminStudentsPage({
     console.error("Error fetching students:", error);
   }
 
+  // Fetch batches.json
+  let batchesList: any[] = [];
+  try {
+    const batchesFilePath = "c:\\Users\\as007\\vision-web\\data\\batches.json";
+    if (fs.existsSync(batchesFilePath)) {
+      const fileData = fs.readFileSync(batchesFilePath, "utf-8");
+      batchesList = JSON.parse(fileData);
+    }
+  } catch (e) {
+    console.error("Error reading batches:", e);
+  }
+
+  // Extract unique batch type names
+  const batchNames = Array.from(new Set(batchesList.map(b => b.type).filter(Boolean)));
+
   return (
     <div className="container mx-auto px-6 lg:px-8 py-12">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
@@ -48,7 +65,7 @@ export default async function AdminStudentsPage({
         </div>
       </div>
 
-      <StudentTable initialStudents={students || []} />
+      <StudentTable initialStudents={students || []} availableBatches={batchNames} />
     </div>
   );
 }

@@ -87,6 +87,7 @@ export async function updateAdmissionStatus(
                     .insert({
                         student_id: newStudent.id,
                         course_id: admission.course_id,
+                        batch: null, // assigned later or not applicable
                         progress_percentage: 0
                     });
             }
@@ -118,7 +119,7 @@ export async function updateAdmissionStatus(
     };
 }
 
-export async function assignCourseToStudent(studentId: string, courseId: string) {
+export async function assignCourseToStudent(studentId: string, courseId: string, batch?: string) {
     const supabase = await createServerSupabaseClient();
 
     // Check if already enrolled
@@ -138,6 +139,7 @@ export async function assignCourseToStudent(studentId: string, courseId: string)
         .insert({
             student_id: studentId,
             course_id: courseId,
+            batch: batch || null,
             progress_percentage: 0
         });
 
