@@ -167,4 +167,22 @@ export async function removeCourseFromStudent(enrollmentId: string) {
 
     revalidatePath("/admin/students");
     return { success: true };
-}
+}
+
+export async function updateEnrollmentBatch(enrollmentId: string, batch: string | null) {
+    const supabase = await createServerSupabaseClient();
+
+    const { error } = await supabase
+        .from("enrollments")
+        .update({ batch })
+        .eq("id", enrollmentId);
+
+    if (error) {
+        console.error("Update batch error:", error);
+        return { error: error.message };
+    }
+
+    revalidatePath("/admin/students");
+    return { success: true };
+}
+

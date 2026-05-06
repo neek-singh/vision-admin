@@ -18,7 +18,7 @@ import {
   Clock as ClockIcon
 } from "lucide-react";
 
-export default function AssignmentsClient({ courses, initialAssignments }: { courses: any[], initialAssignments: any[] }) {
+export default function AssignmentsClient({ courses, initialAssignments, availableBatches = [] }: { courses: any[], initialAssignments: any[], availableBatches?: string[] }) {
   const router = useRouter();
   const [isAdding, setIsAdding] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -28,6 +28,7 @@ export default function AssignmentsClient({ courses, initialAssignments }: { cou
   const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(false);
   const [formData, setFormData] = useState({
     course_id: "",
+    batch: "",
     title: "",
     description: "",
     due_date: ""
@@ -66,6 +67,7 @@ export default function AssignmentsClient({ courses, initialAssignments }: { cou
     
     setFormData({
       course_id: assignment.course_id,
+      batch: assignment.batch || "",
       title: assignment.title,
       description: assignment.description || "",
       due_date: formattedDate
@@ -77,7 +79,7 @@ export default function AssignmentsClient({ courses, initialAssignments }: { cou
   const closeForm = () => {
     setIsAdding(false);
     setEditingId(null);
-    setFormData({ course_id: "", title: "", description: "", due_date: "" });
+    setFormData({ course_id: "", batch: "", title: "", description: "", due_date: "" });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -155,19 +157,34 @@ export default function AssignmentsClient({ courses, initialAssignments }: { cou
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div className="space-y-4">
-                <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Target Course</label>
-                  <select 
-                    required
-                    value={formData.course_id}
-                    onChange={(e) => setFormData({...formData, course_id: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 transition-all text-sm font-bold text-black"
-                  >
-                    <option value="">Select a course...</option>
-                    {courses.map(course => (
-                      <option key={course.id} value={course.id}>{course.title}</option>
-                    ))}
-                  </select>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Target Course</label>
+                    <select 
+                      required
+                      value={formData.course_id}
+                      onChange={(e) => setFormData({...formData, course_id: e.target.value})}
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 transition-all text-sm font-bold text-black"
+                    >
+                      <option value="">Select a course...</option>
+                      {courses.map(course => (
+                        <option key={course.id} value={course.id}>{course.title}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Target Batch</label>
+                    <select 
+                      value={formData.batch}
+                      onChange={(e) => setFormData({...formData, batch: e.target.value})}
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 transition-all text-sm font-bold text-black"
+                    >
+                      <option value="">All Batches</option>
+                      {availableBatches.map(batch => (
+                        <option key={batch} value={batch}>{batch}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Assignment Title</label>
@@ -246,7 +263,14 @@ export default function AssignmentsClient({ courses, initialAssignments }: { cou
             <div className="space-y-1 mb-6">
               <h3 className="text-lg font-black text-slate-900 leading-tight">{assignment.title}</h3>
               <div className="flex items-center justify-between mt-1">
-                <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">{assignment.courses?.title}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">{assignment.courses?.title}</p>
+                  {assignment.batch && (
+                    <span className="px-1.5 py-0.5 bg-indigo-50 text-indigo-600 rounded text-[8px] font-black uppercase tracking-widest border border-indigo-100">
+                      {assignment.batch}
+                    </span>
+                  )}
+                </div>
                 <button 
                   onClick={() => handleTogglePublish(assignment.id, assignment.is_published)}
                   className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest transition-all ${

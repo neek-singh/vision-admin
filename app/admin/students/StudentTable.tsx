@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { assignCourseToStudent, removeCourseFromStudent } from "@/app/actions/admin";
+import { assignCourseToStudent, removeCourseFromStudent, updateEnrollmentBatch } from "@/app/actions/admin";
 import DeleteButton from "@/components/admin/DeleteButton";
-import { Loader2, Power, PowerOff, ShieldCheck, UserMinus, Settings, X, Check, Search as SearchIcon, PlusCircle, BookOpen, Trash2, Users } from "lucide-react";
+import { Loader2, Power, PowerOff, ShieldCheck, UserMinus, Settings, X, Check, Search as SearchIcon, PlusCircle, BookOpen, Trash2, Users, Edit2 } from "lucide-react";
 
 export default function StudentTable({ initialStudents, availableBatches = [] }: { initialStudents: any[], availableBatches?: string[] }) {
   const router = useRouter();
@@ -23,6 +23,10 @@ export default function StudentTable({ initialStudents, availableBatches = [] }:
   const [availableCourses, setAvailableCourses] = useState<any[]>([]);
   const [selectedCourseId, setSelectedCourseId] = useState("");
   const [selectedBatch, setSelectedBatch] = useState<string>("");
+
+  // Change Batch State
+  const [editingBatchFor, setEditingBatchFor] = useState<any | null>(null);
+  const [newBatch, setNewBatch] = useState<string>("");
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,6 +86,31 @@ export default function StudentTable({ initialStudents, availableBatches = [] }:
     } catch (err) {
       console.error("Error removing course:", err);
       alert("Failed to remove course");
+    }
+  };
+
+  const handleChangeBatch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingBatchFor) return;
+
+    setIsSubmitting(true);
+    try {
+      const result = await updateEnrollmentBatch(editingBatchFor.id, newBatch || null);
+
+      if (result?.error) {
+        alert(result.error);
+        return;
+      }
+
+      setEditingBatchFor(null);
+      setNewBatch("");
+      router.refresh();
+      alert("Batch updated successfully!");
+    } catch (err) {
+      console.error("Error updating batch:", err);
+      alert("Failed to update batch");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -486,6 +515,60 @@ export default function StudentTable({ initialStudents, availableBatches = [] }:
         </div>
       )}
 
+      {/* Change Batch Modal */}
+      {editingBatchFor && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-100">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                <Edit2 size={18} className="text-blue-600" />
+                Change Batch
+              </h3>
+              <button onClick={() => setEditingBatchFor(null)} className="p-1.5 hover:bg-slate-100 rounded-lg"><X size={18} /></button>
+            </div>
+            <div className="p-6 bg-blue-50/30 border-b border-blue-50">
+               <p className="text-xs text-blue-600 font-bold mb-1 uppercase tracking-widest">Course:</p>
+               <h4 className="text-lg font-black text-blue-900">{editingBatchFor.courses?.title}</h4>
+            </div>
+            <form onSubmit={handleChangeBatch} className="p-6 space-y-6">
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Select New Batch</label>
+                <div className="relative">
+                   <select 
+                    value={newBatch}
+                    onChange={(e) => setNewBatch(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-black text-black appearance-none cursor-pointer"
+                  >
+                    <option value="">No Batch / All Batches</option>
+                    {availableBatches.map((batch: string) => (
+                      <option key={batch} value={batch}>{batch}</option>
+                    ))}
+                  </select>
+                  <Users className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" size={16} />
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button 
+                  type="button"
+                  onClick={() => setEditingBatchFor(null)}
+                  className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl transition-all"
+                >
+                  Cancel
+                </button>
+                <button 
+                  disabled={isSubmitting}
+                  className="flex-[2] py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 disabled:opacity-50"
+                >
+                  {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : <Check size={18} />}
+                  Save Batch
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col md:flex-row justify-between gap-4">
         <form onSubmit={handleSearch} className="relative flex-1 md:max-w-md">
           <input
@@ -556,13 +639,25 @@ export default function StudentTable({ initialStudents, availableBatches = [] }:
                                   {enrollment.batch && <span className="text-emerald-600 font-black ml-1">• {enrollment.batch}</span>}
                                 </span>
                               </div>
-                              <button 
-                                onClick={() => handleRemoveCourse(enrollment.id, enrollment.courses?.title, student.name)}
-                                className="p-1 hover:bg-rose-100 text-slate-300 hover:text-rose-600 rounded-md transition-all"
-                                title="Remove Course"
-                              >
-                                <X size={10} />
-                              </button>
+                              <div className="flex flex-col gap-1 items-center justify-center border-l border-slate-200/60 pl-2 ml-1">
+                                <button 
+                                  onClick={() => {
+                                    setEditingBatchFor(enrollment);
+                                    setNewBatch(enrollment.batch || "");
+                                  }}
+                                  className="p-1 hover:bg-blue-100 text-slate-300 hover:text-blue-600 rounded-md transition-all"
+                                  title="Change Batch"
+                                >
+                                  <Edit2 size={10} />
+                                </button>
+                                <button 
+                                  onClick={() => handleRemoveCourse(enrollment.id, enrollment.courses?.title, student.name)}
+                                  className="p-1 hover:bg-rose-100 text-slate-300 hover:text-rose-600 rounded-md transition-all"
+                                  title="Remove Course"
+                                >
+                                  <X size={10} />
+                                </button>
+                              </div>
                             </span>
                           ))}
                           <button 

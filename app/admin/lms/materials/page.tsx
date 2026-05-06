@@ -1,6 +1,7 @@
 
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import MaterialsClient from "./MaterialsClient";
+import fs from "fs";
 
 export default async function MaterialsAdminPage() {
   const supabase = await createServerSupabaseClient();
@@ -18,6 +19,18 @@ export default async function MaterialsAdminPage() {
     `)
     .order("created_at", { ascending: false });
 
+  let batchesList: any[] = [];
+  try {
+    const batchesFilePath = "c:\\Users\\as007\\vision-web\\data\\batches.json";
+    if (fs.existsSync(batchesFilePath)) {
+      const fileData = fs.readFileSync(batchesFilePath, "utf-8");
+      batchesList = JSON.parse(fileData);
+    }
+  } catch (e) {
+    console.error("Error reading batches:", e);
+  }
+  const batchNames = Array.from(new Set(batchesList.map(b => b.type).filter(Boolean)));
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
@@ -27,7 +40,7 @@ export default async function MaterialsAdminPage() {
         </div>
       </div>
 
-      <MaterialsClient courses={courses || []} initialMaterials={materials || []} />
+      <MaterialsClient courses={courses || []} initialMaterials={materials || []} availableBatches={batchNames} />
     </div>
   );
 }

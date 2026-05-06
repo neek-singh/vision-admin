@@ -19,7 +19,7 @@ import {
   Users
 } from "lucide-react";
 
-export default function TestsClient({ courses, initialTests }: { courses: any[], initialTests: any[] }) {
+export default function TestsClient({ courses, initialTests, availableBatches = [] }: { courses: any[], initialTests: any[], availableBatches?: string[] }) {
   const router = useRouter();
   const [isAdding, setIsAdding] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -29,6 +29,7 @@ export default function TestsClient({ courses, initialTests }: { courses: any[],
   const [isLoadingResults, setIsLoadingResults] = useState(false);
   const [formData, setFormData] = useState({
     course_id: "",
+    batch: "",
     title: "",
     type: "daily",
     duration_minutes: 30
@@ -63,6 +64,7 @@ export default function TestsClient({ courses, initialTests }: { courses: any[],
   const handleEdit = (test: any) => {
     setFormData({
       course_id: test.course_id,
+      batch: test.batch || "",
       title: test.title,
       type: test.type || "daily",
       duration_minutes: test.duration_minutes
@@ -74,7 +76,7 @@ export default function TestsClient({ courses, initialTests }: { courses: any[],
   const closeForm = () => {
     setIsAdding(false);
     setEditingId(null);
-    setFormData({ course_id: "", title: "", type: "daily", duration_minutes: 30 });
+    setFormData({ course_id: "", batch: "", title: "", type: "daily", duration_minutes: 30 });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -152,17 +154,32 @@ export default function TestsClient({ courses, initialTests }: { courses: any[],
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div className="space-y-4">
-                <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Link to Course</label>
-                  <select 
-                    required
-                    value={formData.course_id}
-                    onChange={(e) => setFormData({...formData, course_id: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-rose-500 transition-all text-sm font-bold text-slate-900"
-                  >
-                    <option value="">Select course...</option>
-                    {courses.map(course => <option key={course.id} value={course.id}>{course.title}</option>)}
-                  </select>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Link to Course</label>
+                    <select 
+                      required
+                      value={formData.course_id}
+                      onChange={(e) => setFormData({...formData, course_id: e.target.value})}
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-rose-500 transition-all text-sm font-bold text-slate-900"
+                    >
+                      <option value="">Select course...</option>
+                      {courses.map(course => <option key={course.id} value={course.id}>{course.title}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Target Batch</label>
+                    <select 
+                      value={formData.batch}
+                      onChange={(e) => setFormData({...formData, batch: e.target.value})}
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-rose-500 transition-all text-sm font-bold text-slate-900"
+                    >
+                      <option value="">All Batches</option>
+                      {availableBatches.map(batch => (
+                        <option key={batch} value={batch}>{batch}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Test Title</label>
@@ -225,7 +242,14 @@ export default function TestsClient({ courses, initialTests }: { courses: any[],
               </div>
               <h3 className="text-lg font-black text-slate-900 leading-tight">{test.title}</h3>
               <div className="flex items-center justify-between mt-1">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{test.courses?.title}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{test.courses?.title}</p>
+                  {test.batch && (
+                    <span className="px-1.5 py-0.5 bg-rose-50 text-rose-600 rounded text-[8px] font-black uppercase tracking-widest border border-rose-100">
+                      {test.batch}
+                    </span>
+                  )}
+                </div>
                 <button 
                   onClick={() => handleTogglePublish(test.id, test.is_published)}
                   className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest transition-all ${

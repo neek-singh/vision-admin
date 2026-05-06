@@ -19,13 +19,13 @@ import {
   BookOpen as BookOpenIcon
 } from "lucide-react";
 
-export default function MaterialsClient({ courses, initialMaterials }: { courses: any[], initialMaterials: any[] }) {
+export default function MaterialsClient({ courses, initialMaterials, availableBatches = [] }: { courses: any[], initialMaterials: any[], availableBatches?: string[] }) {
   const router = useRouter();
   const [isAdding, setIsAdding] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({
     course_id: "",
+    batch: "",
     title: "",
     type: "pdf",
     content_url: "",
@@ -37,6 +37,7 @@ export default function MaterialsClient({ courses, initialMaterials }: { courses
   const handleEdit = (material: any) => {
     setFormData({
       course_id: material.course_id,
+      batch: material.batch || "",
       title: material.title,
       type: material.type || "pdf",
       content_url: material.content_url || "",
@@ -51,7 +52,7 @@ export default function MaterialsClient({ courses, initialMaterials }: { courses
   const closeForm = () => {
     setIsAdding(false);
     setEditingId(null);
-    setFormData({ course_id: "", title: "", type: "pdf", content_url: "", file_size: "", duration: "", code_content: "" });
+    setFormData({ course_id: "", batch: "", title: "", type: "pdf", content_url: "", file_size: "", duration: "", code_content: "" });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -129,19 +130,34 @@ export default function MaterialsClient({ courses, initialMaterials }: { courses
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div className="space-y-4">
-                <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Link to Course</label>
-                  <select 
-                    required
-                    value={formData.course_id}
-                    onChange={(e) => setFormData({...formData, course_id: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-black"
-                  >
-                    <option value="">Select a course...</option>
-                    {courses.map(course => (
-                      <option key={course.id} value={course.id}>{course.title}</option>
-                    ))}
-                  </select>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Link to Course</label>
+                    <select 
+                      required
+                      value={formData.course_id}
+                      onChange={(e) => setFormData({...formData, course_id: e.target.value})}
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-black"
+                    >
+                      <option value="">Select a course...</option>
+                      {courses.map(course => (
+                        <option key={course.id} value={course.id}>{course.title}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Target Batch</label>
+                    <select 
+                      value={formData.batch}
+                      onChange={(e) => setFormData({...formData, batch: e.target.value})}
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-black"
+                    >
+                      <option value="">All Batches</option>
+                      {availableBatches.map(batch => (
+                        <option key={batch} value={batch}>{batch}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Material Title</label>
@@ -263,7 +279,12 @@ export default function MaterialsClient({ courses, initialMaterials }: { courses
                   </div>
                 </td>
                 <td className="px-6 py-4">
-                  <span className="text-xs font-bold text-slate-600">{material.courses?.title}</span>
+                  <span className="text-xs font-bold text-slate-600 block">{material.courses?.title}</span>
+                  {material.batch && (
+                    <span className="inline-block mt-1 px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded text-[9px] font-black uppercase tracking-widest">
+                      {material.batch}
+                    </span>
+                  )}
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex items-center justify-between gap-4">
