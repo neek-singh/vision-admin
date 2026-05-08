@@ -1,55 +1,48 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import fs from "fs";
-import path from "path";
+import { createServerSupabaseClient } from "@/lib/supabase-server";
 
-const batchesFilePath = "c:\\Users\\as007\\vision-web\\data\\batches.json";
+export async function saveBatch(data: {
+  id?: string;
+  title: string;
+  course_id?: string;
+  faculty_name?: string;
+  start_date?: string;
+  end_date?: string;
+  timing?: string;
+  max_seats?: number;
+  available_seats?: number;
+  status?: string;
+}) {
+  const supabase = await createServerSupabaseClient();
 
+  if (data.id) {
+    const { id, ...updateData } = data;
+    const { error } = await supabase
+      .from("batches")
+      .update({ ...updateData, updated_at: new Date().toISOString() })
+      .eq("id", id);
 
-export async function saveBatch(formData: any) {
-  try {
-    let batches: any[] = [];
-    if (fs.existsSync(batchesFilePath)) {
-      batches = JSON.parse(fs.readFileSync(batchesFilePath, "utf-8"));
-    }
-
-    if (formData.id) {
-      batches = batches.map((b: any) => b.id === formData.id ? { ...b, ...formData } : b);
-    } else {
-      const newBatch = {
-        ...formData,
-        id: Math.random().toString(36).slice(2)
-      };
-      batches.push(newBatch);
-    }
-
-    fs.writeFileSync(batchesFilePath, JSON.stringify(batches, null, 2), "utf-8");
-
-    revalidatePath("/");
-    revalidatePath("/admin/batches");
+    if (error) return { error: error.message };
     return { success: true };
-  } catch (e: any) {
-    console.error("Failed to save batch to JSON:", e);
-    return { error: e.message || "Failed to save batch" };
+  } else {
+    const { error } = await supabase
+      .from("batches")
+      .insert([data]);
+
+    if (error) return { error: error.message };
+    return { success: true };
   }
 }
 
 export async function deleteBatch(id: string) {
-  try {
-    let batches: any[] = [];
-    if (fs.existsSync(batchesFilePath)) {
-      batches = JSON.parse(fs.readFileSync(batchesFilePath, "utf-8"));
-    }
+  const supabase = await createServerSupabaseClient();
 
-    const updatedBatches = batches.filter((b: any) => b.id !== id);
-    fs.writeFileSync(batchesFilePath, JSON.stringify(updatedBatches, null, 2), "utf-8");
+  const { error } = await supabase
+    .from("batches")
+    .delete()
+    .eq("id", id);
 
-    revalidatePath("/");
-    revalidatePath("/admin/batches");
-    return { success: true };
-  } catch (e: any) {
-    console.error("Failed to delete batch from JSON:", e);
-    return { error: e.message || "Failed to delete batch" };
-  }
+  if (error) return { error: error.message };
+  return { success: true };
 }

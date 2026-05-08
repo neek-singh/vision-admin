@@ -1,25 +1,18 @@
-import { createClient } from '@supabase/supabase-js'
-import * as dotenv from 'dotenv'
-dotenv.config({ path: '.env.local' })
+import { createClient } from '@supabase/supabase-js';
+import dotenv from 'dotenv';
+import path from 'path';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+dotenv.config({ path: path.resolve(__dirname, '.env.local') });
 
-async function checkSchema() {
-  const { data, error } = await supabase
-    .from("students")
-    .select("*")
-    .limit(1);
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-  if (error) {
-    console.error("Error fetching students:", error);
-  } else if (data && data.length > 0) {
-    console.log("Columns found in students table:", Object.keys(data[0]));
-  } else {
-    console.log("No students found, but query succeeded.");
-  }
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+async function check() {
+    console.log("courses:", Object.keys((await supabase.from('courses').select('*').limit(1)).data?.[0] || {}));
+    console.log("lms_modules:", Object.keys((await supabase.from('lms_modules').select('*').limit(1)).data?.[0] || {}));
+    console.log("lessons:", Object.keys((await supabase.from('lessons').select('*').limit(1)).data?.[0] || {}));
 }
 
-checkSchema();
+check();

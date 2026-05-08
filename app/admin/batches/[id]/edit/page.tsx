@@ -1,7 +1,6 @@
 import BatchForm from "../../BatchForm";
+import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { notFound } from "next/navigation";
-import fs from "fs";
-import path from "path";
 
 export const revalidate = 0;
 
@@ -11,25 +10,24 @@ interface EditBatchPageProps {
 
 export default async function EditBatchPage({ params }: EditBatchPageProps) {
   const { id } = await params;
-  const batchesFilePath = "c:\\Users\\as007\\vision-web\\data\\batches.json";
+  const supabase = await createServerSupabaseClient();
 
-  let batch = null;
+  const { data: batch, error } = await supabase
+    .from("batches")
+    .select("*")
+    .eq("id", id)
+    .single();
 
-  try {
-    if (fs.existsSync(batchesFilePath)) {
-      const batches = JSON.parse(fs.readFileSync(batchesFilePath, "utf-8"));
-      batch = batches.find((b: any) => b.id === id);
-    }
-  } catch (e) {
-    console.error("Error finding batch for editing:", e);
-  }
+  if (error || !batch) return notFound();
 
-  if (!batch) return notFound();
+  const { data: courses } = await supabase
+    .from("courses")
+    .select("id, title")
+    .order("title");
 
   return (
     <div className="container mx-auto px-6 py-12">
-      <h1 className="text-3xl font-bold text-blue-950 mb-8 text-center">Edit Batch</h1>
-      <BatchForm initialData={batch} />
+      <BatchForm batch={batch} courses={courses || []} />
     </div>
   );
 }

@@ -1,6 +1,5 @@
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import StudentTable from "./StudentTable";
-import fs from "fs";
 
 export const revalidate = 0;
 
@@ -36,20 +35,13 @@ export default async function AdminStudentsPage({
     console.error("Error fetching students:", error);
   }
 
-  // Fetch batches.json
-  let batchesList: any[] = [];
-  try {
-    const batchesFilePath = "c:\\Users\\as007\\vision-web\\data\\batches.json";
-    if (fs.existsSync(batchesFilePath)) {
-      const fileData = fs.readFileSync(batchesFilePath, "utf-8");
-      batchesList = JSON.parse(fileData);
-    }
-  } catch (e) {
-    console.error("Error reading batches:", e);
-  }
+  // Fetch batches from Supabase
+  const { data: batchesData } = await supabase
+    .from("batches")
+    .select("title")
+    .order("title");
 
-  // Extract unique batch type names
-  const batchNames = Array.from(new Set(batchesList.map(b => b.type).filter(Boolean)));
+  const batchNames = batchesData?.map(b => b.title) || [];
 
   return (
     <div className="container mx-auto px-6 lg:px-8 py-12">

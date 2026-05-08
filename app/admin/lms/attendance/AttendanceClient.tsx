@@ -26,33 +26,40 @@ interface Student {
   student_id: string;
 }
 
-export default function AttendanceClient({ initialCourses }: { initialCourses: any[] }) {
+export default function AttendanceClient({ initialCourses, initialBatches }: { initialCourses: any[], initialBatches: any[] }) {
   const [activeTab, setActiveTab] = useState<'mark' | 'history' | 'report'>('mark');
   const [selectedCourse, setSelectedCourse] = useState(initialCourses[0]?.id || "");
+  const [selectedBatch, setSelectedBatch] = useState("");
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [students, setStudents] = useState<Student[]>([]);
   const [attendance, setAttendance] = useState<Record<string, AttendanceStatus>>({});
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Fetch students enrolled in the selected course
+  // Fetch students enrolled in the selected course and batch
   useEffect(() => {
     if (selectedCourse && activeTab === 'mark') {
       fetchStudentsAndAttendance();
     }
-  }, [selectedCourse, selectedDate, activeTab]);
+  }, [selectedCourse, selectedBatch, selectedDate, activeTab]);
 
   async function fetchStudentsAndAttendance() {
     setLoading(true);
     try {
       // 1. Fetch enrolled students
-      const { data: enrollments, error: enrollError } = await supabase
+      let studentQuery = supabase
         .from("enrollments")
         .select(`
           student_id,
           students(id, name, student_id)
         `)
         .eq("course_id", selectedCourse);
+
+      if (selectedBatch) {
+        studentQuery = studentQuery.eq("batch", selectedBatch);
+      }
+
+      const { data: enrollments, error: enrollError } = await studentQuery;
 
       if (enrollError) throw enrollError;
 
@@ -169,6 +176,19 @@ export default function AttendanceClient({ initialCourses }: { initialCourses: a
                   >
                     {initialCourses.map(c => (
                       <option key={c.id} value={c.id}>{c.title}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex-1 space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Select Batch (Optional)</label>
+                  <select 
+                    value={selectedBatch}
+                    onChange={(e) => setSelectedBatch(e.target.value)}
+                    className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-600/20 transition-all"
+                  >
+                    <option value="">All Batches</option>
+                    {initialBatches.map(b => (
+                      <option key={b.id} value={b.title}>{b.title}</option>
                     ))}
                   </select>
                 </div>

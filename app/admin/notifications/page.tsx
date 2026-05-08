@@ -42,10 +42,10 @@ export default async function AdminNotificationsPage() {
     .order("name");
 
   return (
-    <div className="container mx-auto px-6 py-10">
-      <div className="mb-10">
-        <h1 className="text-4xl font-black text-slate-900 tracking-tight">Notification Center</h1>
-        <p className="text-slate-500 font-medium mt-1">Manage announcements and targeted student updates.</p>
+    <div className="container mx-auto px-6 py-6">
+      <div className="mb-6">
+        <h1 className="text-3xl font-black text-slate-900 tracking-tight">Notification Center</h1>
+        <p className="text-slate-500 font-medium text-sm mt-1">Manage announcements and targeted student updates.</p>
       </div>
 
       <NotificationsClient 

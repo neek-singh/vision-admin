@@ -25,41 +25,37 @@ export async function POST(request: Request) {
 
     const { name, course, password, email, phone } = await request.json();
 
-    if (!name || !course || !password) {
+    if (!name || !password) {
       return NextResponse.json(
-        { error: "Name, Course, and Password are required." },
+        { error: "Name and Password are required." },
         { status: 400 }
       );
     }
 
-    // Find matching course
-    const { data: courseData } = await supabase
-      .from("courses")
-      .select("id, course_code")
-      .or(`course_code.ilike.%${course}%,title.ilike.%${course}%`)
-      .limit(1)
-      .single();
-
-    if (!courseData) {
-      return NextResponse.json(
-        { error: `Course matching "${course}" not found. Please create the course first.` },
-        { status: 400 }
-      );
+    let courseData = null;
+    if (course) {
+      // Find matching course if provided
+      const { data } = await supabase
+        .from("courses")
+        .select("id, course_code")
+        .or(`course_code.ilike.%${course}%,title.ilike.%${course}%`)
+        .limit(1)
+        .single();
+      courseData = data;
     }
 
     const year = new Date().getFullYear();
-    const rawCourseCode = (courseData.course_code || "GEN").toUpperCase().replace(/\s+/g, "");
-    const courseCode = rawCourseCode.length > 5 ? rawCourseCode.slice(0, 5) : rawCourseCode;
+    const idPrefix = `VIT${year}STD`;
     
-    // Count existing students for this year and course to get the next number
+    // Count existing students with this year and STD prefix to get the next number
     const { count } = await supabase
       .from("students")
       .select("*", { count: "exact", head: true })
-      .ilike("student_id", `VIT-${year}${courseCode}%`);
+      .ilike("student_id", `${idPrefix}%`);
     
     const nextNumber = (count || 0) + 1;
-    const sequence = nextNumber.toString().padStart(4, "0");
-    const studentId = `VIT-${year}${courseCode}${sequence}`;
+    const sequence = nextNumber.toString().padStart(3, "0");
+    const studentId = `${idPrefix}${sequence}`;
 
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
@@ -72,7 +68,7 @@ export async function POST(request: Request) {
           name,
           email,
           phone,
-          course,
+          course: course || null,
           password: passwordHash,
           status: "active",
         },
@@ -87,16 +83,18 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create enrollment
-    await supabase
-      .from("enrollments")
-      .insert([
-        {
-          student_id: data[0].id,
-          course_id: courseData.id,
-          progress_percentage: 0,
-        },
-      ]);
+    // Create enrollment only if a valid course was found
+    if (courseData) {
+      await supabase
+        .from("enrollments")
+        .insert([
+          {
+            student_id: data[0].id,
+            course_id: courseData.id,
+            progress_percentage: 0,
+          },
+        ]);
+    }
 
     return NextResponse.json({
       success: true,

@@ -1,7 +1,5 @@
-
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import TestsClient from "./TestsClient";
-import fs from "fs";
 
 export default async function TestsAdminPage() {
   const supabase = await createServerSupabaseClient();
@@ -20,17 +18,12 @@ export default async function TestsAdminPage() {
     `)
     .order("created_at", { ascending: false });
 
-  let batchesList: any[] = [];
-  try {
-    const batchesFilePath = "c:\\Users\\as007\\vision-web\\data\\batches.json";
-    if (fs.existsSync(batchesFilePath)) {
-      const fileData = fs.readFileSync(batchesFilePath, "utf-8");
-      batchesList = JSON.parse(fileData);
-    }
-  } catch (e) {
-    console.error("Error reading batches:", e);
-  }
-  const batchNames = Array.from(new Set(batchesList.map(b => b.type).filter(Boolean)));
+  const { data: batchesData } = await supabase
+    .from("batches")
+    .select("title")
+    .order("title");
+
+  const batchNames = batchesData?.map(b => b.title) || [];
 
   return (
     <div className="p-6 space-y-6">

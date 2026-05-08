@@ -2,135 +2,228 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/Button";
 import { saveBatch } from "@/app/actions/batches";
+import { Loader2 } from "lucide-react";
 
-type BatchData = {
+interface BatchData {
   id?: string;
-  course: string;
-  date: string;
-  time: string;
-  type: string;
-  seats: string;
-};
+  title: string;
+  course_id: string;
+  faculty_name: string;
+  start_date: string;
+  end_date: string;
+  timing: string;
+  max_seats: number;
+  available_seats: number;
+  status: string;
+}
 
-export default function BatchForm({ initialData }: { initialData?: BatchData }) {
+export default function BatchForm({
+  batch,
+  courses = [],
+}: {
+  batch?: any;
+  courses: { id: string; title: string }[];
+}) {
   const router = useRouter();
+  const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState<BatchData>({
-    course: initialData?.course || "",
-    date: initialData?.date || "",
-    time: initialData?.time || "",
-    type: initialData?.type || "Morning Batch",
-    seats: initialData?.seats || "Only 10 seats left",
+    id: batch?.id || undefined,
+    title: batch?.title || "",
+    course_id: batch?.course_id || "",
+    faculty_name: batch?.faculty_name || "",
+    start_date: batch?.start_date || "",
+    end_date: batch?.end_date || "",
+    timing: batch?.timing || "",
+    max_seats: batch?.max_seats || 30,
+    available_seats: batch?.available_seats || 30,
+    status: batch?.status || "active",
   });
-
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState("");
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.course.trim()) return setError("Course title required");
-    if (!formData.date.trim()) return setError("Start date required");
-    if (!formData.time.trim()) return setError("Timings required");
 
-    setIsSubmitting(true);
-    setError("");
+    if (!formData.title.trim()) {
+      alert("Batch title is required");
+      return;
+    }
 
+    setLoading(true);
     try {
-      const result = await saveBatch({
-        ...formData,
-        id: initialData?.id
-      });
-
-      if (result.error) throw new Error(result.error);
-
-      router.push("/admin/batches");
-      router.refresh();
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message || "Failed to process updates.");
-      setIsSubmitting(false);
+      const result = await saveBatch(formData);
+      if (result.error) {
+        alert("Error: " + result.error);
+      } else {
+        router.push("/admin/batches");
+        router.refresh();
+      }
+    } catch (err) {
+      alert("Failed to save batch");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 bg-white p-8 rounded-3xl shadow-sm border border-gray-100 max-w-2xl mx-auto">
-      {error && <p className="text-red-500 font-semibold text-sm">{error}</p>}
-
-      <div>
-        <label className="block text-sm font-black text-slate-900 mb-2">Course Title</label>
-        <input
-          type="text"
-          name="course"
-          value={formData.course}
-          onChange={handleChange}
-          className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 font-black text-black"
-          placeholder="e.g., Full Stack Web Development"
-        />
+    <form onSubmit={handleSubmit} className="max-w-3xl bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+      <div className="px-8 py-6 border-b border-slate-100 bg-slate-50/50">
+        <h2 className="text-xl font-black text-slate-900">
+          {batch ? "Edit Batch" : "Create New Batch"}
+        </h2>
+        <p className="text-sm text-slate-400 mt-1">
+          {batch ? "Update batch details and configuration." : "Set up a new batch for student enrollment."}
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label className="block text-sm font-black text-slate-900 mb-2">Start Date</label>
-          <input
-            type="text"
-            name="date"
-            value={formData.date}
-            onChange={handleChange}
-            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 font-black text-black"
-            placeholder="e.g., May 10, 2026"
-          />
+      <div className="p-8 space-y-6">
+        {/* Row 1: Title + Course */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">
+              Batch Title *
+            </label>
+            <input
+              type="text"
+              required
+              value={formData.title}
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              placeholder="e.g. BCC Morning Batch - Jan 2025"
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-slate-900"
+            />
+          </div>
+          <div>
+            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">
+              Linked Course
+            </label>
+            <select
+              value={formData.course_id}
+              onChange={(e) => setFormData({ ...formData, course_id: e.target.value })}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-slate-900 appearance-none"
+            >
+              <option value="">Select a course...</option>
+              {courses.map((course) => (
+                <option key={course.id} value={course.id}>
+                  {course.title}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
-        <div>
-          <label className="block text-sm font-black text-slate-900 mb-2">Time Slots</label>
-          <input
-            type="text"
-            name="time"
-            value={formData.time}
-            onChange={handleChange}
-            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 font-black text-black"
-            placeholder="e.g., 09:00 AM - 11:00 AM"
-          />
+
+        {/* Row 2: Faculty + Timing */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">
+              Faculty / Instructor
+            </label>
+            <input
+              type="text"
+              value={formData.faculty_name}
+              onChange={(e) => setFormData({ ...formData, faculty_name: e.target.value })}
+              placeholder="e.g. Mr. Sharma"
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-slate-900"
+            />
+          </div>
+          <div>
+            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">
+              Timing
+            </label>
+            <input
+              type="text"
+              value={formData.timing}
+              onChange={(e) => setFormData({ ...formData, timing: e.target.value })}
+              placeholder="e.g. 08:00 AM - 10:00 AM"
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-slate-900"
+            />
+          </div>
+        </div>
+
+        {/* Row 3: Dates */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">
+              Start Date
+            </label>
+            <input
+              type="date"
+              value={formData.start_date}
+              onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-slate-900"
+            />
+          </div>
+          <div>
+            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">
+              End Date
+            </label>
+            <input
+              type="date"
+              value={formData.end_date}
+              onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-slate-900"
+            />
+          </div>
+        </div>
+
+        {/* Row 4: Seats + Status */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div>
+            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">
+              Max Seats
+            </label>
+            <input
+              type="number"
+              value={formData.max_seats}
+              onChange={(e) => setFormData({ ...formData, max_seats: parseInt(e.target.value) || 0 })}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-slate-900"
+            />
+          </div>
+          <div>
+            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">
+              Available Seats
+            </label>
+            <input
+              type="number"
+              value={formData.available_seats}
+              onChange={(e) => setFormData({ ...formData, available_seats: parseInt(e.target.value) || 0 })}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-slate-900"
+            />
+          </div>
+          <div>
+            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">
+              Status
+            </label>
+            <select
+              value={formData.status}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-slate-900 appearance-none"
+            >
+              <option value="active">Active</option>
+              <option value="upcoming">Upcoming</option>
+              <option value="completed">Completed</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label className="block text-sm font-black text-slate-900 mb-2">Batch Type</label>
-          <select
-            name="type"
-            value={formData.type}
-            onChange={handleChange}
-            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 font-black text-black appearance-none bg-white"
-          >
-            <option value="Morning Batch">Morning Batch</option>
-            <option value="Afternoon Batch">Afternoon Batch</option>
-            <option value="Evening Batch">Evening Batch</option>
-            <option value="Online Batch">Online Batch</option>
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-black text-slate-900 mb-2">Available Seats</label>
-          <input
-            type="text"
-            name="seats"
-            value={formData.seats}
-            onChange={handleChange}
-            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 font-black text-black"
-            placeholder="e.g., Only 4 seats left"
-          />
-        </div>
+      {/* Footer */}
+      <div className="px-8 py-6 bg-slate-50 border-t border-slate-100 flex gap-4">
+        <button
+          type="submit"
+          disabled={loading}
+          className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl transition-all shadow-lg shadow-blue-600/20 flex items-center gap-2 disabled:opacity-50"
+        >
+          {loading && <Loader2 size={16} className="animate-spin" />}
+          {batch ? "Update Batch" : "Create Batch"}
+        </button>
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="px-8 py-3 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-all"
+        >
+          Cancel
+        </button>
       </div>
-
-      <Button type="submit" disabled={isSubmitting} className="w-full py-4 rounded-xl bg-slate-900 hover:bg-blue-600 text-white font-bold flex items-center justify-center border-none">
-        {isSubmitting ? "Saving..." : "Save Batch"}
-      </Button>
     </form>
   );
 }

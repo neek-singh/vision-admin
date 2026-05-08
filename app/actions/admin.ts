@@ -36,18 +36,17 @@ export async function updateAdmissionStatus(
         if (!existingStudent) {
             // 3. Generate Sequential Student ID
             const year = new Date().getFullYear();
-            const rawCourseCode = admission.courses?.course_code?.toUpperCase() || "GEN";
-            const courseCode = rawCourseCode.length > 5 ? rawCourseCode.slice(0, 5) : rawCourseCode;
+            const idPrefix = `VIT${year}STD`;
             
-            // Count existing students for this year and course to get the next number
+            // Count existing students with this year and STD prefix to get the next number
             const { count } = await supabase
                 .from("students")
                 .select("*", { count: "exact", head: true })
-                .ilike("student_id", `VIT-${year}${courseCode}%`);
+                .ilike("student_id", `${idPrefix}%`);
             
             const nextNumber = (count || 0) + 1;
-            const sequence = nextNumber.toString().padStart(4, "0");
-            const studentId = `VIT-${year}${courseCode}${sequence}`;
+            const sequence = nextNumber.toString().padStart(3, "0");
+            const studentId = `${idPrefix}${sequence}`;
 
             // 4. Generate Password
             const firstName = admission.student_name.split(" ")[0];
@@ -180,6 +179,35 @@ export async function updateEnrollmentBatch(enrollmentId: string, batch: string 
     if (error) {
         console.error("Update batch error:", error);
         return { error: error.message };
+    }
+
+    revalidatePath("/admin/students");
+    return { success: true };
+}
+
+export async function updateStudentBatch(studentId: string, batch: string | null) {
+    const supabase = await createServerSupabaseClient();
+
+    // 1. Update student's global batch
+    const { error: studentError } = await supabase
+        .from("students")
+        .update({ batch })
+        .eq("id", studentId);
+
+    if (studentError) {
+        console.error("Update student batch error:", studentError);
+        return { error: studentError.message };
+    }
+
+    // 2. Update all enrollments for this student
+    const { error: enrollmentError } = await supabase
+        .from("enrollments")
+        .update({ batch })
+        .eq("student_id", studentId);
+
+    if (enrollmentError) {
+        console.error("Update enrollments batch error:", enrollmentError);
+        return { error: enrollmentError.message };
     }
 
     revalidatePath("/admin/students");

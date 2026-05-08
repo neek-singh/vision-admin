@@ -7,33 +7,15 @@ import { createClient } from "@/lib/supabase-browser";
 
 export default function AddStudentPage() {
   const [name, setName] = useState("");
-  const [course, setCourse] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [courses, setCourses] = useState<{ id: string; title: string; course_code: string }[]>([]);
   
   const [isLoading, setIsLoading] = useState(false);
-  const [isFetchingCourses, setIsFetchingCourses] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [generatedData, setGeneratedData] = useState<{ id: string; pass: string } | null>(null);
 
   const supabase = createClient();
-
-  useEffect(() => {
-    async function fetchCourses() {
-      const { data, error } = await supabase
-        .from("courses")
-        .select("id, title, course_code")
-        .order("title");
-      
-      if (!error && data) {
-        setCourses(data);
-      }
-      setIsFetchingCourses(false);
-    }
-    fetchCourses();
-  }, []);
 
   const getAutoPassword = () => {
     if (!name || !phone || phone.length < 4) return "";
@@ -55,7 +37,7 @@ export default function AddStudentPage() {
       const res = await fetch("/api/students", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, course, password: autoPassword, email, phone }),
+        body: JSON.stringify({ name, password: autoPassword, email, phone }),
       });
 
       const data = await res.json();
@@ -67,7 +49,7 @@ export default function AddStudentPage() {
 
       setSuccess("Student created successfully!");
       setGeneratedData({ id: data.student?.student_id, pass: autoPassword });
-      setName(""); setCourse(""); setEmail(""); setPhone("");
+      setName(""); setEmail(""); setPhone("");
     } catch (err) {
       setError("Failed to connect to the service.");
     } finally {
@@ -158,29 +140,6 @@ export default function AddStudentPage() {
                     className="w-full px-0 py-3 bg-transparent border-b-2 border-slate-100 focus:border-blue-600 outline-none transition-all font-black text-black text-lg placeholder:text-slate-400"
                   />
                 </div>
-
-                <div className="space-y-2 group">
-                  <label className="text-[11px] font-black uppercase tracking-[0.15em] text-slate-500 group-focus-within:text-blue-600 transition-colors">Assign Primary Course</label>
-                  <div className="relative">
-                    <select
-                      required
-                      value={course}
-                      onChange={(e) => setCourse(e.target.value)}
-                      className="w-full px-0 py-3 bg-transparent border-b-2 border-slate-100 focus:border-blue-600 outline-none transition-all font-black text-black text-lg appearance-none cursor-pointer"
-                      disabled={isFetchingCourses}
-                    >
-                      <option value="">{isFetchingCourses ? "Loading..." : "Select Course"}</option>
-                      {courses.map((c) => (
-                        <option key={c.id} value={c.title}>
-                          {c.title}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                      <BookOpen size={18} />
-                    </div>
-                  </div>
-                </div>
               </div>
 
               <div className="pt-6 flex items-center justify-between border-t border-slate-50">
@@ -201,7 +160,7 @@ export default function AddStudentPage() {
 
                 <button
                   type="submit"
-                  disabled={isLoading || isFetchingCourses}
+                  disabled={isLoading}
                   className="px-10 py-4 bg-slate-900 hover:bg-blue-600 text-white font-black rounded-2xl shadow-2xl shadow-slate-200 flex items-center justify-center gap-3 transition-all hover:-translate-y-1 disabled:opacity-50 text-sm active:translate-y-0"
                 >
                   {isLoading ? <Loader2 size={18} className="animate-spin" /> : (
@@ -227,21 +186,21 @@ export default function AddStudentPage() {
                 <div className="flex gap-4">
                   <div className="w-8 h-8 shrink-0 bg-white rounded-xl flex items-center justify-center text-xs font-black text-blue-600 shadow-sm">01</div>
                   <p className="text-xs text-slate-500 font-bold leading-relaxed">
-                    Student ID is auto-generated based on the current year and selected course code.
+                    Student ID is auto-generated in <span className="text-slate-900 font-black">VIT2026STD001</span> format.
                   </p>
                 </div>
                 
                 <div className="flex gap-4">
                   <div className="w-8 h-8 shrink-0 bg-white rounded-xl flex items-center justify-center text-xs font-black text-blue-600 shadow-sm">02</div>
                   <p className="text-xs text-slate-500 font-bold leading-relaxed">
-                    Password is set to <span className="text-slate-900">FirstName@Last4Digits</span> by default.
+                    Password is set to <span className="text-slate-900 font-black">FirstName@Last4Digits</span> by default.
                   </p>
                 </div>
 
                 <div className="flex gap-4">
                   <div className="w-8 h-8 shrink-0 bg-white rounded-xl flex items-center justify-center text-xs font-black text-blue-600 shadow-sm">03</div>
                   <p className="text-xs text-slate-500 font-bold leading-relaxed">
-                    Once registered, you can assign multiple additional courses from the student list.
+                    Once registered, you can <span className="text-slate-900 font-black">assign courses</span> from the student list dashboard.
                   </p>
                 </div>
               </div>

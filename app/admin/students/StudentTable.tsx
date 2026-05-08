@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { assignCourseToStudent, removeCourseFromStudent, updateEnrollmentBatch } from "@/app/actions/admin";
+import { assignCourseToStudent, removeCourseFromStudent, updateEnrollmentBatch, updateStudentBatch } from "@/app/actions/admin";
 import DeleteButton from "@/components/admin/DeleteButton";
 import { Loader2, Power, PowerOff, ShieldCheck, UserMinus, Settings, X, Check, Search as SearchIcon, PlusCircle, BookOpen, Trash2, Users, Edit2 } from "lucide-react";
 
@@ -22,10 +22,11 @@ export default function StudentTable({ initialStudents, availableBatches = [] }:
   const [assigningTo, setAssigningTo] = useState<any | null>(null);
   const [availableCourses, setAvailableCourses] = useState<any[]>([]);
   const [selectedCourseId, setSelectedCourseId] = useState("");
-  const [selectedBatch, setSelectedBatch] = useState<string>("");
 
-  // Change Batch State
+  // Assign/Change Batch State
   const [editingBatchFor, setEditingBatchFor] = useState<any | null>(null);
+  const [isAssigningBatchTo, setIsAssigningBatchTo] = useState<any | null>(null); // For the new "Assign Batch" button
+  const [selectedEnrollmentId, setSelectedEnrollmentId] = useState("");
   const [newBatch, setNewBatch] = useState<string>("");
 
   const handleSearch = (e: React.FormEvent) => {
@@ -50,7 +51,7 @@ export default function StudentTable({ initialStudents, availableBatches = [] }:
 
     setIsSubmitting(true);
     try {
-      const result = await assignCourseToStudent(assigningTo.id, selectedCourseId, selectedBatch);
+      const result = await assignCourseToStudent(assigningTo.id, selectedCourseId);
 
       if (result?.error) {
         alert(result.error);
@@ -59,7 +60,6 @@ export default function StudentTable({ initialStudents, availableBatches = [] }:
 
       setAssigningTo(null);
       setSelectedCourseId("");
-      setSelectedBatch("");
       router.refresh();
       alert("Course assigned successfully!");
     } catch (err) {
@@ -91,26 +91,42 @@ export default function StudentTable({ initialStudents, availableBatches = [] }:
 
   const handleChangeBatch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingBatchFor) return;
-
-    setIsSubmitting(true);
-    try {
-      const result = await updateEnrollmentBatch(editingBatchFor.id, newBatch || null);
-
-      if (result?.error) {
-        alert(result.error);
-        return;
+    
+    // If editing a specific enrollment (via icon)
+    if (editingBatchFor) {
+      setIsSubmitting(true);
+      try {
+        const result = await updateEnrollmentBatch(editingBatchFor.id, newBatch || null);
+        if (result?.error) { alert(result.error); return; }
+        setEditingBatchFor(null);
+        setNewBatch("");
+        router.refresh();
+        alert("Batch updated successfully!");
+      } catch (err) {
+        console.error("Error updating batch:", err);
+        alert("Failed to update batch");
+      } finally {
+        setIsSubmitting(false);
       }
+      return;
+    }
 
-      setEditingBatchFor(null);
-      setNewBatch("");
-      router.refresh();
-      alert("Batch updated successfully!");
-    } catch (err) {
-      console.error("Error updating batch:", err);
-      alert("Failed to update batch");
-    } finally {
-      setIsSubmitting(false);
+    // If assigning batch globally (via button)
+    if (isAssigningBatchTo) {
+      setIsSubmitting(true);
+      try {
+        const result = await updateStudentBatch(isAssigningBatchTo.id, newBatch || null);
+        if (result?.error) { alert(result.error); return; }
+        setIsAssigningBatchTo(null);
+        setNewBatch("");
+        router.refresh();
+        alert("Student batch updated successfully!");
+      } catch (err) {
+        console.error("Error updating student batch:", err);
+        alert("Failed to update batch");
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -263,13 +279,26 @@ export default function StudentTable({ initialStudents, availableBatches = [] }:
                     <p className="text-xs font-black text-slate-900 uppercase tracking-widest">Student Profile Photo</p>
                     <p className="text-[10px] text-slate-400 font-medium">JPG, PNG or WEBP. Max 2MB.</p>
                   </div>
-                  <label className="cursor-pointer px-6 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-600 hover:bg-slate-50 hover:border-blue-200 transition-all shadow-sm">
-                    {uploading ? "Uploading..." : "Choose Photo"}
-                    <input type="file" className="hidden" accept="image/*" onChange={handlePhotoUpload} disabled={uploading} />
-                  </label>
-                  {editingStudent.photo_url && (
-                    <p className="text-[9px] font-mono text-blue-500 break-all max-w-[200px]">{editingStudent.photo_url}</p>
-                  )}
+                  <div className="flex flex-col items-center gap-3 w-full max-w-xs">
+                    <label className="cursor-pointer w-full py-2 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-600 hover:bg-slate-50 hover:border-blue-200 transition-all shadow-sm flex items-center justify-center gap-2">
+                      {uploading ? <Loader2 className="animate-spin" size={14} /> : null}
+                      {uploading ? "Uploading..." : "Upload Photo"}
+                      <input type="file" className="hidden" accept="image/*" onChange={handlePhotoUpload} disabled={uploading} />
+                    </label>
+                    
+                    <div className="relative w-full">
+                      <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                        <span className="text-[10px] font-bold text-slate-400">URL</span>
+                      </div>
+                      <input 
+                        type="text" 
+                        value={editingStudent.photo_url || ""}
+                        onChange={(e) => setEditingStudent({...editingStudent, photo_url: e.target.value})}
+                        placeholder="Paste image link here..."
+                        className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-[10px] font-medium text-slate-600 shadow-sm"
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div className="space-y-4 col-span-full">
@@ -353,13 +382,18 @@ export default function StudentTable({ initialStudents, availableBatches = [] }:
                 </div>
                 <div>
                   <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Category</label>
-                  <input 
-                    type="text" 
+                  <select 
                     value={editingStudent.category || ""}
                     onChange={(e) => setEditingStudent({...editingStudent, category: e.target.value})}
-                    placeholder="General, OBC, SC, ST"
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-black text-black" 
-                  />
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-black text-black"
+                  >
+                    <option value="">Select Category</option>
+                    <option value="General">General</option>
+                    <option value="OBC">OBC</option>
+                    <option value="SC">SC</option>
+                    <option value="ST">ST</option>
+                    <option value="Other">Other</option>
+                  </select>
                 </div>
                 <div>
                   <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Aadhar Number</label>
@@ -383,7 +417,10 @@ export default function StudentTable({ initialStudents, availableBatches = [] }:
                     className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-black text-black"
                   >
                     <option value="">Select Education</option>
-                    <option value="5th-8th">5th - 8th</option>
+                    <option value="5th">5th Pass</option>
+                    <option value="6th">6th Pass</option>
+                    <option value="7th">7th Pass</option>
+                    <option value="8th">8th Pass</option>
                     <option value="10th">10th Pass</option>
                     <option value="12th">12th Pass</option>
                     <option value="Diploma">Diploma</option>
@@ -477,23 +514,6 @@ export default function StudentTable({ initialStudents, availableBatches = [] }:
                 </div>
               </div>
 
-              <div>
-                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Select Batch (Optional)</label>
-                <div className="relative">
-                   <select 
-                    value={selectedBatch}
-                    onChange={(e) => setSelectedBatch(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-emerald-500 transition-all text-sm font-black text-black appearance-none cursor-pointer"
-                  >
-                    <option value="">No Batch / All Batches</option>
-                    {availableBatches.map((batch: string) => (
-                      <option key={batch} value={batch}>{batch}</option>
-                    ))}
-                  </select>
-                  <Users className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" size={16} />
-                </div>
-              </div>
-
               <div className="flex gap-3">
                 <button 
                   type="button"
@@ -507,7 +527,83 @@ export default function StudentTable({ initialStudents, availableBatches = [] }:
                   className="flex-[2] py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 disabled:opacity-50"
                 >
                   {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : <Check size={18} />}
-                  Assign Course
+                  Add Course
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Assign Batch Modal (New) */}
+      {isAssigningBatchTo && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-100">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                {isAssigningBatchTo.batch ? <Edit2 size={18} className="text-amber-600" /> : <Users size={18} className="text-blue-600" />}
+                {isAssigningBatchTo.batch ? "Exchange Batch" : "Assign Batch"}
+              </h3>
+              <button onClick={() => {
+                setIsAssigningBatchTo(null);
+                setNewBatch("");
+              }} className="p-1.5 hover:bg-slate-100 rounded-lg"><X size={18} /></button>
+            </div>
+            <div className="p-6 bg-blue-50/30 border-b border-blue-50">
+               <div className="flex justify-between items-start">
+                 <div>
+                   <p className="text-xs text-blue-600 font-bold mb-1 uppercase tracking-widest">Student:</p>
+                   <h4 className="text-lg font-black text-blue-900">{isAssigningBatchTo.name}</h4>
+                 </div>
+                 {isAssigningBatchTo.batch && (
+                   <div className="text-right">
+                     <p className="text-[10px] text-amber-600 font-bold mb-1 uppercase tracking-widest">Current Batch:</p>
+                     <span className="px-2 py-1 bg-amber-100 text-amber-700 rounded-lg text-xs font-black">
+                       {isAssigningBatchTo.batch}
+                     </span>
+                   </div>
+                 )}
+               </div>
+            </div>
+            <form onSubmit={handleChangeBatch} className="p-6 space-y-6">
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Select Batch</label>
+                <div className="relative">
+                   <select 
+                    required
+                    value={newBatch}
+                    onChange={(e) => setNewBatch(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-black text-black appearance-none cursor-pointer"
+                  >
+                    <option value="">No Batch / All Batches</option>
+                    {availableBatches.map((batch: string) => (
+                      <option key={batch} value={batch}>{batch}</option>
+                    ))}
+                  </select>
+                  <Users className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" size={16} />
+                </div>
+                <p className="mt-3 text-[10px] text-slate-400 font-medium leading-relaxed italic">
+                  Note: This will set the batch for <span className="text-blue-500 font-bold">all currently enrolled courses</span> for this student.
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <button 
+                  type="button"
+                  onClick={() => {
+                    setIsAssigningBatchTo(null);
+                    setNewBatch("");
+                  }}
+                  className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl transition-all"
+                >
+                  Cancel
+                </button>
+                <button 
+                  disabled={isSubmitting}
+                  className="flex-[2] py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 disabled:opacity-50"
+                >
+                  {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : <Check size={18} />}
+                  Set Student Batch
                 </button>
               </div>
             </form>
@@ -627,6 +723,11 @@ export default function StudentTable({ initialStudents, availableBatches = [] }:
                         <div className="font-mono text-[10px] font-bold text-blue-600 mb-1">{student.student_id}</div>
                         <div className="text-xs text-gray-500">{student.phone}</div>
                         <div className="text-[10px] text-gray-400">{student.email}</div>
+                        {student.batch && (
+                          <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 text-blue-700 rounded-md border border-blue-100 text-[10px] font-black uppercase">
+                            <Users size={10} /> {student.batch}
+                          </div>
+                        )}
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex flex-wrap gap-1.5 max-w-[200px]">
@@ -660,15 +761,31 @@ export default function StudentTable({ initialStudents, availableBatches = [] }:
                               </div>
                             </span>
                           ))}
-                          <button 
-                            onClick={() => {
-                              setAssigningTo(student);
-                              fetchAvailableCourses();
-                            }}
-                            className="px-2 py-0.5 bg-blue-50 text-blue-600 border border-blue-100 rounded text-[10px] font-bold hover:bg-blue-100 transition-all flex items-center gap-1"
-                          >
-                             <PlusCircle size={10} /> Assign
-                          </button>
+                          <div className="flex flex-col gap-1 w-full mt-2">
+                            <button 
+                              onClick={() => {
+                                setAssigningTo(student);
+                                fetchAvailableCourses();
+                              }}
+                              className="px-2 py-1 bg-blue-50 text-blue-600 border border-blue-100 rounded-lg text-[10px] font-bold hover:bg-blue-100 transition-all flex items-center justify-center gap-1.5"
+                            >
+                               <BookOpen size={10} /> Add Course
+                            </button>
+                            <button 
+                              onClick={() => {
+                                setIsAssigningBatchTo(student);
+                                setNewBatch(student.batch || "");
+                              }}
+                              disabled={!student.enrollments || student.enrollments.length === 0}
+                              className={`px-2 py-1 border rounded-lg text-[10px] font-bold transition-all flex items-center justify-center gap-1.5 disabled:opacity-50
+                                ${student.batch 
+                                  ? "bg-amber-50 text-amber-700 border-amber-100 hover:bg-amber-100" 
+                                  : "bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100"}`}
+                            >
+                               {student.batch ? <Edit2 size={10} /> : <Users size={10} />}
+                               {student.batch ? "Exchange Batch" : "Assign Batch"}
+                            </button>
+                          </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">

@@ -23,21 +23,17 @@ export default async function AdminSchedulePage() {
     .select("id, title")
     .order("title");
 
-  // 3. Read batches from the JSON file (same source as Manage Batches page)
-  let batchesList: any[] = [];
-  try {
-    const batchesFilePath = "c:\\Users\\as007\\vision-web\\data\\batches.json";
-    if (fs.existsSync(batchesFilePath)) {
-      const fileData = fs.readFileSync(batchesFilePath, "utf-8");
-      batchesList = JSON.parse(fileData);
-    }
-  } catch (e) {
-    console.error("Error reading batches:", e);
-  }
+  // 3. Fetch batches from Database
+  const { data: dbBatches } = await supabase
+    .from("batches")
+    .select(`
+      *,
+      courses(id, title)
+    `)
+    .order("title");
 
-  // Extract unique batch type names (e.g. "Morning Batch", "Afternoon Batch")
-  const batchNames = Array.from(new Set(batchesList.map(b => b.type).filter(Boolean)));
-  const allBatches = ["All Batches", ...batchNames];
+  const batchesList = dbBatches || [];
+  const allBatches = ["All Batches", ...batchesList.map(b => b.title)];
 
   return (
     <div className="container mx-auto px-4 py-6">

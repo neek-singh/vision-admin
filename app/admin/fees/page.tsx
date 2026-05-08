@@ -19,7 +19,7 @@ export default async function AdminFeesPage() {
 
   // 2. Fetch students & courses for setup
   const { data: students } = await supabase.from("students").select("id, name, student_id").order("name");
-  const { data: courses } = await supabase.from("courses").select("id, title").order("title");
+  const { data: courses } = await supabase.from("courses").select("id, title, fee, discount_fee").order("title");
 
   // 3. Calculate Stats
   const totalCollection = fees?.reduce((acc, f) => {

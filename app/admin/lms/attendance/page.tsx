@@ -10,6 +10,12 @@ export default async function AttendancePage() {
     .select("id, title")
     .order("title");
 
+  // Fetch Batches
+  const { data: batches } = await supabase
+    .from("batches")
+    .select("id, title")
+    .order("title");
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-100 pb-6">
@@ -19,7 +25,7 @@ export default async function AttendancePage() {
         </div>
       </div>
 
-      <AttendanceClient initialCourses={courses || []} />
+      <AttendanceClient initialCourses={courses || []} initialBatches={batches || []} />
     </div>
   );
 }

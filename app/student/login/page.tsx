@@ -57,7 +57,7 @@ export default function StudentLoginPage() {
                 required
                 name="student_id"
                 type="text"
-                placeholder="VIT-2026..."
+                placeholder="VIT2026STD001"
                 className="w-full px-5 py-4 rounded-2xl bg-gray-50 border-none focus:ring-2 focus:ring-blue-500 transition-all outline-none"
               />
             </div>

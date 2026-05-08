@@ -1,10 +1,17 @@
 import BatchForm from "../BatchForm";
+import { createServerSupabaseClient } from "@/lib/supabase-server";
 
-export default function NewBatchPage() {
+export default async function NewBatchPage() {
+  const supabase = await createServerSupabaseClient();
+
+  const { data: courses } = await supabase
+    .from("courses")
+    .select("id, title")
+    .order("title");
+
   return (
     <div className="container mx-auto px-6 py-12">
-      <h1 className="text-3xl font-bold text-blue-950 mb-8 text-center">Add New Batch</h1>
-      <BatchForm />
+      <BatchForm courses={courses || []} />
     </div>
   );
 }

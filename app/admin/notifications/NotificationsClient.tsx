@@ -76,10 +76,10 @@ export default function NotificationsClient({
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         
         {/* Create Notification Form */}
-        <div className="lg:col-span-1 bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-6 h-fit sticky top-8">
+        <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm space-y-5 h-fit sticky top-8">
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2 bg-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-100">
               <Bell size={20} />
@@ -100,11 +100,11 @@ export default function NotificationsClient({
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Message</label>
               <textarea 
                 required
-                rows={4}
+                rows={3}
                 placeholder="Write your message here..."
                 className="w-full px-5 py-3 rounded-2xl bg-slate-50 border border-slate-100 outline-none focus:ring-4 focus:ring-indigo-100 transition-all font-bold text-slate-700 text-sm"
                 value={formData.message}
@@ -213,7 +213,7 @@ export default function NotificationsClient({
         </div>
 
         {/* Notification History */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="space-y-5">
           <div className="flex items-center justify-between px-2">
             <h2 className="text-xl font-black text-slate-900 flex items-center gap-3">
               <History size={22} className="text-slate-400" /> Recent Notifications
@@ -222,7 +222,7 @@ export default function NotificationsClient({
 
           <div className="space-y-4">
             {initialNotifications.length === 0 ? (
-              <div className="p-20 text-center bg-white rounded-[2.5rem] border border-slate-100 text-slate-400">
+              <div className="p-16 text-center bg-white rounded-[2rem] border border-slate-100 text-slate-400">
                 <Bell size={40} className="mx-auto mb-4 opacity-20" />
                 <p className="font-bold">No notifications sent yet.</p>
               </div>
@@ -230,7 +230,7 @@ export default function NotificationsClient({
               initialNotifications.map((notif) => {
                 const typeInfo = NOTIFICATION_TYPES.find(t => t.value === notif.type) || NOTIFICATION_TYPES[0];
                 return (
-                  <div key={notif.id} className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm group hover:shadow-md transition-all relative overflow-hidden">
+                  <div key={notif.id} className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm group hover:shadow-md transition-all relative overflow-hidden">
                     <div className="flex items-start gap-4">
                       <div className={`w-12 h-12 ${typeInfo.bg} ${typeInfo.color} rounded-2xl flex items-center justify-center shrink-0`}>
                         {typeInfo.icon}

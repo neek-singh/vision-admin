@@ -208,7 +208,21 @@ export default function FeesClient({
                    </div>
                    <div className="space-y-2">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Course</label>
-                      <select required className="w-full px-5 py-3 rounded-2xl bg-slate-50 border border-slate-100 outline-none font-bold" value={setupData.course_id} onChange={(e) => setSetupData({...setupData, course_id: e.target.value})}>
+                      <select 
+                        required 
+                        className="w-full px-5 py-3 rounded-2xl bg-slate-50 border border-slate-100 outline-none font-bold" 
+                        value={setupData.course_id} 
+                        onChange={(e) => {
+                          const courseId = e.target.value;
+                          const selectedCourse = courses.find(c => c.id === courseId);
+                          setSetupData({
+                            ...setupData, 
+                            course_id: courseId,
+                            total_fee: selectedCourse?.fee || 0,
+                            discount: (selectedCourse?.fee && selectedCourse?.discount_fee) ? (selectedCourse.fee - selectedCourse.discount_fee) : 0
+                          });
+                        }}
+                      >
                         <option value="">Choose Course...</option>
                         {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
                       </select>

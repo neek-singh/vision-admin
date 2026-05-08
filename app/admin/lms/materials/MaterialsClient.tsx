@@ -24,6 +24,7 @@ export default function MaterialsClient({ courses, initialMaterials, availableBa
   const [isAdding, setIsAdding] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [formData, setFormData] = useState({
     course_id: "",
     batch: "",
     title: "",

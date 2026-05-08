@@ -1,16 +1,10 @@
 import { createServerSupabaseClient } from "@/lib/supabase-server";
-import CurriculumClient from "./CurriculumClient";
+import CurriculumClient from "../content/CurriculumClient";
 
-export default async function CurriculumAdminPage() {
+export default async function BatchContentPage() {
   const supabase = await createServerSupabaseClient();
   
-  const { data: courses } = await supabase
-    .from("courses")
-    .select("id, title")
-    .order("title");
-
-  // Even though 'global' mode might not strictly need enrichedBatches for everything, 
-  // it's good to keep the fetching logic consistent.
+  // Fetch batches with their linked courses
   const { data: batches } = await supabase
     .from("batches")
     .select(`
@@ -23,14 +17,14 @@ export default async function CurriculumAdminPage() {
 
   const enrichedBatches = (batches || []).map(b => ({
     id: b.id,
-    type: b.title,
+    type: b.title, // CurriculumClient expects 'type' as the batch identifier
     course_id: b.course_id,
     batch_display: `${b.courses?.title || 'Unknown Course'} (${b.title})`
   }));
 
   return (
     <div className="p-6">
-      <CurriculumClient initialCourses={courses || []} availableBatches={enrichedBatches} mode="global" />
+      <CurriculumClient availableBatches={enrichedBatches} mode="batch" />
     </div>
   );
 }

@@ -16,10 +16,10 @@ export default function StudentProgressTracking() {
   const [searchTerm, setSearchTerm] = useState("");
 
   const students = [
-    { id: "VIT-2026BCC0001", name: "Amarjeet Kumar", course: "Basic Computer Course", progress: 85, lastActive: "10 mins ago", status: "On Track" },
-    { id: "VIT-2026WD0002", name: "Neha Singh", course: "Web Development", progress: 45, lastActive: "2 hours ago", status: "Slow Progress" },
-    { id: "VIT-2026PY0003", name: "Rahul Sharma", course: "Advanced Python", progress: 100, lastActive: "Yesterday", status: "Completed" },
-    { id: "VIT-2026DS0004", name: "Sonia Verma", course: "Data Science", progress: 12, lastActive: "3 days ago", status: "At Risk" },
+    { id: "VIT2026STD001", name: "Amarjeet Kumar", course: "Basic Computer Course", progress: 85, lastActive: "10 mins ago", status: "On Track" },
+    { id: "VIT2026STD002", name: "Neha Singh", course: "Web Development", progress: 45, lastActive: "2 hours ago", status: "Slow Progress" },
+    { id: "VIT2026STD003", name: "Rahul Sharma", course: "Advanced Python", progress: 100, lastActive: "Yesterday", status: "Completed" },
+    { id: "VIT2026STD004", name: "Sonia Verma", course: "Data Science", progress: 12, lastActive: "3 days ago", status: "At Risk" },
   ];
 
   return (
