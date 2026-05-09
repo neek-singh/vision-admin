@@ -70,15 +70,15 @@ export async function getCurriculumTopics(courseId: string) {
     .select("id, title")
     .eq("course_id", courseId);
 
-  // 3. Fetch assignments for this course
-  const { data: assignments } = await supabase
-    .from("assignments")
+  // 3. Fetch materials for this course
+  const { data: materials } = await supabase
+    .from("materials")
     .select("id, title")
     .eq("course_id", courseId);
 
   return {
     modules: modules || [],
     tests: tests || [],
-    assignments: assignments || []
+    materials: materials || []
   };
 }

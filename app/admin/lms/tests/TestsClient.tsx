@@ -23,6 +23,8 @@ export default function TestsClient({ courses, initialTests, availableBatches = 
   const router = useRouter();
   const [isAdding, setIsAdding] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [lessons, setLessons] = useState<any[]>([]);
+  const [isLoadingLessons, setIsLoadingLessons] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewingResults, setViewingResults] = useState<string | null>(null);
   const [results, setResults] = useState<any[]>([]);
@@ -32,7 +34,9 @@ export default function TestsClient({ courses, initialTests, availableBatches = 
     batch: "",
     title: "",
     type: "daily",
-    duration_minutes: 30
+    duration_minutes: 30,
+    lesson_id: "",
+    is_published: true
   });
 
   const fetchResults = async (testId: string) => {
@@ -56,6 +60,28 @@ export default function TestsClient({ courses, initialTests, availableBatches = 
     }
   };
 
+  const fetchLessons = async (courseId: string) => {
+    if (!courseId) {
+      setLessons([]);
+      return;
+    }
+    setIsLoadingLessons(true);
+    try {
+      const { data, error } = await supabase
+        .from("lessons")
+        .select("id, title")
+        .eq("course_id", courseId)
+        .order("order_index", { ascending: true });
+
+      if (error) throw error;
+      setLessons(data || []);
+    } catch (err) {
+      console.error("Error fetching lessons:", err);
+    } finally {
+      setIsLoadingLessons(false);
+    }
+  };
+
   const handleViewResults = (id: string) => {
     setViewingResults(id);
     fetchResults(id);
@@ -67,8 +93,11 @@ export default function TestsClient({ courses, initialTests, availableBatches = 
       batch: test.batch || "",
       title: test.title,
       type: test.type || "daily",
-      duration_minutes: test.duration_minutes
+      duration_minutes: test.duration_minutes,
+      lesson_id: test.lesson_id || "",
+      is_published: true
     });
+    if (test.course_id) fetchLessons(test.course_id);
     setEditingId(test.id);
     setIsAdding(true);
   };
@@ -76,7 +105,8 @@ export default function TestsClient({ courses, initialTests, availableBatches = 
   const closeForm = () => {
     setIsAdding(false);
     setEditingId(null);
-    setFormData({ course_id: "", batch: "", title: "", type: "daily", duration_minutes: 30 });
+    setFormData({ course_id: "", batch: "", title: "", type: "daily", duration_minutes: 30, lesson_id: "", is_published: true });
+    setLessons([]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -84,16 +114,22 @@ export default function TestsClient({ courses, initialTests, availableBatches = 
     setIsSubmitting(true);
 
     try {
+      const { lesson_id, batch, ...rest } = formData;
+      const payload = {
+        ...rest,
+        batches: batch ? [batch] : null
+      };
+
       if (editingId) {
         const { error } = await supabase
           .from("tests")
-          .update(formData)
+          .update(payload)
           .eq("id", editingId);
         if (error) throw error;
       } else {
         const { error } = await supabase
           .from("tests")
-          .insert([formData]);
+          .insert([payload]);
         if (error) throw error;
       }
 
@@ -147,12 +183,12 @@ export default function TestsClient({ courses, initialTests, availableBatches = 
 
       {isAdding && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg flex flex-col max-h-[90vh] overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <h3 className="font-bold text-slate-900">{editingId ? 'Edit Quiz' : 'New Quiz'}</h3>
               <button onClick={closeForm} className="p-1.5 hover:bg-slate-100 rounded-lg"><X size={18} /></button>
             </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1 scrollbar-hide">
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -160,7 +196,11 @@ export default function TestsClient({ courses, initialTests, availableBatches = 
                     <select 
                       required
                       value={formData.course_id}
-                      onChange={(e) => setFormData({...formData, course_id: e.target.value})}
+                      onChange={(e) => {
+                        const newCourseId = e.target.value;
+                        setFormData({...formData, course_id: newCourseId, lesson_id: ""});
+                        fetchLessons(newCourseId);
+                      }}
                       className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-rose-500 transition-all text-sm font-bold text-slate-900"
                     >
                       <option value="">Select course...</option>
@@ -199,11 +239,43 @@ export default function TestsClient({ courses, initialTests, availableBatches = 
                       <option value="monthly">Monthly Test</option>
                     </select>
                   </div>
-                  <div>
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Duration (Mins)</label>
-                    <input required type="number" value={formData.duration_minutes} onChange={(e) => setFormData({...formData, duration_minutes: parseInt(e.target.value) || 0})} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-rose-500 transition-all text-sm font-bold text-slate-900" />
-                  </div>
+                  {formData.type !== 'daily' && (
+                    <div>
+                      <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Duration (Mins)</label>
+                      <input required type="number" value={formData.duration_minutes} onChange={(e) => setFormData({...formData, duration_minutes: parseInt(e.target.value) || 0})} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-rose-500 transition-all text-sm font-bold text-slate-900" />
+                    </div>
+                  )}
                 </div>
+
+                {formData.type === 'daily' && formData.course_id && (
+                  <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5 flex items-center justify-between">
+                      Select Lesson
+                      {isLoadingLessons && <Loader2 className="animate-spin text-rose-500" size={10} />}
+                    </label>
+                    <select 
+                      value={formData.lesson_id}
+                      onChange={(e) => {
+                        const lessonId = e.target.value;
+                        const lesson = lessons.find(l => l.id === lessonId);
+                        setFormData({
+                          ...formData, 
+                          lesson_id: lessonId,
+                          title: lesson ? `${lesson.title} - Daily Test` : formData.title
+                        });
+                      }}
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-rose-500 transition-all text-sm font-bold text-slate-900"
+                    >
+                      <option value="">Select a lesson...</option>
+                      {lessons
+                        .filter(lesson => !initialTests.some(t => t.lesson_id === lesson.id && t.id !== editingId))
+                        .map(lesson => (
+                        <option key={lesson.id} value={lesson.id}>{lesson.title}</option>
+                      ))}
+                    </select>
+                    <p className="text-[9px] text-slate-400 mt-1 font-medium italic">Choosing a lesson will automatically set the test title.</p>
+                  </div>
+                )}
               </div>
 
               <div className="pt-4 flex gap-3">
@@ -244,20 +316,12 @@ export default function TestsClient({ courses, initialTests, availableBatches = 
               <div className="flex items-center justify-between mt-1">
                 <div className="flex items-center gap-2">
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{test.courses?.title}</p>
-                  {test.batch && (
+                  {(test.batches?.[0] || test.batch) && (
                     <span className="px-1.5 py-0.5 bg-rose-50 text-rose-600 rounded text-[8px] font-black uppercase tracking-widest border border-rose-100">
-                      {test.batch}
+                      {test.batches?.[0] || test.batch}
                     </span>
                   )}
                 </div>
-                <button 
-                  onClick={() => handleTogglePublish(test.id, test.is_published)}
-                  className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest transition-all ${
-                    test.is_published ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-500'
-                  }`}
-                >
-                  {test.is_published ? 'Published' : 'Draft'}
-                </button>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4 py-4 border-t border-slate-50 text-slate-500">

@@ -23,6 +23,8 @@ export default function MaterialsClient({ courses, initialMaterials, availableBa
   const router = useRouter();
   const [isAdding, setIsAdding] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [lessons, setLessons] = useState<any[]>([]);
+  const [isLoadingLessons, setIsLoadingLessons] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     course_id: "",
@@ -32,8 +34,32 @@ export default function MaterialsClient({ courses, initialMaterials, availableBa
     content_url: "",
     file_size: "",
     duration: "",
-    code_content: ""
+    code_content: "",
+    lesson_id: "",
+    is_published: true
   });
+
+  const fetchLessons = async (courseId: string) => {
+    if (!courseId) {
+      setLessons([]);
+      return;
+    }
+    setIsLoadingLessons(true);
+    try {
+      const { data, error } = await supabase
+        .from("lessons")
+        .select("id, title")
+        .eq("course_id", courseId)
+        .order("order_index", { ascending: true });
+
+      if (error) throw error;
+      setLessons(data || []);
+    } catch (err) {
+      console.error("Error fetching lessons:", err);
+    } finally {
+      setIsLoadingLessons(false);
+    }
+  };
 
   const handleEdit = (material: any) => {
     setFormData({
@@ -44,8 +70,11 @@ export default function MaterialsClient({ courses, initialMaterials, availableBa
       content_url: material.content_url || "",
       file_size: material.file_size || "",
       duration: material.duration || "",
-      code_content: material.code_content || ""
+      code_content: material.code_content || "",
+      lesson_id: material.lesson_id || "",
+      is_published: true
     });
+    if (material.course_id) fetchLessons(material.course_id);
     setEditingId(material.id);
     setIsAdding(true);
   };
@@ -53,7 +82,8 @@ export default function MaterialsClient({ courses, initialMaterials, availableBa
   const closeForm = () => {
     setIsAdding(false);
     setEditingId(null);
-    setFormData({ course_id: "", batch: "", title: "", type: "pdf", content_url: "", file_size: "", duration: "", code_content: "" });
+    setFormData({ course_id: "", batch: "", title: "", type: "pdf", content_url: "", file_size: "", duration: "", code_content: "", lesson_id: "", is_published: true });
+    setLessons([]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -61,24 +91,30 @@ export default function MaterialsClient({ courses, initialMaterials, availableBa
     setIsSubmitting(true);
 
     try {
+      const { lesson_id, batch, ...rest } = formData;
+      const payload = {
+        ...rest,
+        batches: batch ? [batch] : null
+      };
+      
       if (editingId) {
         const { error } = await supabase
           .from("materials")
-          .update(formData)
+          .update(payload)
           .eq("id", editingId);
         if (error) throw error;
       } else {
         const { error } = await supabase
           .from("materials")
-          .insert([formData]);
+          .insert([payload]);
         if (error) throw error;
       }
 
       closeForm();
       router.refresh();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error adding material:", err);
-      alert("Failed to add material");
+      alert(`Failed to add material: ${err.message || "Unknown error"}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -124,12 +160,12 @@ export default function MaterialsClient({ courses, initialMaterials, availableBa
 
       {isAdding && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-200">
+        <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg flex flex-col max-h-[90vh] overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <h3 className="font-bold text-slate-900">{editingId ? 'Edit Study Material' : 'Add Study Material'}</h3>
               <button onClick={closeForm} className="p-1.5 hover:bg-slate-100 rounded-lg"><X size={18} /></button>
             </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1 scrollbar-hide">
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -137,7 +173,11 @@ export default function MaterialsClient({ courses, initialMaterials, availableBa
                     <select 
                       required
                       value={formData.course_id}
-                      onChange={(e) => setFormData({...formData, course_id: e.target.value})}
+                      onChange={(e) => {
+                        const newCourseId = e.target.value;
+                        setFormData({...formData, course_id: newCourseId, lesson_id: ""});
+                        fetchLessons(newCourseId);
+                      }}
                       className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-black"
                     >
                       <option value="">Select a course...</option>
@@ -160,6 +200,33 @@ export default function MaterialsClient({ courses, initialMaterials, availableBa
                     </select>
                   </div>
                 </div>
+
+                {formData.course_id && (
+                  <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5 flex items-center justify-between">
+                      Select Lesson
+                      {isLoadingLessons && <Loader2 className="animate-spin text-blue-500" size={10} />}
+                    </label>
+                    <select 
+                      value={formData.lesson_id}
+                      onChange={(e) => {
+                        const lessonId = e.target.value;
+                        const lesson = lessons.find(l => l.id === lessonId);
+                        setFormData({
+                          ...formData, 
+                          lesson_id: lessonId,
+                          title: lesson ? `${lesson.title} - ${formData.type.toUpperCase()} Notes` : formData.title
+                        });
+                      }}
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-black"
+                    >
+                      <option value="">Select a lesson...</option>
+                      {lessons.map(lesson => (
+                        <option key={lesson.id} value={lesson.id}>{lesson.title}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <div>
                   <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Material Title</label>
                   <input 
@@ -281,9 +348,9 @@ export default function MaterialsClient({ courses, initialMaterials, availableBa
                 </td>
                 <td className="px-6 py-4">
                   <span className="text-xs font-bold text-slate-600 block">{material.courses?.title}</span>
-                  {material.batch && (
+                  {(material.batches?.[0] || material.batch) && (
                     <span className="inline-block mt-1 px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded text-[9px] font-black uppercase tracking-widest">
-                      {material.batch}
+                      {material.batches?.[0] || material.batch}
                     </span>
                   )}
                 </td>
@@ -292,14 +359,6 @@ export default function MaterialsClient({ courses, initialMaterials, availableBa
                     <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-[10px] font-black uppercase tracking-widest">
                       {material.type}
                     </span>
-                    <button 
-                      onClick={() => handleTogglePublish(material.id, material.is_published)}
-                      className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest transition-all ${
-                        material.is_published ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-500'
-                      }`}
-                    >
-                      {material.is_published ? 'Published' : 'Draft'}
-                    </button>
                   </div>
                 </td>
                 <td className="px-6 py-4 text-right">

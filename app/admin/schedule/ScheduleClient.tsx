@@ -47,8 +47,8 @@ const TYPE_CFG: Record<string, { bg: string, text: string, border: string, icon:
     text: "text-amber-700", 
     border: "border-amber-100", 
     accent: "bg-amber-600",
-    icon: <PenTool size={14} />, 
-    label: "Task" 
+    icon: <BookOpen size={14} />, 
+    label: "Note" 
   },
 };
 
@@ -79,7 +79,7 @@ export default function ScheduleClient({
   const [selectedBatch, setSelectedBatch] = useState("All Batches");
   const [activeTab, setActiveTab] = useState<'lessons' | 'tests' | 'assignments'>('lessons');
   const [loading, setLoading] = useState(false);
-  const [curriculum, setCurriculum] = useState<{ modules: any[], tests: any[], assignments: any[] }>({ modules: [], tests: [], assignments: [] });
+  const [curriculum, setCurriculum] = useState<{ modules: any[], tests: any[], materials: any[] }>({ modules: [], tests: [], materials: [] });
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
   
@@ -177,13 +177,13 @@ export default function ScheduleClient({
     })).filter(t => !searchQuery || t.title.toLowerCase().includes(searchQuery.toLowerCase()));
   }, [curriculum.tests, alreadyScheduledMap, searchQuery]);
 
-  const availableAssignments = useMemo(() => {
-    return curriculum.assignments.map(a => ({
-      ...a,
-      fullTitle: `Assignment: ${a.title}`,
-      isScheduled: alreadyScheduledMap.has(`assignment:Assignment: ${a.title}`)
-    })).filter(a => !searchQuery || a.title.toLowerCase().includes(searchQuery.toLowerCase()));
-  }, [curriculum.assignments, alreadyScheduledMap, searchQuery]);
+  const availableMaterials = useMemo(() => {
+    return curriculum.materials.map(m => ({
+      ...m,
+      fullTitle: `Note: ${m.title}`,
+      isScheduled: alreadyScheduledMap.has(`assignment:Note: ${m.title}`)
+    })).filter(m => !searchQuery || m.title.toLowerCase().includes(searchQuery.toLowerCase()));
+  }, [curriculum.materials, alreadyScheduledMap, searchQuery]);
 
   const handleQuickSchedule = (item: any, type: 'class' | 'test' | 'assignment') => {
     // Find batch timing from the new structure
@@ -214,7 +214,7 @@ export default function ScheduleClient({
       course_id: selectedCourseId,
       type,
       title: item.fullTitle,
-      description: `${type === 'class' ? 'Lesson' : type === 'test' ? 'Examination' : 'Practical Task'}: ${item.title}`,
+      description: `${type === 'class' ? 'Lesson' : type === 'test' ? 'Examination' : 'Study Material'}: ${item.title}`,
       date: fmt(today),
       start_time: startTime,
       end_time: endTime,
@@ -348,7 +348,7 @@ export default function ScheduleClient({
                    <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-100">
                       <button onClick={() => setActiveTab('lessons')} className={`flex-1 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === 'lessons' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400'}`}>Lessons</button>
                       <button onClick={() => setActiveTab('tests')} className={`flex-1 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === 'tests' ? 'bg-white shadow-sm text-rose-600' : 'text-slate-400'}`}>Tests</button>
-                      <button onClick={() => setActiveTab('assignments')} className={`flex-1 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === 'assignments' ? 'bg-white shadow-sm text-amber-600' : 'text-slate-400'}`}>Tasks</button>
+                      <button onClick={() => setActiveTab('assignments')} className={`flex-1 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === 'assignments' ? 'bg-white shadow-sm text-amber-600' : 'text-slate-400'}`}>Notes</button>
                    </div>
                 </div>
 
@@ -407,17 +407,17 @@ export default function ScheduleClient({
                    )}
 
                    {activeTab === 'assignments' && (
-                     availableAssignments.length > 0 ? (
-                       availableAssignments.map((assign, idx) => (
-                        <div key={idx} className={`group p-4 rounded-2xl border transition-all ${assign.isScheduled ? 'bg-slate-50 border-slate-100 opacity-60' : 'bg-white border-slate-100 hover:border-amber-200 hover:shadow-md cursor-pointer'}`}>
+                     availableMaterials.length > 0 ? (
+                       availableMaterials.map((material, idx) => (
+                        <div key={idx} className={`group p-4 rounded-2xl border transition-all ${material.isScheduled ? 'bg-slate-50 border-slate-100 opacity-60' : 'bg-white border-slate-100 hover:border-amber-200 hover:shadow-md cursor-pointer'}`}>
                             <div className="flex items-start justify-between gap-3">
                                <div className="min-w-0">
-                                  <h4 className="text-xs font-black text-slate-900 group-hover:text-amber-600 transition-colors">{assign.title}</h4>
+                                  <h4 className="text-xs font-black text-slate-900 group-hover:text-amber-600 transition-colors">{material.title}</h4>
                                </div>
-                               {assign.isScheduled ? (
+                               {material.isScheduled ? (
                                  <CheckCircle2 size={16} className="text-green-500 shrink-0" />
                                ) : (
-                                 <button onClick={() => handleQuickSchedule(assign, 'assignment')} className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-amber-600 hover:text-white">
+                                 <button onClick={() => handleQuickSchedule(material, 'assignment')} className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-amber-600 hover:text-white">
                                     <Plus size={14} />
                                  </button>
                                )}
@@ -426,8 +426,8 @@ export default function ScheduleClient({
                        ))
                      ) : (
                        <div className="py-20 text-center space-y-4">
-                          <PenTool size={32} className="mx-auto text-slate-200" />
-                          <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">No tasks found</p>
+                          <BookOpen size={32} className="mx-auto text-slate-200" />
+                          <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">No notes found</p>
                        </div>
                      )
                    )}
@@ -605,7 +605,7 @@ export default function ScheduleClient({
                 <div className="col-span-2 space-y-2">
                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Event Type</label>
                    <div className="flex bg-slate-50 p-1.5 rounded-2xl border border-slate-100 gap-1.5">
-                      {(['class', 'test', 'assignment'] as const).map(type => {
+                       {(['class', 'test', 'assignment'] as const).map(type => {
                         const c = cfg(type);
                         const isSelected = formData.type === type;
                         return (

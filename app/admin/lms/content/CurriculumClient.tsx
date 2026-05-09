@@ -26,7 +26,9 @@ import {
   Filter,
   GripVertical,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  Maximize2,
+  Minimize2
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import DeleteButton from "@/components/admin/DeleteButton";
@@ -50,6 +52,7 @@ export default function CourseContentManagement({
   const [loading, setLoading] = useState(false);
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
   const [draggedItem, setDraggedItem] = useState<{ id: string, type: 'module' | 'lesson', parentId?: string } | null>(null);
+  const [isFullScreen, setIsFullScreen] = useState(false);
 
   // Modal/Form states
   const [showModuleForm, setShowModuleForm] = useState(false);
@@ -405,7 +408,18 @@ export default function CourseContentManagement({
   };
 
   return (
-    <div className="space-y-10">
+    <div className={`space-y-10 transition-all duration-500 ${isFullScreen ? 'fixed inset-0 z-[100] bg-[#f8fafc] p-8 overflow-y-auto' : ''}`}>
+      {/* Fullscreen Toggle Button - Floating or Header */}
+      {isFullScreen && (
+        <button 
+          onClick={() => setIsFullScreen(false)}
+          className="fixed top-8 right-8 z-[110] p-4 bg-white shadow-2xl border border-slate-200 rounded-2xl text-slate-400 hover:text-rose-600 transition-all hover:scale-110 active:scale-95"
+          title="Exit Fullscreen"
+        >
+          <X size={24} />
+        </button>
+      )}
+
       {/* Header Area */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-slate-100">
         <div className="space-y-2">
@@ -456,14 +470,22 @@ export default function CourseContentManagement({
           >
              <Plus size={14} /> Add Module
           </button>
+          <button 
+            onClick={() => setIsFullScreen(!isFullScreen)}
+            className="p-3 bg-white border border-slate-200 text-slate-400 hover:text-blue-600 hover:border-blue-200 rounded-lg transition-all shadow-sm active:scale-95"
+            title={isFullScreen ? "Exit Fullscreen" : "Fullscreen Mode"}
+          >
+            {isFullScreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+          </button>
         </div>
       </div>
 
       {/* Main Content Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className={`grid grid-cols-1 gap-8 ${isFullScreen ? 'lg:grid-cols-1' : 'lg:grid-cols-12'}`}>
         
         {/* Module Sidebar Navigator */}
-        <div className="lg:col-span-3 space-y-4">
+        {!isFullScreen && (
+          <div className="lg:col-span-3 space-y-4">
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden sticky top-24">
             <div className="p-4 border-b border-slate-50 bg-slate-50/50 flex items-center justify-between">
                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Module List</h3>
@@ -512,9 +534,10 @@ export default function CourseContentManagement({
             </div>
           </div>
         </div>
+      )}
 
         {/* Content Builder Area */}
-        <div className="lg:col-span-9 space-y-12 pb-20">
+        <div className={`${isFullScreen ? 'col-span-1' : 'lg:col-span-9'} space-y-12 pb-20`}>
           {loading ? (
             <div className="flex flex-col items-center justify-center py-32 space-y-4">
               <Loader2 className="animate-spin text-blue-600" size={48} />

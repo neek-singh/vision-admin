@@ -31,7 +31,8 @@ export default function AssignmentsClient({ courses, initialAssignments, availab
     batch: "",
     title: "",
     description: "",
-    due_date: ""
+    due_date: "",
+    is_published: true
   });
 
   const fetchSubmissions = async (assignmentId: string) => {
@@ -70,7 +71,8 @@ export default function AssignmentsClient({ courses, initialAssignments, availab
       batch: assignment.batch || "",
       title: assignment.title,
       description: assignment.description || "",
-      due_date: formattedDate
+      due_date: formattedDate,
+      is_published: true
     });
     setEditingId(assignment.id);
     setIsAdding(true);
@@ -79,7 +81,7 @@ export default function AssignmentsClient({ courses, initialAssignments, availab
   const closeForm = () => {
     setIsAdding(false);
     setEditingId(null);
-    setFormData({ course_id: "", batch: "", title: "", description: "", due_date: "" });
+    setFormData({ course_id: "", batch: "", title: "", description: "", due_date: "", is_published: true });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -271,14 +273,6 @@ export default function AssignmentsClient({ courses, initialAssignments, availab
                     </span>
                   )}
                 </div>
-                <button 
-                  onClick={() => handleTogglePublish(assignment.id, assignment.is_published)}
-                  className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest transition-all ${
-                    assignment.is_published ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-500'
-                  }`}
-                >
-                  {assignment.is_published ? 'Published' : 'Draft'}
-                </button>
               </div>
             </div>
             <div className="flex items-center gap-4 py-4 border-t border-slate-50 text-slate-500">
