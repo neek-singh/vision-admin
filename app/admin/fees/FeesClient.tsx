@@ -145,10 +145,10 @@ export default function FeesClient({
                 return (
                   <tr key={fee.id} className="hover:bg-slate-50/50 transition-colors group">
                     <td className="px-8 py-5">
-                      <div className="font-black text-slate-900">{fee.students?.name}</div>
-                      <div className="text-[10px] font-mono text-slate-400">{fee.students?.student_id}</div>
+                      <div className="font-black text-slate-900">{(fee.students as any)?.name}</div>
+                      <div className="text-[10px] font-mono text-slate-400">{(fee.students as any)?.student_id}</div>
                     </td>
-                    <td className="px-8 py-5 text-xs font-bold text-slate-600">{fee.courses?.title || "N/A"}</td>
+                    <td className="px-8 py-5 text-xs font-bold text-slate-600">{(fee.courses as any)?.title || "N/A"}</td>
                     <td className="px-8 py-5">
                       <div className="text-sm font-black text-slate-900">₹{fee.final_fee}</div>
                       {fee.discount > 0 && <div className="text-[9px] text-slate-400">Disc: ₹{fee.discount}</div>}
@@ -284,8 +284,8 @@ export default function FeesClient({
              <div className="p-8 border-b border-slate-50 flex items-center justify-between">
                 <div>
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Student</p>
-                  <h4 className="text-xl font-black text-slate-900">{showHistory.students?.name}</h4>
-                  <p className="text-xs font-bold text-slate-500">{showHistory.courses?.title}</p>
+                  <h4 className="text-xl font-black text-slate-900">{(showHistory.students as any)?.name}</h4>
+                  <p className="text-xs font-bold text-slate-500">{(showHistory.courses as any)?.title}</p>
                 </div>
                 <div className="flex gap-4">
                   <button 

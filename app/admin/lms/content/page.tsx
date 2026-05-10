@@ -25,7 +25,7 @@ export default async function CurriculumAdminPage() {
     id: b.id,
     type: b.title,
     course_id: b.course_id,
-    batch_display: `${b.courses?.title || 'Unknown Course'} (${b.title})`
+    batch_display: `${(b.courses as any)?.title || 'Unknown Course'} (${b.title})`
   }));
 
   return (

@@ -26,7 +26,7 @@ export default async function TestQuestionsPage({ params }: { params: Promise<{ 
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">{test.title}</h1>
-          <p className="text-sm text-slate-500 font-medium uppercase tracking-widest">{test.courses?.title} • Question Bank</p>
+          <p className="text-sm text-slate-500 font-medium uppercase tracking-widest">{(test.courses as any)?.title} • Question Bank</p>
         </div>
       </div>
 

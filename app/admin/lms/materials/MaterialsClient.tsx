@@ -347,7 +347,7 @@ export default function MaterialsClient({ courses, initialMaterials, availableBa
                   </div>
                 </td>
                 <td className="px-6 py-4">
-                  <span className="text-xs font-bold text-slate-600 block">{material.courses?.title}</span>
+                  <span className="text-xs font-bold text-slate-600 block">{(material.courses as any)?.title}</span>
                   {(material.batches?.[0] || material.batch) && (
                     <span className="inline-block mt-1 px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded text-[9px] font-black uppercase tracking-widest">
                       {material.batches?.[0] || material.batch}

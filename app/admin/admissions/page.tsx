@@ -83,9 +83,9 @@ export default async function AdminAdmissionsPage({
                     </td>
                     <td className="px-6 py-4">
                       <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-bold">
-                        {item.courses?.title || "Unknown Course"}
+                        {(item.courses as any)?.title || "Unknown Course"}
                       </span>
-                      <div className="text-[10px] text-gray-400 mt-1 uppercase font-bold tracking-wider">{item.courses?.course_code}</div>
+                      <div className="text-[10px] text-gray-400 mt-1 uppercase font-bold tracking-wider">{(item.courses as any)?.course_code}</div>
                     </td>
                     <td className="px-6 py-4">
                       <span className={`px-3 py-1 rounded-full text-xs font-bold ${
@@ -104,7 +104,7 @@ export default async function AdminAdmissionsPage({
                         status={item.status} 
                         phone={item.phone}
                         studentName={item.student_name}
-                        courseTitle={item.courses?.title}
+                        courseTitle={(item.courses as any)?.title}
                         studentId={item.students?.[0]?.student_id}
                       />
                     </td>

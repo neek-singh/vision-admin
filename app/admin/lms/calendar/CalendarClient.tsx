@@ -152,7 +152,7 @@ export default function CalendarClient({ courses, initialEvents }: { courses: an
                     </div>
                     <div>
                       <p className="font-black text-slate-900 text-sm">{event.title}</p>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase">{event.courses?.title || 'Public Event'}</p>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase">{(event.courses as any)?.title || 'Public Event'}</p>
                     </div>
                   </div>
                 </td>

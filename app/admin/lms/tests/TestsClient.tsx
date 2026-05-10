@@ -315,7 +315,7 @@ export default function TestsClient({ courses, initialTests, availableBatches = 
               <h3 className="text-lg font-black text-slate-900 leading-tight">{test.title}</h3>
               <div className="flex items-center justify-between mt-1">
                 <div className="flex items-center gap-2">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{test.courses?.title}</p>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{(test.courses as any)?.title}</p>
                   {(test.batches?.[0] || test.batch) && (
                     <span className="px-1.5 py-0.5 bg-rose-50 text-rose-600 rounded text-[8px] font-black uppercase tracking-widest border border-rose-100">
                       {test.batches?.[0] || test.batch}
@@ -402,8 +402,8 @@ export default function TestsClient({ courses, initialTests, availableBatches = 
                         <tr key={res.id} className="hover:bg-slate-50/50 transition-colors">
                           <td className="px-6 py-4">
                             <div>
-                              <p className="font-black text-slate-900 text-sm">{res.students?.name}</p>
-                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{res.students?.student_id}</p>
+                              <p className="font-black text-slate-900 text-sm">{(res.students as any)?.name}</p>
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{(res.students as any)?.student_id}</p>
                             </div>
                           </td>
                           <td className="px-6 py-4 text-center">

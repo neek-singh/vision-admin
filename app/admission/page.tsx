@@ -1,5 +1,6 @@
 import AdmissionForm from "./AdmissionForm";
 import Image from "next/image";
+import { createServerSupabaseClient } from "@/lib/supabase-server";
 
 export const revalidate = 3600; // Cache for 1 hour
 

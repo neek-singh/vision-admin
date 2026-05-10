@@ -266,7 +266,7 @@ export default function AssignmentsClient({ courses, initialAssignments, availab
               <h3 className="text-lg font-black text-slate-900 leading-tight">{assignment.title}</h3>
               <div className="flex items-center justify-between mt-1">
                 <div className="flex items-center gap-2">
-                  <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">{assignment.courses?.title}</p>
+                  <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">{(assignment.courses as any)?.title}</p>
                   {assignment.batch && (
                     <span className="px-1.5 py-0.5 bg-indigo-50 text-indigo-600 rounded text-[8px] font-black uppercase tracking-widest border border-indigo-100">
                       {assignment.batch}
@@ -342,8 +342,8 @@ export default function AssignmentsClient({ courses, initialAssignments, availab
                         <tr key={sub.id} className="hover:bg-slate-50/50 transition-colors">
                           <td className="px-6 py-4">
                             <div>
-                              <p className="font-black text-slate-900 text-sm">{sub.students?.name}</p>
-                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{sub.students?.student_id}</p>
+                              <p className="font-black text-slate-900 text-sm">{(sub.students as any)?.name}</p>
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{(sub.students as any)?.student_id}</p>
                             </div>
                           </td>
                           <td className="px-6 py-4">

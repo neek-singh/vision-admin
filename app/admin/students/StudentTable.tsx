@@ -105,7 +105,7 @@ export default function StudentTable({ initialStudents, availableBatches = [] }:
       s.name,
       s.email,
       s.phone,
-      s.enrollments?.map((e: any) => e.courses?.title).join(" | "),
+      s.enrollments?.map((e: any) => (e.courses as any)?.title).join(" | "),
       s.status || "active",
       new Date(s.created_at).toLocaleDateString()
     ]);
@@ -221,9 +221,9 @@ export default function StudentTable({ initialStudents, availableBatches = [] }:
                           {student.enrollments?.map((enrollment: any) => (
                             <span key={enrollment.id} className="px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-[10px] font-bold text-slate-700 flex items-center gap-2 group hover:border-rose-200 hover:bg-rose-50/30 transition-all">
                               <div className="flex flex-col flex-1">
-                                <span className="line-clamp-1">{enrollment.courses?.title}</span>
+                                <span className="line-clamp-1">{(enrollment.courses as any)?.title}</span>
                                 <span className="text-[8px] text-slate-400 uppercase">
-                                  {enrollment.courses?.course_code}
+                                  {(enrollment.courses as any)?.course_code}
                                   {enrollment.batch && <span className="text-emerald-600 font-black ml-1">• {enrollment.batch}</span>}
                                 </span>
                               </div>
@@ -236,7 +236,7 @@ export default function StudentTable({ initialStudents, availableBatches = [] }:
                                   <Edit2 size={10} />
                                 </button>
                                 <button 
-                                  onClick={() => handleRemoveCourse(enrollment.id, enrollment.courses?.title, student.name)}
+                                  onClick={() => handleRemoveCourse(enrollment.id, (enrollment.courses as any)?.title, student.name)}
                                   className="p-1 hover:bg-rose-100 text-slate-300 hover:text-rose-600 rounded-md transition-all"
                                   title="Remove Course"
                                 >

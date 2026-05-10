@@ -67,7 +67,7 @@ export async function updateAdmissionStatus(
                     name: admission.student_name,
                     email: admission.email,
                     phone: admission.phone,
-                    course: admission.courses?.title || "N/A",
+                    course: (admission.courses as any)?.title || "N/A",
                     password: hashedPassword,
                     admission_id: id
                 })

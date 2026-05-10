@@ -84,10 +84,10 @@ export default function BatchListClient({ batches }: { batches: any[] }) {
               </div>
 
               <h3 className="text-lg font-black text-slate-900 leading-tight mb-1">{batch.title}</h3>
-              {batch.courses?.title && (
+              {(batch.courses as any)?.title && (
                 <div className="flex items-center gap-1.5 text-xs font-bold text-blue-600 mb-4">
                   <BookOpen size={12} />
-                  {batch.courses.title}
+                  {(batch.courses as any).title}
                 </div>
               )}
 

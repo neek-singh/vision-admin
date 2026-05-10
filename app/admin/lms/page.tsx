@@ -115,8 +115,8 @@ async function RecentActivity() {
             ) : (
               activity.map((item: any) => (
                 <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="px-6 py-4 font-bold text-slate-900">{item.students?.student_name}</td>
-                  <td className="px-6 py-4 text-slate-500">{item.courses?.title}</td>
+                  <td className="px-6 py-4 font-bold text-slate-900">{(item.students as any)?.student_name}</td>
+                  <td className="px-6 py-4 text-slate-500">{(item.courses as any)?.title}</td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
                       <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
