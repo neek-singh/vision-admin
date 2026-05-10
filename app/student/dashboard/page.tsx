@@ -38,6 +38,7 @@ export default async function StudentDashboardPage() {
               alt="Vision IT Logo" 
               fill 
               className="object-contain"
+              priority
             />
           </div>
           <span className="text-xl font-black text-blue-950 hidden md:block">Vision Learn</span>

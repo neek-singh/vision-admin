@@ -19,7 +19,7 @@ export default async function BatchContentPage() {
     id: b.id,
     type: b.title, // CurriculumClient expects 'type' as the batch identifier
     course_id: b.course_id,
-    batch_display: `${b.courses?.title || 'Unknown Course'} (${b.title})`
+    batch_display: `${(b.courses as any)?.[0]?.title || 'Unknown Course'} (${b.title})`
   }));
 
   return (

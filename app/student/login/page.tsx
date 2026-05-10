@@ -37,6 +37,7 @@ export default function StudentLoginPage() {
               alt="Vision IT Logo" 
               fill 
               className="object-contain"
+              priority
             />
           </div>
           <h1 className="text-4xl font-black text-blue-950 mb-2">Vision Learn</h1>
