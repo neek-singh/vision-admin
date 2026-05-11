@@ -53,7 +53,12 @@ export default function CourseContentManagement({
   const [isFullScreen, setIsFullScreen] = useState(false);
 
   // Modal Control States
-  const [showModuleModal, setShowModuleModal] = useState(false);
+  const [moduleModal, setModuleModal] = useState<{
+    show: boolean,
+    isEditing: boolean,
+    moduleId?: string,
+    initialData?: any
+  }>({ show: false, isEditing: false });
   const [lessonModal, setLessonModal] = useState<{
     show: boolean, 
     moduleId: string, 
@@ -108,7 +113,7 @@ export default function CourseContentManagement({
   }
 
   const handleRefresh = () => {
-    setShowModuleModal(false);
+    setModuleModal({ show: false, isEditing: false });
     setLessonModal({ show: false, moduleId: "", isEditing: false });
     fetchModulesAndLessons(currentCourseId, currentBatchName);
     router.refresh();
@@ -324,13 +329,16 @@ export default function CourseContentManagement({
     <div className={`space-y-10 transition-all duration-500 ${isFullScreen ? 'fixed inset-0 z-[100] bg-[#f8fafc] p-8 overflow-y-auto' : ''}`}>
       
       {/* Lazy Modals */}
-      {showModuleModal && (
+      {moduleModal.show && (
         <ModuleFormModal 
           courseId={currentCourseId}
           batchName={currentBatchName}
           mode={mode}
           availableBatches={availableBatches}
-          onClose={() => setShowModuleModal(false)}
+          isEditing={moduleModal.isEditing}
+          moduleId={moduleModal.moduleId}
+          initialData={moduleModal.initialData}
+          onClose={() => setModuleModal({ show: false, isEditing: false })}
           onSuccess={handleRefresh}
           currentModulesCount={modules.length}
         />
@@ -444,7 +452,7 @@ export default function CourseContentManagement({
           )}
           <div className="w-[1px] h-8 bg-slate-200 hidden md:block" />
           <button 
-            onClick={() => setShowModuleModal(true)}
+            onClick={() => setModuleModal({ show: true, isEditing: false })}
             className="px-4 py-2 bg-slate-900 hover:bg-blue-600 text-white text-xs font-black uppercase tracking-widest rounded-lg transition-all flex items-center gap-2 shadow-sm active:scale-95"
           >
              <Plus size={14} /> Add Module
@@ -491,7 +499,7 @@ export default function CourseContentManagement({
               </div>
               <div className="p-3 bg-slate-50/30">
                  <button 
-                  onClick={() => setShowModuleModal(true)}
+                  onClick={() => setModuleModal({ show: true, isEditing: false })}
                   className="w-full py-3 border-2 border-dashed border-slate-200 hover:border-blue-300 hover:bg-blue-50/30 hover:text-blue-600 transition-all rounded-xl text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center justify-center gap-2"
                 >
                     <Plus size={14} /> New Section
@@ -515,7 +523,7 @@ export default function CourseContentManagement({
               </div>
               <h3 className="text-xl font-black text-slate-900">Your Curriculum is Empty</h3>
               <button 
-                onClick={() => setShowModuleModal(true)}
+                onClick={() => setModuleModal({ show: true, isEditing: false })}
                 className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-black text-sm shadow-xl shadow-blue-100"
               >
                 Create First Module
@@ -560,6 +568,13 @@ export default function CourseContentManagement({
                           className="px-4 py-2 bg-white hover:bg-slate-900 hover:text-white border border-slate-200 text-slate-900 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all shadow-sm flex items-center gap-2"
                         >
                            <Plus size={14} /> Add Lesson
+                        </button>
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); setModuleModal({ show: true, isEditing: true, moduleId: module.id, initialData: module }); }}
+                          className="p-2 bg-white hover:bg-blue-50 border border-slate-200 text-slate-400 hover:text-blue-600 rounded-lg transition-all shadow-sm"
+                          title="Edit Module Name"
+                        >
+                           <Edit2 size={14} />
                         </button>
                         <button 
                           onClick={(e) => { e.stopPropagation(); setCopyToCourseModal({ show: true, module }); setTargetCourseId(currentCourseId); }}

@@ -13,6 +13,9 @@ interface ModuleFormModalProps {
   onClose: () => void;
   onSuccess: () => void;
   currentModulesCount: number;
+  isEditing?: boolean;
+  moduleId?: string;
+  initialData?: any;
 }
 
 export default function ModuleFormModal({ 
@@ -22,12 +25,15 @@ export default function ModuleFormModal({
   availableBatches, 
   onClose, 
   onSuccess,
-  currentModulesCount
+  currentModulesCount,
+  isEditing = false,
+  moduleId,
+  initialData
 }: ModuleFormModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [title, setTitle] = useState("");
-  const [subtitle, setSubtitle] = useState("");
-  const [batches, setBatches] = useState<string[]>(mode === "batch" ? [availableBatches[0]?.id].filter(Boolean) : []);
+  const [title, setTitle] = useState(initialData?.title || "");
+  const [subtitle, setSubtitle] = useState(initialData?.subtitle || "");
+  const [batches, setBatches] = useState<string[]>(initialData?.batches || (mode === "batch" ? [availableBatches[0]?.id].filter(Boolean) : []));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,22 +41,36 @@ export default function ModuleFormModal({
 
     setIsSubmitting(true);
     try {
-      const { error } = await supabase.from("lms_modules").insert({
+      const payload = {
         course_id: courseId,
         title,
         subtitle: subtitle || null,
         batch: mode === "batch" ? batchName : null,
         batches: batches,
-        order_index: currentModulesCount + 1
-      });
+        order_index: isEditing ? initialData?.order_index : (currentModulesCount + 1)
+      };
+
+      let error;
+      if (isEditing && moduleId) {
+        const { error: updateError } = await supabase
+          .from("lms_modules")
+          .update(payload)
+          .eq("id", moduleId);
+        error = updateError;
+      } else {
+        const { error: insertError } = await supabase
+          .from("lms_modules")
+          .insert(payload);
+        error = insertError;
+      }
 
       if (!error) {
         onSuccess();
       } else {
-        alert("Error adding module: " + error.message);
+        alert("Error saving module: " + error.message);
       }
     } catch (err) {
-      console.error("Error adding module:", err);
+      console.error("Error saving module:", err);
     } finally {
       setIsSubmitting(false);
     }
@@ -61,7 +81,7 @@ export default function ModuleFormModal({
       <div className="min-h-screen flex items-center justify-center py-8">
         <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md relative animate-in zoom-in-95 duration-300">
           <div className="px-6 py-4 border-b border-slate-50 flex items-center justify-between bg-slate-50/50 rounded-t-[2rem]">
-            <h3 className="text-lg font-black text-slate-900">New Module</h3>
+            <h3 className="text-lg font-black text-slate-900">{isEditing ? "Edit Module" : "New Module"}</h3>
             <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-lg transition-all"><X size={18} className="text-slate-900" /></button>
           </div>
           <form onSubmit={handleSubmit} className="p-6 space-y-4">
@@ -96,7 +116,7 @@ export default function ModuleFormModal({
                 disabled={isSubmitting}
                 className="w-full py-4 bg-slate-900 hover:bg-blue-600 text-white font-black uppercase tracking-widest rounded-2xl transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-2"
               >
-                {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : "Create Module"}
+                {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : (isEditing ? "Update Module" : "Create Module")}
               </button>
             </div>
           </form>
