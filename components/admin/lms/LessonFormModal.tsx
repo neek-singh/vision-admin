@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, Loader2, Check } from "lucide-react";
+import { X, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import MultiSelect from "@/components/ui/MultiSelect";
 
@@ -29,15 +29,14 @@ export default function LessonFormModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lesson, setLesson] = useState({
     title: initialData?.title || "",
-    subtitle: initialData?.subtitle || "",
     type: initialData?.type || initialData?.lesson_type || "video",
     content_url: initialData?.content_url || "",
     html_content: initialData?.notes_content || "",
-    duration: initialData?.duration || "",
     is_free: initialData?.is_free || false,
     is_locked: initialData?.is_locked || false,
     order_index: initialData?.order_index || 0,
-    batches: initialData?.batches || []
+    batches: initialData?.batches || [],
+    scheduled_at: initialData?.scheduled_at || ""
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -49,15 +48,14 @@ export default function LessonFormModal({
       const payload = {
         module_id: moduleId,
         title: lesson.title,
-        subtitle: lesson.subtitle || null,
+        subtitle: null,
         type: 'video', // Workaround for strict DB check constraint
         content_url: lesson.content_url,
         notes_content: lesson.html_content,
-        duration: lesson.duration ? parseInt(lesson.duration.toString()) : null,
+        duration: null,
         is_free: lesson.is_free,
-        is_locked: lesson.is_locked,
-        order_index: lesson.order_index,
         batches: lesson.batches,
+        scheduled_at: lesson.scheduled_at || null,
         course_id: courseId,
         lesson_type: lesson.type
       };
@@ -105,16 +103,9 @@ export default function LessonFormModal({
                   className="w-full px-0 py-2 bg-transparent border-b-2 border-slate-100 focus:border-blue-600 outline-none transition-all font-black text-slate-900" 
                 />
               </div>
-              <div className="md:col-span-2 space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Subtitle/Short Description</label>
-                <input 
-                  type="text" value={lesson.subtitle}
-                  onChange={(e) => setLesson({...lesson, subtitle: e.target.value})}
-                  className="w-full px-0 py-2 bg-transparent border-b-2 border-slate-100 focus:border-blue-600 outline-none transition-all font-bold text-slate-700 text-sm" 
-                />
-              </div>
+
               
-              <div className="space-y-2">
+              <div className="md:col-span-2 space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Content Type</label>
                 <select 
                   value={lesson.type}
@@ -123,27 +114,41 @@ export default function LessonFormModal({
                 >
                   <option value="video">Video Lesson</option>
                   <option value="notes">Reading Notes</option>
-                  <option value="quiz">Interactive Quiz</option>
+
                   <option value="assignment">Project Assignment</option>
                 </select>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Duration (mins)</label>
-                <input 
-                  type="number" value={lesson.duration}
-                  onChange={(e) => setLesson({...lesson, duration: e.target.value})}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-black text-black" 
-                />
-              </div>
+              {lesson.type === 'video' ? (
+                <div className="md:col-span-2 space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">YouTube Video URL</label>
+                  <input 
+                    type="text" value={lesson.content_url}
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    onChange={(e) => setLesson({...lesson, content_url: e.target.value})}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-black text-black" 
+                  />
+                </div>
+              ) : (
+                <div className="md:col-span-2 space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">HTML Content / Code Support</label>
+                  <textarea 
+                    value={lesson.html_content}
+                    placeholder="Paste your HTML or text content here..."
+                    onChange={(e) => setLesson({...lesson, html_content: e.target.value})}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-slate-700 min-h-[200px] font-mono" 
+                  />
+                </div>
+              )}
 
               <div className="md:col-span-2 space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Content URL / Video ID</label>
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Unlock Schedule (Date & Time)</label>
                 <input 
-                  type="text" value={lesson.content_url}
-                  onChange={(e) => setLesson({...lesson, content_url: e.target.value})}
+                  type="datetime-local" value={lesson.scheduled_at}
+                  onChange={(e) => setLesson({...lesson, scheduled_at: e.target.value})}
                   className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-black text-black" 
                 />
+                <p className="text-[9px] text-slate-400 font-medium">Leave empty to unlock immediately.</p>
               </div>
 
               <div className="md:col-span-2 space-y-2">
@@ -155,26 +160,7 @@ export default function LessonFormModal({
                 />
               </div>
 
-              <div className="flex flex-wrap gap-4 pt-2">
-                <label className="flex items-center gap-3 cursor-pointer group">
-                  <div 
-                    onClick={() => setLesson({...lesson, is_free: !lesson.is_free})}
-                    className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all ${lesson.is_free ? 'bg-green-600 border-green-600' : 'border-slate-300 group-hover:border-green-400'}`}
-                  >
-                    {lesson.is_free && <Check size={14} className="text-white" />}
-                  </div>
-                  <span className="text-xs font-black text-slate-600 uppercase tracking-widest">Free Preview</span>
-                </label>
-                <label className="flex items-center gap-3 cursor-pointer group">
-                  <div 
-                    onClick={() => setLesson({...lesson, is_locked: !lesson.is_locked})}
-                    className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all ${lesson.is_locked ? 'bg-amber-600 border-amber-600' : 'border-slate-300 group-hover:border-amber-400'}`}
-                  >
-                    {lesson.is_locked && <Check size={14} className="text-white" />}
-                  </div>
-                  <span className="text-xs font-black text-slate-600 uppercase tracking-widest">Locked by default</span>
-                </label>
-              </div>
+
             </div>
 
             <div className="pt-6 flex gap-4">

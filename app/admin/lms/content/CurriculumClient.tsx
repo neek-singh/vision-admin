@@ -18,13 +18,10 @@ import {
   X,
   PenTool,
   Edit2,
-  Eye,
-  EyeOff,
-  Lock,
-  Unlock,
-  ExternalLink,
+
   BookOpen,
-  Copy
+  Copy,
+  Clock
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import DeleteButton from "@/components/admin/DeleteButton";
@@ -272,7 +269,7 @@ export default function CourseContentManagement({
       const newModuleData = {
         course_id: targetId,
         title: `${module.title} (Copy)`,
-        subtitle: module.subtitle,
+        subtitle: null,
         batch: module.batch,
         batches: module.batches,
         order_index: newOrderIndex
@@ -292,16 +289,17 @@ export default function CourseContentManagement({
           module_id: newModule.id,
           course_id: targetId,
           title: lesson.title,
-          subtitle: lesson.subtitle,
+          subtitle: null,
           type: 'video',
           lesson_type: lesson.lesson_type || lesson.type,
           content_url: lesson.content_url,
           notes_content: lesson.notes_content,
-          duration: lesson.duration,
+          duration: null,
           is_free: lesson.is_free,
           is_locked: lesson.is_locked,
           order_index: lesson.order_index,
-          batches: lesson.batches
+          batches: lesson.batches,
+          scheduled_at: lesson.scheduled_at
         }));
 
         const { error: lessonsError } = await supabase
@@ -556,7 +554,6 @@ export default function CourseContentManagement({
                           </span>
                         </div>
                         <h2 className="text-lg font-black text-slate-900 line-clamp-1">{module.title}</h2>
-                        {module.subtitle && <p className="text-xs font-medium text-slate-500">{module.subtitle}</p>}
                      </div>
                      <div className="flex items-center gap-2">
                         <div className="flex flex-col gap-1 mr-2">
@@ -607,14 +604,18 @@ export default function CourseContentManagement({
                             >
                                <GripVertical size={14} className="text-slate-200 group-hover/lesson:text-slate-400 cursor-grab shrink-0" />
                                <div className="flex-1">
-                                  <h4 className="text-xs font-black text-slate-900">{lesson.title}</h4>
-                                  <p className="text-[10px] text-slate-400 font-medium">{lesson.subtitle}</p>
+                                   <div className="flex items-center gap-2">
+                                     <h4 className="text-xs font-black text-slate-900">{lesson.title}</h4>
+                                     {lesson.scheduled_at && (
+                                       <div className="flex items-center gap-1 px-1.5 py-0.5 bg-amber-50 text-amber-600 rounded text-[9px] font-black border border-amber-100">
+                                         <Clock size={10} />
+                                         SCHEDULED
+                                       </div>
+                                     )}
+                                   </div>
                                </div>
                                <div className="flex items-center gap-1 opacity-0 group-hover/lesson:opacity-100 transition-opacity">
                                   <button onClick={() => setLessonModal({ show: true, moduleId: module.id, isEditing: true, lessonId: lesson.id, initialData: lesson })} className="w-8 h-8 rounded-lg bg-white border border-slate-100 flex items-center justify-center text-slate-400 hover:text-blue-600 transition-all shadow-sm"><Edit2 size={14} /></button>
-                                  <button onClick={() => toggleLessonField(lesson.id, 'is_free', lesson.is_free)} className={`w-8 h-8 rounded-lg bg-white border flex items-center justify-center transition-all shadow-sm ${lesson.is_free ? 'text-green-600 border-green-200' : 'text-slate-400 border-slate-100'}`}>{lesson.is_free ? <Eye size={14} /> : <EyeOff size={14} />}</button>
-                                  <button onClick={() => toggleLessonField(lesson.id, 'is_locked', lesson.is_locked)} className={`w-8 h-8 rounded-lg bg-white border flex items-center justify-center transition-all shadow-sm ${lesson.is_locked ? 'text-amber-600 border-amber-200' : 'text-slate-400 border-slate-100'}`}>{lesson.is_locked ? <Lock size={14} /> : <Unlock size={14} />}</button>
-                                  <a href={lesson.content_url} target="_blank" className="w-8 h-8 rounded-lg bg-white border border-slate-100 flex items-center justify-center text-slate-400 hover:text-blue-600 shadow-sm"><ExternalLink size={14} /></a>
                                   <DeleteButton id={lesson.id} table="lessons" title={lesson.title} onSuccess={handleRefresh} />
                                </div>
                             </div>

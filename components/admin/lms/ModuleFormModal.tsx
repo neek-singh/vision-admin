@@ -32,7 +32,6 @@ export default function ModuleFormModal({
 }: ModuleFormModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [title, setTitle] = useState(initialData?.title || "");
-  const [subtitle, setSubtitle] = useState(initialData?.subtitle || "");
   const [batches, setBatches] = useState<string[]>(initialData?.batches || (mode === "batch" ? [availableBatches[0]?.id].filter(Boolean) : []));
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -44,7 +43,7 @@ export default function ModuleFormModal({
       const payload = {
         course_id: courseId,
         title,
-        subtitle: subtitle || null,
+        subtitle: null,
         batch: mode === "batch" ? batchName : null,
         batches: batches,
         order_index: isEditing ? initialData?.order_index : (currentModulesCount + 1)
@@ -94,15 +93,7 @@ export default function ModuleFormModal({
                 className="w-full px-0 py-3 bg-transparent border-b-2 border-slate-100 focus:border-blue-600 outline-none transition-all font-black text-black text-lg placeholder:text-slate-300" 
               />
             </div>
-            <div className="space-y-2 group">
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 group-focus-within:text-blue-600 transition-colors">Module Subtitle</label>
-              <input 
-                type="text" value={subtitle}
-                onChange={(e) => setSubtitle(e.target.value)}
-                placeholder="e.g. Master the core principles" 
-                className="w-full px-0 py-3 bg-transparent border-b-2 border-slate-100 focus:border-blue-600 outline-none transition-all font-bold text-slate-700 text-sm placeholder:text-slate-300" 
-              />
-            </div>
+
             <div className="space-y-2">
               <MultiSelect 
                 label="Assign to Batches"
