@@ -50,16 +50,17 @@ export default async function AdminAdmissionsPage({
       </div>
 
       <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Desktop Table */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-blue-50 text-blue-900 border-b border-gray-100">
-                <th className="px-6 py-4 font-semibold">Student Name</th>
-                <th className="px-6 py-4 font-semibold">Father's Name</th>
-                <th className="px-6 py-4 font-semibold">Contact Info</th>
-                <th className="px-6 py-4 font-semibold">Course</th>
-                <th className="px-6 py-4 font-semibold">Status</th>
-                <th className="px-6 py-4 font-semibold text-right">Actions</th>
+                <th className="px-6 py-4 font-semibold text-xs uppercase tracking-wider">Student Name</th>
+                <th className="px-6 py-4 font-semibold text-xs uppercase tracking-wider">Father's Name</th>
+                <th className="px-6 py-4 font-semibold text-xs uppercase tracking-wider">Contact Info</th>
+                <th className="px-6 py-4 font-semibold text-xs uppercase tracking-wider">Course</th>
+                <th className="px-6 py-4 font-semibold text-xs uppercase tracking-wider">Status</th>
+                <th className="px-6 py-4 font-semibold text-right text-xs uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -113,6 +114,59 @@ export default async function AdminAdmissionsPage({
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Card View */}
+        <div className="md:hidden divide-y divide-gray-50">
+          {admissionsList.length === 0 ? (
+            <div className="px-6 py-12 text-center text-gray-500 font-medium">
+              No admissions found.
+            </div>
+          ) : (
+            admissionsList.map((item: any) => (
+              <div key={item.id} className="p-4 space-y-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h4 className="font-bold text-slate-900">{item.student_name}</h4>
+                    <p className="text-[10px] text-slate-400 uppercase font-bold">{new Date(item.created_at).toLocaleDateString('en-IN')}</p>
+                  </div>
+                  <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                    item.status === 'approved' 
+                      ? 'bg-green-50 text-green-700' 
+                      : item.status === 'rejected' 
+                        ? 'bg-red-50 text-red-700' 
+                        : 'bg-amber-50 text-amber-700'
+                  }`}>
+                    {item.status}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Contact</p>
+                    <p className="text-xs font-bold text-slate-700">{item.phone}</p>
+                    <p className="text-[10px] text-slate-500 truncate">{item.email}</p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Course</p>
+                    <p className="text-xs font-bold text-blue-600 line-clamp-1">{(item.courses as any)?.title}</p>
+                    <p className="text-[9px] text-slate-400 uppercase font-black">{(item.courses as any)?.course_code}</p>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-50">
+                   <AdminActions 
+                    id={item.id} 
+                    status={item.status} 
+                    phone={item.phone}
+                    studentName={item.student_name}
+                    courseTitle={(item.courses as any)?.title}
+                    studentId={item.students?.[0]?.student_id}
+                  />
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>

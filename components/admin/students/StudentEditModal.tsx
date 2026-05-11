@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Loader2, Settings, X, Check } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
@@ -14,6 +14,23 @@ export default function StudentEditModal({ student: editingStudent, onClose, onS
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [localStudent, setLocalStudent] = useState(editingStudent);
+  const [availableCourses, setAvailableCourses] = useState<{ id: string; title: string }[]>([]);
+
+  useEffect(() => {
+    async function fetchCourses() {
+      const { data } = await supabase.from("courses").select("id, title").order("title");
+      setAvailableCourses(data || []);
+      
+      // Auto-fill primary course from enrollments if empty
+      if (!localStudent.course || localStudent.course === "N/A") {
+        const firstEnrollment = localStudent.enrollments?.[0];
+        if (firstEnrollment?.courses?.title) {
+          setLocalStudent((prev: any) => ({ ...prev, course: firstEnrollment.courses.title }));
+        }
+      }
+    }
+    fetchCourses();
+  }, []);
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -272,14 +289,20 @@ export default function StudentEditModal({ student: editingStudent, onClose, onS
               />
             </div>
             <div>
-              <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Primary Course (ID Code)</label>
-              <input 
+              <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Primary Course</label>
+              <select 
                 required
-                type="text" 
-                value={localStudent.course}
+                value={localStudent.course || ""}
                 onChange={(e) => setLocalStudent({...localStudent, course: e.target.value})}
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-black text-black" 
-              />
+                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-black text-black appearance-none cursor-pointer"
+              >
+                <option value="">Select Primary Course</option>
+                {availableCourses.map((course) => (
+                  <option key={course.id} value={course.title}>
+                    {course.title}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="col-span-full">
               <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Full Address</label>

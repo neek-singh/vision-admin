@@ -76,16 +76,15 @@ export default async function AdminBlogsPage() {
 
       {/* Table */}
       <div className="bg-white rounded-3xl shadow border overflow-hidden">
-
-        <div className="overflow-x-auto">
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left">
-
             <thead className="bg-blue-50">
               <tr>
-                <th className="px-6 py-4">Title</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4">Date</th>
-                <th className="px-6 py-4 text-right text-black">Actions</th>
+                <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider text-blue-900">Title</th>
+                <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider text-blue-900">Status</th>
+                <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider text-blue-900">Date</th>
+                <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider text-right text-blue-900">Actions</th>
               </tr>
             </thead>
 
@@ -98,15 +97,13 @@ export default async function AdminBlogsPage() {
                 </tr>
               ) : (
                 blogsList.map((blog) => (
-                  <tr key={blog.id} className="border-t">
-
-                    <td className="px-6 py-4 font-medium">
+                  <tr key={blog.id} className="border-t hover:bg-slate-50 transition-colors">
+                    <td className="px-6 py-4 font-bold text-slate-900">
                       {blog.title}
                     </td>
-
                     <td className="px-6 py-4">
                       <span
-                        className={`px-3 py-1 rounded-full text-xs ${blog.is_published
+                        className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${blog.is_published
                           ? "bg-green-100 text-green-700"
                           : "bg-gray-100 text-gray-600"
                           }`}
@@ -114,36 +111,74 @@ export default async function AdminBlogsPage() {
                         {blog.is_published ? "Published" : "Draft"}
                       </span>
                     </td>
-
-                    <td className="px-6 py-4 text-sm text-gray-500">
+                    <td className="px-6 py-4 text-xs font-bold text-gray-500">
                       {blog.created_at
                         ? new Date(blog.created_at).toLocaleDateString()
                         : "-"}
                     </td>
-
-                    <td className="px-6 py-4 text-right flex gap-4 justify-end">
+                    <td className="px-6 py-4 text-right flex gap-6 justify-end items-center">
                       <Link
                         href={`/admin/blogs/${blog.id}/edit`}
-                        className="text-blue-600 font-semibold"
+                        className="text-blue-600 hover:text-blue-800 font-bold text-sm"
                       >
                         Edit
                       </Link>
-
                       <DeleteButton
                         id={blog.id}
                         table="blogs"
                         title={blog.title}
                       />
                     </td>
-
                   </tr>
                 ))
               )}
             </tbody>
-
           </table>
         </div>
 
+        {/* Mobile Card View */}
+        <div className="md:hidden divide-y divide-slate-100">
+          {blogsList.length === 0 ? (
+            <div className="p-10 text-center text-slate-400 font-bold">
+              No blogs found
+            </div>
+          ) : (
+            blogsList.map((blog) => (
+              <div key={blog.id} className="p-5 space-y-4">
+                <div className="flex justify-between items-start gap-4">
+                  <h4 className="font-black text-slate-900 leading-tight flex-1">{blog.title}</h4>
+                  <span
+                    className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest shrink-0 ${blog.is_published
+                      ? "bg-green-100 text-green-700"
+                      : "bg-gray-100 text-gray-600"
+                      }`}
+                  >
+                    {blog.is_published ? "Published" : "Draft"}
+                  </span>
+                </div>
+                
+                <div className="flex items-center justify-between pt-2">
+                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    {blog.created_at ? new Date(blog.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : "-"}
+                  </p>
+                  <div className="flex items-center gap-4">
+                    <Link
+                      href={`/admin/blogs/${blog.id}/edit`}
+                      className="text-blue-600 font-black text-xs uppercase tracking-widest"
+                    >
+                      Edit
+                    </Link>
+                    <DeleteButton
+                      id={blog.id}
+                      table="blogs"
+                      title={blog.title}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </div>
     </div>
   );

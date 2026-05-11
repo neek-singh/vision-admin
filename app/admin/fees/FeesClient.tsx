@@ -104,7 +104,7 @@ export default function FeesClient({
     <div className="space-y-8 animate-in fade-in duration-500 pb-20">
       
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         <StatCard title="Total Collection" amount={stats.totalCollection} icon={<Wallet className="text-emerald-600" />} color="bg-emerald-50" sub="Overall received" />
         <StatCard title="Total Outstanding" amount={stats.totalPending} icon={<AlertCircle className="text-rose-600" />} color="bg-rose-50" sub="Balance due" />
         <StatCard title="Today Income" amount={stats.todayCollection} icon={<TrendingUp className="text-blue-600" />} color="bg-blue-50" sub="Collected today" />
@@ -112,20 +112,21 @@ export default function FeesClient({
 
       {/* Main Actions & Table */}
       <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
-        <div className="p-8 border-b border-slate-50 flex flex-col md:flex-row justify-between items-center gap-4">
-          <div>
+        <div className="p-6 sm:p-8 border-b border-slate-50 flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div className="text-center sm:text-left">
             <h2 className="text-2xl font-black text-slate-900 tracking-tight">Financial Records</h2>
             <p className="text-sm text-slate-500 font-medium">Manage course fees and transactions.</p>
           </div>
           <button 
             onClick={() => setShowSetup(true)}
-            className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-sm transition-all flex items-center gap-2 shadow-xl shadow-indigo-100"
+            className="w-full sm:w-auto px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-sm transition-all flex items-center justify-center gap-2 shadow-xl shadow-indigo-100"
           >
-            <PlusCircle size={18} /> New Fee Record
+            <PlusCircle size={18} /> New Record
           </button>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Desktop Table View */}
+        <div className="hidden lg:block overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="bg-slate-50/50 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
@@ -186,6 +187,78 @@ export default function FeesClient({
               })}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile/Tablet Card View */}
+        <div className="lg:hidden divide-y divide-gray-50">
+          {initialFees.length === 0 ? (
+            <div className="px-6 py-12 text-center text-slate-400 font-bold">
+              No fee records found.
+            </div>
+          ) : (
+            initialFees.map((fee) => {
+              const totalPaid = fee.payments?.reduce((acc: number, p: any) => acc + Number(p.amount), 0) || 0;
+              const balance = Number(fee.final_fee) - totalPaid;
+              return (
+                <div key={fee.id} className="p-5 space-y-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-black text-slate-900 leading-tight">{(fee.students as any)?.name}</h4>
+                      <p className="text-[10px] font-mono text-slate-400 uppercase tracking-widest">{(fee.students as any)?.student_id}</p>
+                    </div>
+                    <StatusBadge status={fee.status} />
+                  </div>
+
+                  <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100/50">
+                    <div className="flex justify-between items-end mb-3">
+                      <div>
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Course Title</span>
+                        <p className="text-xs font-black text-blue-600">{(fee.courses as any)?.title || "N/A"}</p>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Final Fee</span>
+                        <p className="text-sm font-black text-slate-900">₹{fee.final_fee}</p>
+                      </div>
+                    </div>
+                    <div className="flex justify-between pt-3 border-t border-slate-200/50">
+                      <div>
+                        <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest block mb-1">Paid Amount</span>
+                        <p className="text-sm font-black text-emerald-600">₹{totalPaid}</p>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[9px] font-black text-rose-400 uppercase tracking-widest block mb-1">Balance Due</span>
+                        <p className={`text-sm font-black ${balance > 0 ? 'text-rose-600' : 'text-slate-400'}`}>₹{balance}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 flex items-center justify-between gap-4">
+                     <button 
+                        onClick={() => setShowPayment(fee)}
+                        disabled={fee.status === 'paid'}
+                        className="flex-1 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 disabled:opacity-30"
+                      >
+                        <Plus size={14} /> Add Payment
+                      </button>
+                      <div className="flex items-center gap-2">
+                        <button 
+                          onClick={() => setShowHistory(fee)}
+                          className="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all border border-slate-100"
+                        >
+                          <History size={18} />
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(fee.id)}
+                          className="p-2.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all border border-slate-100"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
 

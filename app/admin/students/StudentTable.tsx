@@ -175,15 +175,16 @@ export default function StudentTable({ initialStudents, availableBatches = [] }:
       </div>
 
       <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-blue-50 text-blue-900 border-b border-gray-100">
-                <th className="px-6 py-4 font-semibold">Student</th>
-                <th className="px-6 py-4 font-semibold">Contact & ID</th>
-                <th className="px-6 py-4 font-semibold">Assigned Courses</th>
-                <th className="px-6 py-4 font-semibold">Status</th>
-                <th className="px-6 py-4 font-semibold text-right">Actions</th>
+                <th className="px-6 py-4 font-semibold text-xs uppercase tracking-wider">Student</th>
+                <th className="px-6 py-4 font-semibold text-xs uppercase tracking-wider">Contact & ID</th>
+                <th className="px-6 py-4 font-semibold text-xs uppercase tracking-wider">Assigned Courses</th>
+                <th className="px-6 py-4 font-semibold text-xs uppercase tracking-wider">Status</th>
+                <th className="px-6 py-4 font-semibold text-right text-xs uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -304,6 +305,100 @@ export default function StudentTable({ initialStudents, availableBatches = [] }:
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Card View */}
+        <div className="md:hidden divide-y divide-gray-50 bg-white">
+          {initialStudents.length === 0 ? (
+            <div className="px-6 py-12 text-center text-gray-500 font-medium">
+              No students found.
+            </div>
+          ) : (
+            initialStudents.map((student) => {
+              const isActive = (student.status || "active") === "active";
+              const firstName = student.name.split(" ")[0];
+              const last4 = student.phone?.slice(-4) || "0000";
+              const passHint = `${firstName}@${last4}`;
+
+              return (
+                <div key={student.id} className="p-5 space-y-4 hover:bg-slate-50/50 transition-colors">
+                  <div className="flex justify-between items-start gap-4">
+                    <div className="flex-1">
+                      <h4 className="font-black text-slate-900 leading-tight">{student.name}</h4>
+                      <p className="font-mono text-[10px] font-bold text-blue-600 mt-0.5 tracking-wider uppercase">{student.student_id}</p>
+                      <div className="mt-1 flex items-center gap-1.5">
+                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Support:</span>
+                         <span className="text-[9px] font-mono font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-100/50">{passHint}</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => toggleStatus(student.id, student.status || "active")}
+                      disabled={isUpdating === student.id}
+                      className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest transition-all border shrink-0
+                      ${isActive 
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-100" 
+                        : "bg-rose-50 text-rose-700 border-rose-100"}`}
+                    >
+                      {isUpdating === student.id ? <Loader2 size={10} className="animate-spin" /> : (isActive ? <ShieldCheck size={10} /> : <UserMinus size={10} />)}
+                      {student.status || "active"}
+                    </button>
+                  </div>
+
+                  <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100/50 space-y-3">
+                    <div className="flex justify-between items-center">
+                       <div>
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Contact Details</p>
+                          <p className="text-xs font-black text-slate-700">{student.phone}</p>
+                          <p className="text-[10px] font-bold text-slate-400 truncate">{student.email}</p>
+                       </div>
+                       <div className="text-right">
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Primary Batch</p>
+                          <div className="inline-flex items-center gap-1 px-2 py-1 bg-indigo-50 text-indigo-700 rounded-lg border border-indigo-100/50 text-[9px] font-black uppercase tracking-wider">
+                            <Users size={10} /> {student.batch || "UNASSIGNED"}
+                          </div>
+                       </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Active Enrollments ({student.enrollments?.length || 0})</p>
+                    <div className="flex flex-wrap gap-2">
+                      {student.enrollments?.map((enrollment: any) => (
+                        <div key={enrollment.id} className="flex items-center gap-2 pl-3 pr-1 py-1 bg-white border border-slate-200 rounded-xl shadow-sm">
+                           <div className="flex flex-col">
+                             <span className="text-[10px] font-black text-slate-800 line-clamp-1">{(enrollment.courses as any)?.title}</span>
+                             <span className="text-[8px] font-bold text-slate-400">{(enrollment.courses as any)?.course_code} {enrollment.batch && `• ${enrollment.batch}`}</span>
+                           </div>
+                           <button 
+                             onClick={() => handleRemoveCourse(enrollment.id, (enrollment.courses as any)?.title, student.name)}
+                             className="w-6 h-6 flex items-center justify-center text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                           >
+                             <X size={10} />
+                           </button>
+                        </div>
+                      ))}
+                      <button 
+                        onClick={() => { setAssigningTo(student); fetchAvailableCourses(); }}
+                        className="px-4 py-1.5 bg-blue-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all"
+                      >
+                        + Add Course
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 flex gap-3">
+                    <button 
+                      onClick={() => setEditingStudent(student)}
+                      className="flex-1 py-3 bg-white hover:bg-slate-50 text-slate-600 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 border border-slate-100 shadow-sm"
+                    >
+                      <Settings size={14} className="text-slate-400" /> Manage Student
+                    </button>
+                    <DeleteButton id={student.id} table="students" title={student.name} />
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
     </div>

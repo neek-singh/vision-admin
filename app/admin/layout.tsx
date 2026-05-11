@@ -218,11 +218,11 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
               <Menu size={20} />
             </button>
             
-            <div className="hidden lg:flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
+            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl max-w-[200px] sm:max-w-none overflow-x-auto no-scrollbar">
               <Link 
                 href="/admin" 
                 onClick={() => setAdminMode("all")}
-                className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
+                className={`px-3 sm:px-4 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${
                   adminMode === "all"
                     ? "bg-white text-slate-900 shadow-sm"
                     : "text-slate-500 hover:text-slate-900"
@@ -233,24 +233,24 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
               <Link 
                 href="/admin/blogs" 
                 onClick={() => setAdminMode("web")}
-                className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
+                className={`px-3 sm:px-4 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${
                   adminMode === "web"
                     ? "bg-white text-orange-600 shadow-sm"
                     : "text-slate-500 hover:text-slate-900"
                 }`}
               >
-                Vision Web
+                Web
               </Link>
               <Link 
                 href="/admin/lms" 
                 onClick={() => setAdminMode("lms")}
-                className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
+                className={`px-3 sm:px-4 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${
                   adminMode === "lms"
                     ? "bg-white text-blue-600 shadow-sm"
                     : "text-slate-500 hover:text-slate-900"
                 }`}
               >
-                Vision Learn
+                Learn
               </Link>
             </div>
           </div>

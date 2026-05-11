@@ -133,6 +133,13 @@ export async function assignCourseToStudent(studentId: string, courseId: string,
         return { error: "Student is already enrolled in this course." };
     }
 
+    // Fetch course details for title/code
+    const { data: courseData } = await supabase
+        .from("courses")
+        .select("title, course_code")
+        .eq("id", courseId)
+        .single();
+
     const { error } = await supabase
         .from("enrollments")
         .insert({
@@ -145,6 +152,22 @@ export async function assignCourseToStudent(studentId: string, courseId: string,
     if (error) {
         console.error("Enrollment error:", error);
         return { error: error.message };
+    }
+
+    // Automatically update student's primary course if not set or legacy N/A
+    if (courseData) {
+        const { data: student } = await supabase
+            .from("students")
+            .select("course")
+            .eq("id", studentId)
+            .single();
+
+        if (!student?.course || student.course === "N/A") {
+            await supabase
+                .from("students")
+                .update({ course: courseData.title })
+                .eq("id", studentId);
+        }
     }
 
     revalidatePath("/admin/students");

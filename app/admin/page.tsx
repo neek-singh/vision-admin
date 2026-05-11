@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { Suspense } from "react";
 
 export const revalidate = 0;
 
@@ -21,8 +22,9 @@ async function getSupabase() {
   );
 }
 
-// 📊 Stats Fetch
-async function getStats(supabase: any) {
+// 📊 Components for Suspense
+
+async function StatsSection({ supabase }: { supabase: any }) {
   const [blogs, gallery, admissions, contacts, courses, students] = await Promise.all([
     supabase.from("blogs").select("id", { count: "exact", head: true }),
     supabase.from("gallery").select("id", { count: "exact", head: true }),
@@ -32,7 +34,7 @@ async function getStats(supabase: any) {
     supabase.from("students").select("id", { count: "exact", head: true }),
   ]);
 
-  return {
+  const stats = {
     blogs: blogs.count ?? 0,
     gallery: gallery.count ?? 0,
     admissions: admissions.count ?? 0,
@@ -40,6 +42,100 @@ async function getStats(supabase: any) {
     courses: courses.count ?? 0,
     students: students.count ?? 0,
   };
+
+  return (
+    <div className="space-y-12">
+      {/* Vision Learn Section */}
+      <section className="space-y-6">
+        <div className="flex items-center gap-3">
+          <div className="w-2 h-8 bg-blue-600 rounded-full"></div>
+          <h2 className="text-xl font-black text-blue-950 uppercase tracking-wider">Vision Learn (LMS)</h2>
+        </div>
+        
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+          <Card label="Total Students" value={stats.students} color="bg-blue-600" />
+          <Card label="Active Courses" value={stats.courses} color="bg-indigo-600" />
+          <Card label="New Admissions" value={stats.admissions} color="bg-violet-600" />
+          <Card label="LMS Activity" value="Active" color="bg-emerald-600" />
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+          <QuickLink href="/admin/lms" label="LMS Dashboard" />
+          <QuickLink href="/admin/admissions" label="Admissions" />
+          <QuickLink href="/admin/students" label="Students" />
+          <QuickLink href="/admin/courses" label="Courses" />
+        </div>
+      </section>
+
+      {/* Vision Web Section */}
+      <section className="space-y-6">
+        <div className="flex items-center gap-3">
+          <div className="w-2 h-8 bg-orange-500 rounded-full"></div>
+          <h2 className="text-xl font-black text-blue-950 uppercase tracking-wider">Vision Web (Main)</h2>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+          <Card label="Total Blogs" value={stats.blogs} color="bg-orange-500" />
+          <Card label="Gallery Images" value={stats.gallery} color="bg-amber-500" />
+          <Card label="Contact Requests" value={stats.contacts} color="bg-rose-500" />
+          <Card label="Batches" value="Running" color="bg-sky-500" />
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+          <QuickLink href="/admin/blogs" label="Blogs" color="bg-orange-500" />
+          <QuickLink href="/admin/gallery" label="Gallery" color="bg-orange-500" />
+          <QuickLink href="/admin/contacts" label="Enquiries" color="bg-orange-500" />
+          <QuickLink href="/admin/batches" label="Batches" color="bg-orange-500" />
+        </div>
+      </section>
+    </div>
+  );
+}
+
+async function RecentActivity({ supabase }: { supabase: any }) {
+  const { data: recentAdmissions } = await supabase
+    .from("admissions")
+    .select("id, student_name, created_at")
+    .order("created_at", { ascending: false })
+    .limit(5);
+
+  const { data: recentContacts } = await supabase
+    .from("contacts")
+    .select("id, name, created_at")
+    .order("created_at", { ascending: false })
+    .limit(5);
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-6">
+      <Box title="Recent Admissions">
+        {!recentAdmissions?.length ? (
+          <Empty text="No admissions yet" />
+        ) : (
+          recentAdmissions.map((item: any) => (
+            <Row
+              key={item.id}
+              title={item.student_name}
+              date={item.created_at}
+            />
+          ))
+        )}
+      </Box>
+
+      <Box title="Recent Contact Enquiries">
+        {!recentContacts?.length ? (
+          <Empty text="No contacts yet" />
+        ) : (
+          recentContacts.map((item: any) => (
+            <Row
+              key={item.id}
+              title={item.name}
+              date={item.created_at}
+            />
+          ))
+        )}
+      </Box>
+    </div>
+  );
 }
 
 // 🚀 MAIN PAGE
@@ -64,108 +160,56 @@ export default async function AdminPage() {
     redirect("/unauthorized");
   }
 
-  // 📊 3. Fetch Data
-  const stats = await getStats(supabase);
-
-  const { data: recentAdmissions } = await supabase
-    .from("admissions")
-    .select("id, student_name, created_at")
-    .order("created_at", { ascending: false })
-    .limit(5);
-
-  const { data: recentContacts } = await supabase
-    .from("contacts")
-    .select("id, name, created_at")
-    .order("created_at", { ascending: false })
-    .limit(5);
-
   return (
-    <main className="min-h-screen bg-gray-50 px-6 py-10">
-      <div className="max-w-7xl mx-auto space-y-12">
+    <main className="min-h-screen bg-gray-50 px-4 sm:px-6 py-6 sm:py-10">
+      <div className="max-w-7xl mx-auto space-y-10 sm:space-y-12">
 
         {/* Header */}
-        <div>
-          <h1 className="text-4xl font-black text-blue-950">
-            Admin Overview 👑
-          </h1>
-          <p className="text-gray-500 mt-2 font-medium">
-            Manage your entire Vision IT ecosystem from one place.
-          </p>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-3xl sm:text-4xl font-black text-blue-950 tracking-tight">
+              Admin Overview 👑
+            </h1>
+            <p className="text-gray-500 mt-1 sm:mt-2 font-medium text-sm sm:text-base">
+              Manage your entire Vision IT ecosystem.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-2xl border border-slate-100 shadow-sm">
+             <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+             <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">System Online</span>
+          </div>
         </div>
 
-        {/* Vision Learn Section */}
-        <section className="space-y-6">
-          <div className="flex items-center gap-3">
-            <div className="w-2 h-8 bg-blue-600 rounded-full"></div>
-            <h2 className="text-xl font-black text-blue-950 uppercase tracking-wider">Vision Learn (LMS)</h2>
+        <Suspense fallback={<DashboardSkeleton />}>
+          <div className="space-y-10 sm:space-y-12">
+            <StatsSection supabase={supabase} />
+            <RecentActivity supabase={supabase} />
           </div>
-          
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <Card label="Total Students" value={stats.students} color="bg-blue-600" />
-            <Card label="Active Courses" value={stats.courses} color="bg-indigo-600" />
-            <Card label="New Admissions" value={stats.admissions} color="bg-violet-600" />
-            <Card label="LMS Activity" value="Active" color="bg-emerald-600" />
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <QuickLink href="/admin/lms" label="LMS Dashboard" />
-            <QuickLink href="/admin/admissions" label="Admissions" />
-            <QuickLink href="/admin/students" label="Manage Students" />
-            <QuickLink href="/admin/courses" label="Course Content" />
-          </div>
-
-          <Box title="Recent Admissions">
-            {!recentAdmissions?.length ? (
-              <Empty text="No admissions yet" />
-            ) : (
-              recentAdmissions.map((item: any) => (
-                <Row
-                  key={item.id}
-                  title={item.student_name}
-                  date={item.created_at}
-                />
-              ))
-            )}
-          </Box>
-        </section>
-
-        {/* Vision Web Section */}
-        <section className="space-y-6">
-          <div className="flex items-center gap-3">
-            <div className="w-2 h-8 bg-orange-500 rounded-full"></div>
-            <h2 className="text-xl font-black text-blue-950 uppercase tracking-wider">Vision Web (Main)</h2>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <Card label="Total Blogs" value={stats.blogs} color="bg-orange-500" />
-            <Card label="Gallery Images" value={stats.gallery} color="bg-amber-500" />
-            <Card label="Contact Requests" value={stats.contacts} color="bg-rose-500" />
-            <Card label="Batches" value="Running" color="bg-sky-500" />
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <QuickLink href="/admin/blogs" label="Manage Blogs" color="bg-orange-500" />
-            <QuickLink href="/admin/gallery" label="Gallery" color="bg-orange-500" />
-            <QuickLink href="/admin/contacts" label="Contact Enquiries" color="bg-orange-500" />
-            <QuickLink href="/admin/batches" label="Batches" color="bg-orange-500" />
-          </div>
-
-          <Box title="Recent Contact Enquiries">
-            {!recentContacts?.length ? (
-              <Empty text="No contacts yet" />
-            ) : (
-              recentContacts.map((item: any) => (
-                <Row
-                  key={item.id}
-                  title={item.name}
-                  date={item.created_at}
-                />
-              ))
-            )}
-          </Box>
-        </section>
+        </Suspense>
       </div>
     </main>
+  );
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="space-y-12 animate-pulse">
+      {[1, 2].map((i) => (
+        <div key={i} className="space-y-6">
+          <div className="h-8 w-48 bg-slate-200 rounded-lg"></div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {[1, 2, 3, 4].map((j) => (
+              <div key={j} className="h-28 bg-white rounded-2xl border border-slate-100"></div>
+            ))}
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map((j) => (
+              <div key={j} className="h-12 bg-slate-100 rounded-xl"></div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 
