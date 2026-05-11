@@ -20,8 +20,7 @@ import {
   Edit2,
 
   BookOpen,
-  Copy,
-  Clock
+  Copy
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import DeleteButton from "@/components/admin/DeleteButton";
@@ -298,8 +297,7 @@ export default function CourseContentManagement({
           is_free: lesson.is_free,
           is_locked: lesson.is_locked,
           order_index: lesson.order_index,
-          batches: lesson.batches,
-          scheduled_at: lesson.scheduled_at
+          batches: lesson.batches
         }));
 
         const { error: lessonsError } = await supabase
@@ -313,7 +311,6 @@ export default function CourseContentManagement({
         handleRefresh();
       }
       
-      alert(`Module duplicated successfully to ${initialCourses.find(c => c.id === targetId)?.title || 'target course'}!`);
       setCopyToCourseModal(null);
     } catch (err) {
       console.error("Error duplicating module:", err);
@@ -606,12 +603,6 @@ export default function CourseContentManagement({
                                <div className="flex-1">
                                    <div className="flex items-center gap-2">
                                      <h4 className="text-xs font-black text-slate-900">{lesson.title}</h4>
-                                     {lesson.scheduled_at && (
-                                       <div className="flex items-center gap-1 px-1.5 py-0.5 bg-amber-50 text-amber-600 rounded text-[9px] font-black border border-amber-100">
-                                         <Clock size={10} />
-                                         SCHEDULED
-                                       </div>
-                                     )}
                                    </div>
                                </div>
                                <div className="flex items-center gap-1 opacity-0 group-hover/lesson:opacity-100 transition-opacity">

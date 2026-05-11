@@ -50,7 +50,6 @@ export default function DeleteButton({ id, table, title, onSuccess }: DeleteButt
       if (onSuccess) {
         onSuccess();
       } else {
-        alert("Deleted successfully");
         router.refresh();
       }
     } catch (err: any) {

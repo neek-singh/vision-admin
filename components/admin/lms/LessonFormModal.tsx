@@ -35,8 +35,7 @@ export default function LessonFormModal({
     is_free: initialData?.is_free || false,
     is_locked: initialData?.is_locked || false,
     order_index: initialData?.order_index || 0,
-    batches: initialData?.batches || [],
-    scheduled_at: initialData?.scheduled_at || ""
+    batches: initialData?.batches || []
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -55,7 +54,6 @@ export default function LessonFormModal({
         duration: null,
         is_free: lesson.is_free,
         batches: lesson.batches,
-        scheduled_at: lesson.scheduled_at || null,
         course_id: courseId,
         lesson_type: lesson.type
       };
@@ -73,7 +71,6 @@ export default function LessonFormModal({
       }
 
       if (!error) {
-        alert("Saved successfully!");
         onSuccess();
       } else {
         alert("Error saving: " + error.message);
@@ -141,15 +138,6 @@ export default function LessonFormModal({
                 </div>
               )}
 
-              <div className="md:col-span-2 space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Unlock Schedule (Date & Time)</label>
-                <input 
-                  type="datetime-local" value={lesson.scheduled_at}
-                  onChange={(e) => setLesson({...lesson, scheduled_at: e.target.value})}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-black text-black" 
-                />
-                <p className="text-[9px] text-slate-400 font-medium">Leave empty to unlock immediately.</p>
-              </div>
 
               <div className="md:col-span-2 space-y-2">
                 <MultiSelect 
