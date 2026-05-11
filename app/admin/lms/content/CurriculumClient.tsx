@@ -23,7 +23,8 @@ import {
   Lock,
   Unlock,
   ExternalLink,
-  BookOpen
+  BookOpen,
+  Copy
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import DeleteButton from "@/components/admin/DeleteButton";
@@ -60,6 +61,8 @@ export default function CourseContentManagement({
     lessonId?: string, 
     initialData?: any
   }>({ show: false, moduleId: "", isEditing: false });
+  const [copyToCourseModal, setCopyToCourseModal] = useState<{ show: boolean, module: any } | null>(null);
+  const [targetCourseId, setTargetCourseId] = useState<string>("");
 
   const selectedBatchObj = useMemo(() => availableBatches.find(b => b.id === selectedBatchId), [availableBatches, selectedBatchId]);
   const currentCourseId = mode === "batch" ? (selectedBatchObj?.course_id || "") : selectedCourseId;
@@ -243,6 +246,80 @@ export default function CourseContentManagement({
     }
   };
 
+  const duplicateModule = async (module: any, targetId: string = currentCourseId) => {
+    if (!confirm(`Are you sure you want to duplicate "${module.title}"? All lessons will be copied too.`)) return;
+    
+    setLoading(true);
+    try {
+      // If target course is different, fetch current module count there
+      let newOrderIndex = modules.length + 1;
+      if (targetId !== currentCourseId) {
+        const { count, error: countError } = await supabase
+          .from("lms_modules")
+          .select('*', { count: 'exact', head: true })
+          .eq("course_id", targetId);
+        
+        if (countError) throw countError;
+        newOrderIndex = (count || 0) + 1;
+      }
+
+      // 1. Create new module
+      const newModuleData = {
+        course_id: targetId,
+        title: `${module.title} (Copy)`,
+        subtitle: module.subtitle,
+        batch: module.batch,
+        batches: module.batches,
+        order_index: newOrderIndex
+      };
+
+      const { data: newModule, error: moduleError } = await supabase
+        .from("lms_modules")
+        .insert(newModuleData)
+        .select()
+        .single();
+
+      if (moduleError) throw moduleError;
+
+      // 2. Create new lessons for this module
+      if (module.lessons && module.lessons.length > 0) {
+        const newLessonsData = module.lessons.map((lesson: any) => ({
+          module_id: newModule.id,
+          course_id: targetId,
+          title: lesson.title,
+          subtitle: lesson.subtitle,
+          type: 'video',
+          lesson_type: lesson.lesson_type || lesson.type,
+          content_url: lesson.content_url,
+          notes_content: lesson.notes_content,
+          duration: lesson.duration,
+          is_free: lesson.is_free,
+          is_locked: lesson.is_locked,
+          order_index: lesson.order_index,
+          batches: lesson.batches
+        }));
+
+        const { error: lessonsError } = await supabase
+          .from("lessons")
+          .insert(newLessonsData);
+
+        if (lessonsError) throw lessonsError;
+      }
+
+      if (targetId === currentCourseId) {
+        handleRefresh();
+      }
+      
+      alert(`Module duplicated successfully to ${initialCourses.find(c => c.id === targetId)?.title || 'target course'}!`);
+      setCopyToCourseModal(null);
+    } catch (err) {
+      console.error("Error duplicating module:", err);
+      alert("Error duplicating module: " + (err as any).message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className={`space-y-10 transition-all duration-500 ${isFullScreen ? 'fixed inset-0 z-[100] bg-[#f8fafc] p-8 overflow-y-auto' : ''}`}>
       
@@ -270,6 +347,49 @@ export default function CourseContentManagement({
           onClose={() => setLessonModal({ show: false, moduleId: "", isEditing: false })}
           onSuccess={handleRefresh}
         />
+      )}
+
+      {copyToCourseModal?.show && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[110] flex items-center justify-center p-4 animate-in fade-in duration-300">
+           <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-300">
+              <div className="px-6 py-4 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
+                <h3 className="text-lg font-black text-slate-900">Copy to Course</h3>
+                <button onClick={() => setCopyToCourseModal(null)} className="p-2 hover:bg-slate-200 rounded-lg transition-all"><X size={18} className="text-slate-900" /></button>
+              </div>
+              <div className="p-8 space-y-6">
+                <div className="space-y-4">
+                  <p className="text-sm text-slate-500 font-medium">Select the course where you want to copy <span className="font-black text-slate-900">"{copyToCourseModal.module.title}"</span>:</p>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Target Course</label>
+                    <select 
+                      value={targetCourseId}
+                      onChange={(e) => setTargetCourseId(e.target.value)}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-black text-black"
+                    >
+                      {initialCourses.map(course => (
+                        <option key={course.id} value={course.id}>{course.title} {course.id === currentCourseId ? "(Current)" : ""}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="flex gap-4">
+                   <button 
+                    onClick={() => setCopyToCourseModal(null)}
+                    className="flex-1 py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black uppercase tracking-widest rounded-2xl transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={() => duplicateModule(copyToCourseModal.module, targetCourseId)}
+                    disabled={loading}
+                    className="flex-[2] py-4 bg-slate-900 hover:bg-blue-600 text-white font-black uppercase tracking-widest rounded-2xl transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-2"
+                  >
+                    {loading ? <Loader2 className="animate-spin" size={18} /> : "Copy Module"}
+                  </button>
+                </div>
+              </div>
+           </div>
+        </div>
       )}
 
       {isFullScreen && (
@@ -440,6 +560,13 @@ export default function CourseContentManagement({
                           className="px-4 py-2 bg-white hover:bg-slate-900 hover:text-white border border-slate-200 text-slate-900 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all shadow-sm flex items-center gap-2"
                         >
                            <Plus size={14} /> Add Lesson
+                        </button>
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); setCopyToCourseModal({ show: true, module }); setTargetCourseId(currentCourseId); }}
+                          className="p-2 bg-white hover:bg-blue-50 border border-slate-200 text-slate-400 hover:text-blue-600 rounded-lg transition-all shadow-sm"
+                          title="Copy to Course"
+                        >
+                           <Copy size={14} />
                         </button>
                         <DeleteButton id={module.id} table="lms_modules" title={module.title} onSuccess={handleRefresh} />
                      </div>
