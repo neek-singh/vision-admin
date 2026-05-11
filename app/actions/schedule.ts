@@ -2,7 +2,6 @@
 
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { revalidatePath } from "next/cache";
-import { sendBatchNotification } from "./notifications";
 
 export async function createSchedule(data: {
   course_id: string;
@@ -28,19 +27,6 @@ export async function createSchedule(data: {
   });
 
   if (error) return { error: error.message };
-
-  // Send Push Notification
-  try {
-    await sendBatchNotification({
-      batch: data.batch,
-      course_id: data.course_id,
-      title: `New ${data.type.toUpperCase()} Scheduled`,
-      body: `${data.title} on ${data.date}`,
-      url: data.type === 'class' ? '/curriculum' : data.type === 'test' ? '/tests' : '/assignments'
-    });
-  } catch (e) {
-    console.error("Push notification failed:", e);
-  }
 
   revalidatePath("/admin/schedule");
   return { success: true };
