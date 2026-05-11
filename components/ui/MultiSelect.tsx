@@ -82,7 +82,7 @@ export default function MultiSelect({ options, selected, onChange, placeholder =
       </div>
 
       {isOpen && (
-        <div className="absolute z-50 mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto animate-in fade-in zoom-in-95 duration-150">
+        <div className="absolute z-50 mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-xl max-h-60 overflow-y-auto animate-in fade-in zoom-in-95 duration-150">
           {options.length === 0 ? (
             <div className="px-4 py-3 text-sm text-slate-400">No options available</div>
           ) : (

@@ -58,9 +58,9 @@ export default function ModuleFormModal({
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] overflow-y-auto p-4 animate-in fade-in duration-300">
-      <div className="min-h-full flex items-center justify-center py-8">
-        <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-300">
-          <div className="px-6 py-4 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
+      <div className="min-h-screen flex items-center justify-center py-8">
+        <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md relative animate-in zoom-in-95 duration-300">
+          <div className="px-6 py-4 border-b border-slate-50 flex items-center justify-between bg-slate-50/50 rounded-t-[2rem]">
             <h3 className="text-lg font-black text-slate-900">New Module</h3>
             <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-lg transition-all"><X size={18} className="text-slate-900" /></button>
           </div>
