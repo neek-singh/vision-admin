@@ -14,6 +14,7 @@ interface LessonFormModalProps {
   availableBatches: any[];
   onClose: () => void;
   onSuccess: () => void;
+  currentLessonsCount: number;
 }
 
 export default function LessonFormModal({ 
@@ -24,7 +25,8 @@ export default function LessonFormModal({
   initialData, 
   availableBatches, 
   onClose, 
-  onSuccess 
+  onSuccess,
+  currentLessonsCount
 }: LessonFormModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lesson, setLesson] = useState({
@@ -55,7 +57,8 @@ export default function LessonFormModal({
         is_free: lesson.is_free,
         batches: lesson.batches,
         course_id: courseId,
-        lesson_type: lesson.type
+        lesson_type: lesson.type,
+        order_index: isEditing ? lesson.order_index : (currentLessonsCount + 1)
       };
 
       let error;

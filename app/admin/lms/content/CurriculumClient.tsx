@@ -60,8 +60,9 @@ export default function CourseContentManagement({
     moduleId: string, 
     isEditing: boolean, 
     lessonId?: string, 
-    initialData?: any
-  }>({ show: false, moduleId: "", isEditing: false });
+    initialData?: any,
+    currentLessonsCount?: number
+  }>({ show: false, moduleId: "", isEditing: false, currentLessonsCount: 0 });
   const [copyToCourseModal, setCopyToCourseModal] = useState<{ show: boolean, module: any } | null>(null);
   const [targetCourseId, setTargetCourseId] = useState<string>("");
 
@@ -347,8 +348,9 @@ export default function CourseContentManagement({
           lessonId={lessonModal.lessonId}
           initialData={lessonModal.initialData}
           availableBatches={availableBatches}
-          onClose={() => setLessonModal({ show: false, moduleId: "", isEditing: false })}
+           onClose={() => setLessonModal({ show: false, moduleId: "", isEditing: false, currentLessonsCount: 0 })}
           onSuccess={handleRefresh}
+          currentLessonsCount={lessonModal.currentLessonsCount || 0}
         />
       )}
 
@@ -558,7 +560,7 @@ export default function CourseContentManagement({
                            <button onClick={(e) => { e.stopPropagation(); moveItem('module', module.id, 'down'); }} className="p-1 hover:bg-slate-200 rounded-md transition-colors"><ArrowDown size={12} className="text-slate-400" /></button>
                         </div>
                         <button 
-                          onClick={() => setLessonModal({ show: true, moduleId: module.id, isEditing: false })}
+                          onClick={() => setLessonModal({ show: true, moduleId: module.id, isEditing: false, currentLessonsCount: (module.lessons?.length || 0) })}
                           className="px-4 py-2 bg-white hover:bg-slate-900 hover:text-white border border-slate-200 text-slate-900 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all shadow-sm flex items-center gap-2"
                         >
                            <Plus size={14} /> Add Lesson
@@ -600,6 +602,9 @@ export default function CourseContentManagement({
                               onDragEnter={(e) => { e.stopPropagation(); handleDragEnter(e, lesson.id, 'lesson', module.id); }}
                             >
                                <GripVertical size={14} className="text-slate-200 group-hover/lesson:text-slate-400 cursor-grab shrink-0" />
+                               <div className="w-6 h-6 shrink-0 rounded bg-slate-100 flex items-center justify-center text-[9px] font-black text-slate-400 group-hover/lesson:bg-blue-100 group-hover/lesson:text-blue-600 transition-colors">
+                                 {lIndex + 1}
+                               </div>
                                <div className="flex-1">
                                    <div className="flex items-center gap-2">
                                      <h4 className="text-xs font-black text-slate-900">{lesson.title}</h4>
