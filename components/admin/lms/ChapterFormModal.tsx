@@ -1,0 +1,102 @@
+"use client";
+
+import { useState } from "react";
+import { X, Loader2 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+
+interface ChapterFormModalProps {
+  courseId: string;
+  moduleId: string;
+  onClose: () => void;
+  onSuccess: () => void;
+  currentChaptersCount: number;
+  isEditing?: boolean;
+  chapterId?: string;
+  initialData?: any;
+}
+
+export default function ChapterFormModal({ 
+  courseId, 
+  moduleId,
+  onClose, 
+  onSuccess,
+  currentChaptersCount,
+  isEditing = false,
+  chapterId,
+  initialData
+}: ChapterFormModalProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [title, setTitle] = useState(initialData?.title || "");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title || !courseId || !moduleId) return;
+
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        module_id: moduleId,
+        course_id: courseId,
+        title,
+        order_index: isEditing ? initialData?.order_index : (currentChaptersCount + 1)
+      };
+
+      let error;
+      if (isEditing && chapterId) {
+        const { error: updateError } = await supabase
+          .from("lms_chapters")
+          .update(payload)
+          .eq("id", chapterId);
+        error = updateError;
+      } else {
+        const { error: insertError } = await supabase
+          .from("lms_chapters")
+          .insert(payload);
+        error = insertError;
+      }
+
+      if (!error) {
+        onSuccess();
+      } else {
+        alert("Error saving chapter: " + error.message);
+      }
+    } catch (err) {
+      console.error("Error saving chapter:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] overflow-y-auto p-4 animate-in fade-in duration-300">
+      <div className="min-h-screen flex items-center justify-center py-8">
+        <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md relative animate-in zoom-in-95 duration-300">
+          <div className="px-6 py-4 border-b border-slate-50 flex items-center justify-between bg-slate-50/50 rounded-t-[2rem]">
+            <h3 className="text-lg font-black text-slate-900">{isEditing ? "Edit Chapter" : "New Chapter"}</h3>
+            <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-lg transition-all"><X size={18} className="text-slate-900" /></button>
+          </div>
+          <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <div className="space-y-2 group">
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 group-focus-within:text-blue-600 transition-colors">Chapter Title</label>
+              <input 
+                autoFocus required type="text" value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="e.g. Basics of Programming" 
+                className="w-full px-0 py-3 bg-transparent border-b-2 border-slate-100 focus:border-blue-600 outline-none transition-all font-black text-black text-lg placeholder:text-slate-300" 
+              />
+            </div>
+
+            <div className="pt-4">
+              <button 
+                disabled={isSubmitting}
+                className="w-full py-4 bg-slate-900 hover:bg-blue-600 text-white font-black uppercase tracking-widest rounded-2xl transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-2"
+              >
+                {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : (isEditing ? "Update Chapter" : "Create Chapter")}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}

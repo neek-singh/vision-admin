@@ -9,7 +9,7 @@ import { deleteBatch } from "@/app/actions/batches";
 
 type DeleteButtonProps = {
   id: string;
-  table: "courses" | "blogs" | "gallery" | "admissions" | "batches" | "contacts" | "lms_modules" | "lessons" | "students";
+  table: "courses" | "blogs" | "gallery" | "admissions" | "batches" | "contacts" | "lms_modules" | "lms_chapters" | "lessons" | "students";
   title?: string;
   onSuccess?: () => void;
 };

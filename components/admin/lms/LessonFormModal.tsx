@@ -8,6 +8,7 @@ import MultiSelect from "@/components/ui/MultiSelect";
 interface LessonFormModalProps {
   courseId: string;
   moduleId: string;
+  chapterId?: string;
   isEditing: boolean;
   lessonId?: string;
   initialData?: any;
@@ -20,6 +21,7 @@ interface LessonFormModalProps {
 export default function LessonFormModal({ 
   courseId, 
   moduleId, 
+  chapterId,
   isEditing, 
   lessonId, 
   initialData, 
@@ -48,6 +50,7 @@ export default function LessonFormModal({
     try {
       const payload = {
         module_id: moduleId,
+        chapter_id: chapterId || initialData?.chapter_id || null,
         title: lesson.title,
         subtitle: null,
         type: 'video', // Workaround for strict DB check constraint
@@ -90,13 +93,13 @@ export default function LessonFormModal({
       <div className="min-h-full flex items-center justify-center py-8">
         <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-300">
           <div className="px-6 py-4 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
-            <h3 className="text-lg font-black text-slate-900">{isEditing ? "Edit Topic" : "Add New Topic"}</h3>
+            <h3 className="text-lg font-black text-slate-900">{isEditing ? "Edit Class" : "Add New Class"}</h3>
             <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-lg transition-all"><X size={18} className="text-slate-900" /></button>
           </div>
           <form onSubmit={handleSubmit} className="p-8 space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="md:col-span-2 space-y-2 group">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Topic Title</label>
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Class Title</label>
                 <input 
                   required type="text" value={lesson.title}
                   onChange={(e) => setLesson({...lesson, title: e.target.value})}
@@ -112,7 +115,7 @@ export default function LessonFormModal({
                   onChange={(e) => setLesson({...lesson, type: e.target.value})}
                   className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-black text-black"
                 >
-                  <option value="video">Video Lesson</option>
+                  <option value="video">Live / Video Class</option>
                   <option value="notes">Reading Notes</option>
 
                   <option value="assignment">Project Assignment</option>
@@ -166,7 +169,7 @@ export default function LessonFormModal({
                 disabled={isSubmitting}
                 className="flex-[2] py-4 bg-blue-600 hover:bg-blue-700 text-white font-black uppercase tracking-widest rounded-2xl transition-all shadow-xl shadow-blue-100 flex items-center justify-center gap-2"
               >
-                {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : (isEditing ? "Update Topic" : "Create Topic")}
+                {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : (isEditing ? "Update Class" : "Create Class")}
               </button>
             </div>
           </form>
