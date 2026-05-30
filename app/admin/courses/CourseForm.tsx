@@ -65,9 +65,19 @@ export default function CourseForm({ course }: { course?: Course }) {
   );
 
   const predefinedCategories = [
+    "Certificate Courses",
+    "Diploma Courses",
+    "Programming Languages",
+    "Web Development",
+    "Artificial Intelligence",
+    "Data Science & Analytics",
+    "Cloud & DevOps",
+    "Cyber Security",
+    "Mobile App Development",
+    "Database Technologies",
+    "Office & Productivity Tools",
     "Software Development",
-    "Diploma Programs",
-    "Short Term / Certification",
+    "Game Development",
     "Basic Computer"
   ];
 
@@ -297,7 +307,7 @@ export default function CourseForm({ course }: { course?: Course }) {
               <label className="text-xs font-black text-gray-600 uppercase tracking-widest">Learning Format</label>
               <select
                 className="w-full px-6 py-4 rounded-2xl border border-gray-200 font-black text-black appearance-none bg-white"
-                value={formData.learning_format}
+                value={formData.learning_format || ""}
                 onChange={(e) => setFormData({ ...formData, learning_format: e.target.value })}
               >
                 <option value="Offline">Offline</option>
@@ -345,7 +355,7 @@ export default function CourseForm({ course }: { course?: Course }) {
               <label className="text-xs font-black text-gray-600 uppercase tracking-widest">Course Level</label>
               <select
                 className="w-full px-6 py-4 rounded-2xl border border-gray-200 font-black text-black appearance-none bg-white"
-                value={formData.course_level}
+                value={formData.course_level || ""}
                 onChange={(e) => setFormData({ ...formData, course_level: e.target.value })}
               >
                 <option value="Beginner">Beginner</option>
@@ -361,10 +371,19 @@ export default function CourseForm({ course }: { course?: Course }) {
                 value={selectCategory}
                 onChange={(e) => handleCategoryChange(e.target.value)}
               >
+                <option value="Certificate Courses">Certificate Courses</option>
+                <option value="Diploma Courses">Diploma Courses</option>
+                <option value="Programming Languages">Programming Languages</option>
+                <option value="Web Development">Web Development</option>
+                <option value="Artificial Intelligence">Artificial Intelligence</option>
+                <option value="Data Science & Analytics">Data Science & Analytics</option>
+                <option value="Cloud & DevOps">Cloud & DevOps</option>
+                <option value="Cyber Security">Cyber Security</option>
+                <option value="Mobile App Development">Mobile App Development</option>
+                <option value="Database Technologies">Database Technologies</option>
+                <option value="Office & Productivity Tools">Office & Productivity Tools</option>
                 <option value="Software Development">Software Development</option>
-                <option value="Diploma Programs">Diploma Programs</option>
-                <option value="Short Term / Certification">Short Term / Certification</option>
-                <option value="Basic Computer">Basic Computer</option>
+                <option value="Game Development">Game Development</option>
                 <option value="Other">Other (Custom Category)</option>
               </select>
             </div>
@@ -410,7 +429,7 @@ export default function CourseForm({ course }: { course?: Course }) {
                 <textarea
                   rows={3}
                   className="w-full px-6 py-4 rounded-2xl border border-gray-200 font-black text-black"
-                  value={formData.key_features?.join(", ")}
+                  value={formData.key_features?.join(", ") || ""}
                   onChange={(e) => handleArrayInput("key_features", e.target.value)}
                   placeholder="Feature 1, Feature 2..."
                 />
@@ -420,7 +439,7 @@ export default function CourseForm({ course }: { course?: Course }) {
                 <textarea
                   rows={3}
                   className="w-full px-6 py-4 rounded-2xl border border-gray-200 font-black text-black"
-                  value={formData.career_opportunities?.join(", ")}
+                  value={formData.career_opportunities?.join(", ") || ""}
                   onChange={(e) => handleArrayInput("career_opportunities", e.target.value)}
                   placeholder="Role 1, Role 2..."
                 />
@@ -430,7 +449,7 @@ export default function CourseForm({ course }: { course?: Course }) {
                 <input
                   type="text"
                   className="w-full px-6 py-4 rounded-2xl border border-gray-200 font-black text-black"
-                  value={formData.skills_developed?.join(", ")}
+                  value={formData.skills_developed?.join(", ") || ""}
                   onChange={(e) => handleArrayInput("skills_developed", e.target.value)}
                 />
               </div>
@@ -460,14 +479,14 @@ export default function CourseForm({ course }: { course?: Course }) {
                       <input
                         className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold text-black bg-white"
                         placeholder="Module Title (e.g. Introduction to HTML)"
-                        value={module.module_title}
+                        value={module.module_title || ""}
                         onChange={(e) => updateModuleTitle(idx, e.target.value)}
                       />
                       <textarea
                         className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm text-black bg-white"
                         placeholder="Topics (comma separated)"
                         rows={2}
-                        value={module.topics?.join(", ")}
+                        value={module.topics?.join(", ") || ""}
                         onChange={(e) => updateModuleTopics(idx, e.target.value)}
                       />
                     </div>
@@ -631,14 +650,14 @@ export default function CourseForm({ course }: { course?: Course }) {
                       <input
                         className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold text-black bg-white"
                         placeholder="Question"
-                        value={faq.question}
+                        value={faq.question || ""}
                         onChange={(e) => updateFAQ(idx, "question", e.target.value)}
                       />
                       <textarea
                         className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm text-black bg-white"
                         placeholder="Answer"
                         rows={2}
-                        value={faq.answer}
+                        value={faq.answer || ""}
                         onChange={(e) => updateFAQ(idx, "answer", e.target.value)}
                       />
                     </div>
