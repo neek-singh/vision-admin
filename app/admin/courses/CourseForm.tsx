@@ -30,6 +30,7 @@ type Course = {
   faqs?: any[];
   is_featured?: boolean;
   course_level?: string;
+  category?: string;
 };
 
 export default function CourseForm({ course }: { course?: Course }) {
@@ -59,8 +60,38 @@ export default function CourseForm({ course }: { course?: Course }) {
       faqs: [],
       is_featured: false,
       course_level: "Beginner",
+      category: "Software Development",
     }
   );
+
+  const predefinedCategories = [
+    "Software Development",
+    "Diploma Programs",
+    "Short Term / Certification",
+    "Basic Computer"
+  ];
+
+  const isPredefined = formData.category ? predefinedCategories.includes(formData.category) : true;
+  const [selectCategory, setSelectCategory] = useState(
+    formData.category ? (isPredefined ? formData.category : "Other") : "Software Development"
+  );
+  const [customCategory, setCustomCategory] = useState(
+    formData.category ? (isPredefined ? "" : formData.category) : ""
+  );
+
+  const handleCategoryChange = (val: string) => {
+    setSelectCategory(val);
+    if (val !== "Other") {
+      setFormData(prev => ({ ...prev, category: val }));
+    } else {
+      setFormData(prev => ({ ...prev, category: customCategory }));
+    }
+  };
+
+  const handleCustomCategoryChange = (val: string) => {
+    setCustomCategory(val);
+    setFormData(prev => ({ ...prev, category: val }));
+  };
 
   // Helper to handle array inputs from comma-separated strings
   const handleArrayInput = (field: keyof Course, value: string) => {
@@ -323,6 +354,32 @@ export default function CourseForm({ course }: { course?: Course }) {
                 <option value="Beginner → Pro">Beginner → Pro</option>
               </select>
             </div>
+            <div className="space-y-2">
+              <label className="text-xs font-black text-gray-600 uppercase tracking-widest">Course Category</label>
+              <select
+                className="w-full px-6 py-4 rounded-2xl border border-gray-200 font-black text-black appearance-none bg-white"
+                value={selectCategory}
+                onChange={(e) => handleCategoryChange(e.target.value)}
+              >
+                <option value="Software Development">Software Development</option>
+                <option value="Diploma Programs">Diploma Programs</option>
+                <option value="Short Term / Certification">Short Term / Certification</option>
+                <option value="Basic Computer">Basic Computer</option>
+                <option value="Other">Other (Custom Category)</option>
+              </select>
+            </div>
+            {selectCategory === "Other" && (
+              <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                <label className="text-xs font-black text-gray-600 uppercase tracking-widest">Custom Category Name</label>
+                <input
+                  type="text" required
+                  className="w-full px-6 py-4 rounded-2xl border border-gray-200 font-black text-black"
+                  value={customCategory}
+                  onChange={(e) => handleCustomCategoryChange(e.target.value)}
+                  placeholder="e.g. Graphic Design"
+                />
+              </div>
+            )}
           </div>
         )}
 
