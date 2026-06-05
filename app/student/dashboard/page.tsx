@@ -1,9 +1,9 @@
-import { getStudentSession, logoutStudent } from "@/app/actions/student-auth";
+import { getStudentSession, logoutStudent } from "@/app/actions/lms/student-auth";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import Image from "next/image";
-import StudentProfile from "@/components/student/StudentProfile";
-import LMSModules from "@/components/student/LMSModules";
+import StudentProfile from "@/components/lms/student/StudentProfile";
+import LMSModules from "@/components/lms/student/LMSModules";
 import { BoneyardProfile, BoneyardCard } from "@/components/ui/Boneyard";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 

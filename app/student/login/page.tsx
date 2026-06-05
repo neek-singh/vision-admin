@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { loginStudent } from "@/app/actions/student-auth";
+import { loginStudent } from "@/app/actions/lms/student-auth";
 import Link from "next/link";
 import Image from "next/image";
 

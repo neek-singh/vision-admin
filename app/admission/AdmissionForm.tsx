@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { submitAdmission } from "@/app/actions/admissions";
+import { submitAdmission } from "@/app/actions/lms/admissions";
 import { Button } from "@/components/ui/Button";
 
 interface Course {
