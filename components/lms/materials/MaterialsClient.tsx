@@ -149,14 +149,6 @@ export default function MaterialsClient({ courses, initialMaterials, availableBa
 
   return (
     <div className="space-y-6">
-      <button 
-        onClick={() => setIsAdding(true)}
-        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20"
-      >
-        <Plus size={18} />
-        Add New Material
-      </button>
-
       {isAdding && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg flex flex-col max-h-[90vh] overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-200">

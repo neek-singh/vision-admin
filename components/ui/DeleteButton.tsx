@@ -6,15 +6,18 @@ import { useRouter } from "next/navigation";
 import { deleteCourse } from "@/app/actions/lms/courses";
 import { deleteBlog } from "@/app/actions/web/blogs";
 import { deleteBatch } from "@/app/actions/web/batches";
+import { Trash2, Loader2 } from "lucide-react";
 
 type DeleteButtonProps = {
   id: string;
   table: "courses" | "blogs" | "gallery" | "admissions" | "batches" | "contacts" | "lms_modules" | "lms_chapters" | "lessons" | "students";
   title?: string;
   onSuccess?: () => void;
+  showText?: boolean;
+  className?: string;
 };
 
-export default function DeleteButton({ id, table, title, onSuccess }: DeleteButtonProps) {
+export default function DeleteButton({ id, table, title, onSuccess, showText = true, className }: DeleteButtonProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const router = useRouter();
 
@@ -64,14 +67,15 @@ export default function DeleteButton({ id, table, title, onSuccess }: DeleteButt
     <button
       onClick={handleDelete}
       disabled={isDeleting}
-      className="text-red-500 hover:text-red-700 font-bold text-sm disabled:opacity-50 flex items-center gap-1"
+      className={className || "text-red-500 hover:text-red-700 font-bold text-sm disabled:opacity-50 flex items-center gap-1 cursor-pointer"}
+      title={title ? `Delete "${title}"` : "Delete"}
     >
       {isDeleting ? (
-        <span className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></span>
+        <Loader2 size={14} className="animate-spin text-red-500" />
       ) : (
-        "🗑️"
+        <Trash2 size={14} />
       )}
-      Delete
+      {showText && "Delete"}
     </button>
   );
 }
