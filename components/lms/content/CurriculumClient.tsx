@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { 
-  Plus, 
-  Search, 
+import {
+  Plus,
+  Search,
   Settings,
   ChevronDown,
   ChevronUp,
@@ -22,6 +22,7 @@ import {
   Copy,
   Layout,
   FolderPlus,
+  FolderCode,
   Eye,
   Video,
   Award,
@@ -40,14 +41,21 @@ const ChapterFormModal = dynamic(() => import("@/components/lms/admin/ChapterFor
 const LessonFormModal = dynamic(() => import("@/components/lms/admin/LessonFormModal"), { ssr: false });
 const LessonPreviewModal = dynamic(() => import("@/components/lms/admin/LessonPreviewModal"), { ssr: false });
 
-export default function CourseContentManagement({ 
-  initialCourses = [], 
-  availableBatches = [], 
-  mode = "global" 
-}: { 
-  initialCourses?: any[], 
-  availableBatches?: any[], 
-  mode?: "global" | "batch" 
+const getClassCount = (lessons: any[] = []) => {
+  return lessons.filter((l: any) => {
+    const type = l.lesson_type || l.type || 'video';
+    return type === 'video' || type === 'notes';
+  }).length;
+};
+
+export default function CourseContentManagement({
+  initialCourses = [],
+  availableBatches = [],
+  mode = "global"
+}: {
+  initialCourses?: any[],
+  availableBatches?: any[],
+  mode?: "global" | "batch"
 }) {
   const router = useRouter();
   const [selectedCourseId, setSelectedCourseId] = useState<string>(initialCourses[0]?.id || "");
@@ -62,7 +70,7 @@ export default function CourseContentManagement({
 
   // Advanced Search & Filter States
   const [searchQuery, setSearchQuery] = useState("");
-  const [contentTypeFilter, setContentTypeFilter] = useState<'all' | 'video' | 'notes' | 'assignment' | 'mcq' | 'free' | 'locked'>('all');
+  const [contentTypeFilter, setContentTypeFilter] = useState<'all' | 'video' | 'notes' | 'assignment' | 'project' | 'mcq' | 'free' | 'locked'>('all');
 
   // Safety guardrail for reordering
   const reorderEnabled = !searchQuery.trim() && contentTypeFilter === 'all';
@@ -72,23 +80,32 @@ export default function CourseContentManagement({
     let totalModules = modules.length;
     let totalChapters = 0;
     let totalLessons = 0;
+    let totalClasses = 0;
     let videosCount = 0;
     let notesCount = 0;
     let assignmentsCount = 0;
+    let projectsCount = 0;
     let mcqsCount = 0;
     let freeCount = 0;
     let lockedCount = 0;
 
     modules.forEach(m => {
       totalChapters += m.lms_chapters?.length || 0;
-      
+
       const directLessons = m.lessons || [];
       directLessons.forEach((l: any) => {
         totalLessons++;
         const type = l.lesson_type || l.type || 'video';
-        if (type === 'video') videosCount++;
-        else if (type === 'notes') notesCount++;
+        if (type === 'video') {
+          videosCount++;
+          totalClasses++;
+        }
+        else if (type === 'notes') {
+          notesCount++;
+          totalClasses++;
+        }
         else if (type === 'assignment') assignmentsCount++;
+        else if (type === 'project') projectsCount++;
         else if (type === 'mcq') mcqsCount++;
         if (l.is_free) freeCount++;
         else lockedCount++;
@@ -100,9 +117,16 @@ export default function CourseContentManagement({
         chapterLessons.forEach((l: any) => {
           totalLessons++;
           const type = l.lesson_type || l.type || 'video';
-          if (type === 'video') videosCount++;
-          else if (type === 'notes') notesCount++;
+          if (type === 'video') {
+            videosCount++;
+            totalClasses++;
+          }
+          else if (type === 'notes') {
+            notesCount++;
+            totalClasses++;
+          }
           else if (type === 'assignment') assignmentsCount++;
+          else if (type === 'project') projectsCount++;
           else if (type === 'mcq') mcqsCount++;
           if (l.is_free) freeCount++;
           else lockedCount++;
@@ -114,9 +138,11 @@ export default function CourseContentManagement({
       totalModules,
       totalChapters,
       totalLessons,
+      totalClasses,
       videosCount,
       notesCount,
       assignmentsCount,
+      projectsCount,
       mcqsCount,
       freeCount,
       lockedCount
@@ -138,6 +164,7 @@ export default function CourseContentManagement({
           if (contentTypeFilter === 'video' && lessonType !== 'video') return false;
           if (contentTypeFilter === 'notes' && lessonType !== 'notes') return false;
           if (contentTypeFilter === 'assignment' && lessonType !== 'assignment') return false;
+          if (contentTypeFilter === 'project' && lessonType !== 'project') return false;
           if (contentTypeFilter === 'mcq' && lessonType !== 'mcq') return false;
           if (contentTypeFilter === 'free' && !l.is_free) return false;
           if (contentTypeFilter === 'locked' && l.is_free) return false;
@@ -165,6 +192,7 @@ export default function CourseContentManagement({
         if (contentTypeFilter === 'video' && lessonType !== 'video') return false;
         if (contentTypeFilter === 'notes' && lessonType !== 'notes') return false;
         if (contentTypeFilter === 'assignment' && lessonType !== 'assignment') return false;
+        if (contentTypeFilter === 'project' && lessonType !== 'project') return false;
         if (contentTypeFilter === 'mcq' && lessonType !== 'mcq') return false;
         if (contentTypeFilter === 'free' && !l.is_free) return false;
         if (contentTypeFilter === 'locked' && l.is_free) return false;
@@ -212,11 +240,11 @@ export default function CourseContentManagement({
     currentChaptersCount?: number
   }>({ show: false, isEditing: false, moduleId: "" });
   const [lessonModal, setLessonModal] = useState<{
-    show: boolean, 
-    moduleId: string, 
+    show: boolean,
+    moduleId: string,
     chapterId?: string,
-    isEditing: boolean, 
-    lessonId?: string, 
+    isEditing: boolean,
+    lessonId?: string,
     initialData?: any,
     currentLessonsCount?: number
   }>({ show: false, moduleId: "", isEditing: false, currentLessonsCount: 0 });
@@ -253,7 +281,7 @@ export default function CourseContentManagement({
         lessons(*)
       `)
       .eq("course_id", courseId);
-    
+
     if (mode === "global") {
       query = query.is("batch", null);
     }
@@ -261,14 +289,14 @@ export default function CourseContentManagement({
     try {
       const { data: modulesData, error } = await query.order("order_index");
       if (error) throw error;
-      
+
       // Clean up the data: module.lessons currently contains ALL lessons for that module
       // due to the Supabase query. We only want it to contain lessons NOT in any chapter (uncategorized).
       const cleanedModules = (modulesData || []).map(mod => ({
         ...mod,
         lessons: mod.lessons?.filter((l: any) => !l.chapter_id) || []
       }));
-      
+
       setModules(cleanedModules);
     } catch (err) {
       console.error("Error fetching curriculum:", err);
@@ -288,13 +316,13 @@ export default function CourseContentManagement({
 
   const toggleLessonField = async (lessonId: string, field: string, currentValue: boolean) => {
     setModules(prev => prev.map(m => {
-      const updatedLessons = m.lessons?.map((l: any) => 
+      const updatedLessons = m.lessons?.map((l: any) =>
         l.id === lessonId ? { ...l, [field]: !currentValue } : l
       ) || [];
 
       const updatedChapters = m.lms_chapters?.map((c: any) => ({
         ...c,
-        lessons: c.lessons?.map((l: any) => 
+        lessons: c.lessons?.map((l: any) =>
           l.id === lessonId ? { ...l, [field]: !currentValue } : l
         ) || []
       })) || [];
@@ -311,7 +339,7 @@ export default function CourseContentManagement({
         .from("lessons")
         .update({ [field]: !currentValue })
         .eq("id", lessonId);
-      
+
       if (error) throw error;
     } catch (err) {
       console.error(`Error toggling ${field}:`, err);
@@ -359,8 +387,8 @@ export default function CourseContentManagement({
     if (draggedItem) {
       try {
         if (draggedItem.type === 'module') {
-          const updates = modules.map((m, idx) => ({ 
-            id: m.id, 
+          const updates = modules.map((m, idx) => ({
+            id: m.id,
             order_index: idx + 1,
             course_id: currentCourseId,
             title: m.title
@@ -384,12 +412,12 @@ export default function CourseContentManagement({
           // Find if it's in a chapter or direct module
           let lessonUpdates: any[] = [];
           let table = 'lessons';
-          
+
           const moduleWithDirectLesson = modules.find(m => m.id === draggedItem.parentId);
           if (moduleWithDirectLesson) {
             const lessons = moduleWithDirectLesson.lessons?.filter((l: any) => !l.chapter_id) || [];
-            lessonUpdates = lessons.map((l: any, idx: number) => ({ 
-              id: l.id, 
+            lessonUpdates = lessons.map((l: any, idx: number) => ({
+              id: l.id,
               order_index: idx + 1,
               module_id: draggedItem.parentId,
               chapter_id: null,
@@ -402,8 +430,8 @@ export default function CourseContentManagement({
               const chapter = mod.lms_chapters?.find((c: any) => c.id === draggedItem.parentId);
               if (chapter) {
                 const lessons = chapter.lessons || [];
-                lessonUpdates = lessons.map((l: any, idx: number) => ({ 
-                  id: l.id, 
+                lessonUpdates = lessons.map((l: any, idx: number) => ({
+                  id: l.id,
                   order_index: idx + 1,
                   module_id: mod.id,
                   chapter_id: chapter.id,
@@ -414,7 +442,7 @@ export default function CourseContentManagement({
               }
             }
           }
-          
+
           if (lessonUpdates.length > 0) {
             await supabase.from('lessons').upsert(lessonUpdates);
           }
@@ -429,7 +457,7 @@ export default function CourseContentManagement({
   const handleDragEnter = (e: React.DragEvent, targetId: string, type: 'module' | 'chapter' | 'lesson', targetParentId?: string) => {
     e.preventDefault();
     if (!draggedItem || draggedItem.id === targetId) return;
-    
+
     // For modules and chapters, we only allow reordering within the same parent
     if (draggedItem.type !== 'lesson' && draggedItem.type !== type) return;
     if (draggedItem.type !== 'lesson' && draggedItem.parentId !== targetParentId) return;
@@ -447,7 +475,7 @@ export default function CourseContentManagement({
       } else if (draggedItem.type === 'chapter') {
         const moduleIndex = prev.findIndex(m => m.id === targetParentId);
         if (moduleIndex === -1) return prev;
-        
+
         const chapters = [...(prev[moduleIndex].lms_chapters || [])];
         const oldIndex = chapters.findIndex(c => c.id === draggedItem.id);
         const newIndex = chapters.findIndex(c => c.id === targetId);
@@ -455,7 +483,7 @@ export default function CourseContentManagement({
 
         const [removed] = chapters.splice(oldIndex, 1);
         chapters.splice(newIndex, 0, removed);
-        
+
         const reorderedChapters = chapters.map((c, idx) => ({ ...c, order_index: idx + 1 }));
         return prev.map((m) => m.id === targetParentId ? { ...m, lms_chapters: reorderedChapters } : m);
       } else {
@@ -485,7 +513,7 @@ export default function CourseContentManagement({
         // 2. Determine target list and position
         let targetParent = targetParentId;
         let targetType = type;
-        
+
         // If dropping a lesson on a module/chapter header, that IS the target parent
         if (targetType === 'module' || targetType === 'chapter') {
           targetParent = targetId;
@@ -493,7 +521,7 @@ export default function CourseContentManagement({
 
         let targetInserted = false;
         const targetModIdx = newModules.findIndex((m: any) => m.id === targetParent);
-        
+
         if (targetModIdx !== -1) {
           // Target is a Module (direct lessons)
           const targetLessons = newModules[targetModIdx].lessons || [];
@@ -539,12 +567,12 @@ export default function CourseContentManagement({
       const index = modules.findIndex(m => m.id === id);
       if (direction === 'up' && index === 0) return;
       if (direction === 'down' && index === modules.length - 1) return;
-      
+
       const newIndex = direction === 'up' ? index - 1 : index + 1;
       const newModules = [...modules];
       const [removed] = newModules.splice(index, 1);
       newModules.splice(newIndex, 0, removed);
-      
+
       const reorderedModules = newModules.map((m: any, idx: number) => ({ ...m, order_index: idx + 1 }));
       setModules(reorderedModules);
       await supabase.from('lms_modules').upsert(reorderedModules.map((m: any) => ({ id: m.id, order_index: m.order_index, course_id: currentCourseId, title: m.title })));
@@ -568,7 +596,7 @@ export default function CourseContentManagement({
       let moduleIndex = modules.findIndex(m => m.id === parentId);
       let chapterIndex = -1;
       let lessons: any[] = [];
-      
+
       if (moduleIndex !== -1) {
         lessons = [...(modules[moduleIndex].lessons || [])].filter(l => !l.chapter_id).sort((a, b) => a.order_index - b.order_index);
       } else {
@@ -585,17 +613,17 @@ export default function CourseContentManagement({
       }
 
       if (moduleIndex === -1 || lessons.length === 0) return;
-      
+
       const index = lessons.findIndex(l => l.id === id);
       if (direction === 'up' && index === 0) return;
       if (direction === 'down' && index === lessons.length - 1) return;
-      
+
       const newIndex = direction === 'up' ? index - 1 : index + 1;
       const [removed] = lessons.splice(index, 1);
       lessons.splice(newIndex, 0, removed);
-      
+
       const reorderedLessons = lessons.map((l: any, idx: number) => ({ ...l, order_index: idx + 1 }));
-      
+
       if (chapterIndex === -1) {
         // Update module direct lessons
         const otherLessons = (modules[moduleIndex].lessons || []).filter((l: any) => l.chapter_id);
@@ -615,7 +643,7 @@ export default function CourseContentManagement({
 
   const duplicateModule = async (module: any, targetId: string = currentCourseId) => {
     if (!confirm(`Are you sure you want to duplicate "${module.title}"? All chapters and lessons will be copied too.`)) return;
-    
+
     setLoading(true);
     try {
       // Fetch current module count in target course
@@ -623,7 +651,7 @@ export default function CourseContentManagement({
         .from("lms_modules")
         .select('*', { count: 'exact', head: true })
         .eq("course_id", targetId);
-      
+
       if (countError) throw countError;
       const newOrderIndex = (count || 0) + 1;
 
@@ -718,7 +746,7 @@ export default function CourseContentManagement({
       if (targetId === currentCourseId) {
         handleRefresh();
       }
-      
+
       setCopyToCourseModal(null);
     } catch (err) {
       console.error("Error duplicating module:", err);
@@ -730,10 +758,10 @@ export default function CourseContentManagement({
 
   return (
     <div className={`space-y-10 transition-all duration-500 ${isFullScreen ? 'fixed inset-0 z-[100] bg-[#f8fafc] dark:bg-slate-950 p-8 overflow-y-auto' : ''}`}>
-      
+
       {/* Lazy Modals */}
       {moduleModal.show && (
-        <ModuleFormModal 
+        <ModuleFormModal
           courseId={currentCourseId}
           batchName={currentBatchName}
           mode={mode}
@@ -748,7 +776,7 @@ export default function CourseContentManagement({
       )}
 
       {lessonModal.show && (
-        <LessonFormModal 
+        <LessonFormModal
           courseId={currentCourseId}
           moduleId={lessonModal.moduleId}
           chapterId={lessonModal.chapterId}
@@ -763,7 +791,7 @@ export default function CourseContentManagement({
       )}
 
       {chapterModal.show && (
-        <ChapterFormModal 
+        <ChapterFormModal
           courseId={currentCourseId}
           moduleId={chapterModal.moduleId}
           isEditing={chapterModal.isEditing}
@@ -777,49 +805,49 @@ export default function CourseContentManagement({
 
       {copyToCourseModal?.show && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[110] flex items-center justify-center p-4 animate-in fade-in duration-300">
-           <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-300">
-              <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white">Copy to Course</h3>
-                <button onClick={() => setCopyToCourseModal(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-805 rounded-lg transition-all cursor-pointer"><X size={18} className="text-slate-900 dark:text-white" /></button>
-              </div>
-              <div className="p-8 space-y-6">
-                <div className="space-y-4">
-                  <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Select the course where you want to copy <span className="font-bold text-slate-900 dark:text-white">"{copyToCourseModal.module.title}"</span>:</p>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-550">Target Course</label>
-                    <select 
-                      value={targetCourseId}
-                      onChange={(e) => setTargetCourseId(e.target.value)}
-                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-700/60 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-slate-900 dark:text-slate-200"
-                    >
-                      {initialCourses.map(course => (
-                        <option key={course.id} value={course.id} className="dark:bg-slate-900">{course.title} {course.id === currentCourseId ? "(Current)" : ""}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <div className="flex gap-4">
-                   <button 
-                    onClick={() => setCopyToCourseModal(null)}
-                    className="flex-1 py-3 bg-slate-100 hover:bg-slate-205 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-650 dark:text-slate-350 font-bold uppercase tracking-wider rounded-xl transition-all cursor-pointer text-xs"
+          <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Copy to Course</h3>
+              <button onClick={() => setCopyToCourseModal(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-805 rounded-lg transition-all cursor-pointer"><X size={18} className="text-slate-900 dark:text-white" /></button>
+            </div>
+            <div className="p-8 space-y-6">
+              <div className="space-y-4">
+                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Select the course where you want to copy <span className="font-bold text-slate-900 dark:text-white">"{copyToCourseModal.module.title}"</span>:</p>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-550">Target Course</label>
+                  <select
+                    value={targetCourseId}
+                    onChange={(e) => setTargetCourseId(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-700/60 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-slate-900 dark:text-slate-200"
                   >
-                    Cancel
-                  </button>
-                  <button 
-                    onClick={() => duplicateModule(copyToCourseModal.module, targetCourseId)}
-                    disabled={loading}
-                    className="flex-[2] py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-blue-500/10 flex items-center justify-center gap-2 cursor-pointer text-xs"
-                  >
-                    {loading ? <Loader2 className="animate-spin" size={18} /> : "Copy Module"}
-                  </button>
+                    {initialCourses.map(course => (
+                      <option key={course.id} value={course.id} className="dark:bg-slate-900">{course.title} {course.id === currentCourseId ? "(Current)" : ""}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
-           </div>
+              <div className="flex gap-4">
+                <button
+                  onClick={() => setCopyToCourseModal(null)}
+                  className="flex-1 py-3 bg-slate-100 hover:bg-slate-205 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-650 dark:text-slate-350 font-bold uppercase tracking-wider rounded-xl transition-all cursor-pointer text-xs"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => duplicateModule(copyToCourseModal.module, targetCourseId)}
+                  disabled={loading}
+                  className="flex-[2] py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-blue-500/10 flex items-center justify-center gap-2 cursor-pointer text-xs"
+                >
+                  {loading ? <Loader2 className="animate-spin" size={18} /> : "Copy Module"}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
       {isFullScreen && (
-        <button 
+        <button
           onClick={() => setIsFullScreen(false)}
           className="fixed top-8 right-8 z-[110] p-3 bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 rounded-xl text-slate-400 hover:text-rose-600 dark:hover:text-rose-455 transition-all hover:scale-105 active:scale-95 cursor-pointer"
           title="Exit Fullscreen"
@@ -829,9 +857,9 @@ export default function CourseContentManagement({
       )}
 
       {previewLesson && (
-        <LessonPreviewModal 
-          lesson={previewLesson} 
-          onClose={() => setPreviewLesson(null)} 
+        <LessonPreviewModal
+          lesson={previewLesson}
+          onClose={() => setPreviewLesson(null)}
         />
       )}
 
@@ -850,8 +878,8 @@ export default function CourseContentManagement({
           {mode === "global" ? (
             <div className="px-3 py-1.5 flex items-center gap-3">
               <span className="text-xs font-semibold text-slate-400 dark:text-slate-550 uppercase tracking-wider">Select Course:</span>
-              <select 
-                value={selectedCourseId} 
+              <select
+                value={selectedCourseId}
                 onChange={(e) => setSelectedCourseId(e.target.value)}
                 className="bg-transparent text-sm font-bold text-slate-850 dark:text-slate-200 outline-none cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors border-none py-1 focus:ring-0"
               >
@@ -864,8 +892,8 @@ export default function CourseContentManagement({
             <div className="px-3 py-1.5 flex items-center gap-3">
               <Filter size={14} className="text-slate-400 dark:text-slate-500" />
               <span className="text-xs font-semibold text-slate-400 dark:text-slate-550 uppercase tracking-wider">Select Batch:</span>
-              <select 
-                value={selectedBatchId} 
+              <select
+                value={selectedBatchId}
                 onChange={(e) => setSelectedBatchId(e.target.value)}
                 className="bg-transparent text-sm font-bold text-slate-800 dark:text-slate-200 outline-none cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors border-none py-1 focus:ring-0"
               >
@@ -876,13 +904,13 @@ export default function CourseContentManagement({
             </div>
           )}
           <div className="w-[1px] h-8 bg-slate-100 dark:bg-slate-800 hidden md:block" />
-          <button 
+          <button
             onClick={() => setModuleModal({ show: true, isEditing: false })}
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-500 text-white text-xs font-semibold uppercase tracking-wider rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-blue-500/10 hover:shadow-blue-500/20 active:scale-95 cursor-pointer"
           >
-             <Plus size={14} /> Add Module
+            <Plus size={14} /> Add Module
           </button>
-          <button 
+          <button
             onClick={() => setIsFullScreen(!isFullScreen)}
             className="p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-450 hover:border-blue-200 dark:hover:border-blue-900/60 rounded-xl transition-all shadow-sm active:scale-95 cursor-pointer"
             title={isFullScreen ? "Exit Fullscreen" : "Fullscreen Mode"}
@@ -894,9 +922,9 @@ export default function CourseContentManagement({
 
       {/* Curriculum Summary Dashboard */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
-        
+
         {/* Modules Stat */}
-        <div 
+        <div
           onClick={collapseAll}
           className="group relative bg-white dark:bg-slate-900/80 rounded-2xl border border-slate-100 dark:border-slate-800 p-5 shadow-sm hover:shadow-md hover:border-blue-100 dark:hover:border-blue-900/40 hover:-translate-y-0.5 transition-all cursor-pointer overflow-hidden"
           title="Click to collapse all modules"
@@ -914,7 +942,7 @@ export default function CourseContentManagement({
         </div>
 
         {/* Chapters Stat */}
-        <div 
+        <div
           onClick={expandAll}
           className="group relative bg-white dark:bg-slate-900/80 rounded-2xl border border-slate-100 dark:border-slate-800 p-5 shadow-sm hover:shadow-md hover:border-indigo-100 dark:hover:border-indigo-900/40 hover:-translate-y-0.5 transition-all cursor-pointer overflow-hidden"
           title="Click to expand all modules"
@@ -932,13 +960,12 @@ export default function CourseContentManagement({
         </div>
 
         {/* Total Classes Stat */}
-        <div 
+        <div
           onClick={() => setContentTypeFilter('all')}
-          className={`group relative bg-white dark:bg-slate-900/80 rounded-2xl border p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer overflow-hidden ${
-            contentTypeFilter === 'all' 
-              ? 'border-purple-200 dark:border-purple-900/60 ring-2 ring-purple-500/20' 
-              : 'border-slate-100 dark:border-slate-800 hover:border-purple-100 dark:hover:border-purple-900/40'
-          }`}
+          className={`group relative bg-white dark:bg-slate-900/80 rounded-2xl border p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer overflow-hidden ${contentTypeFilter === 'all'
+            ? 'border-purple-200 dark:border-purple-900/60 ring-2 ring-purple-500/20'
+            : 'border-slate-100 dark:border-slate-800 hover:border-purple-100 dark:hover:border-purple-900/40'
+            }`}
           title="Filter: Show all content types"
         >
           <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 rounded-full blur-2xl group-hover:bg-purple-500/10 transition-colors" />
@@ -948,7 +975,7 @@ export default function CourseContentManagement({
             </div>
             <div>
               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-550">Total Classes</p>
-              <h4 className="text-2xl font-black text-slate-950 dark:text-white mt-0.5">{stats.totalLessons}</h4>
+              <h4 className="text-2xl font-black text-slate-950 dark:text-white mt-0.5">{stats.totalClasses}</h4>
             </div>
           </div>
         </div>
@@ -957,68 +984,72 @@ export default function CourseContentManagement({
         <div className="group relative bg-white dark:bg-slate-900/80 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col justify-center gap-2">
           <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-550 px-1">Filter by Type</p>
           <div className="flex flex-wrap gap-1.5">
-            <button 
+            <button
               onClick={() => setContentTypeFilter(contentTypeFilter === 'video' ? 'all' : 'video')}
-              className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1 cursor-pointer transition-all border ${
-                contentTypeFilter === 'video' 
-                  ? 'bg-blue-600 border-blue-605 text-white shadow-sm shadow-blue-500/20' 
-                  : 'bg-blue-50 hover:bg-blue-105 border-blue-100 text-blue-700 dark:bg-blue-950/30 dark:border-blue-900/50 dark:text-blue-405'
-              }`}
+              className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1 cursor-pointer transition-all border ${contentTypeFilter === 'video'
+                ? 'bg-blue-600 border-blue-605 text-white shadow-sm shadow-blue-500/20'
+                : 'bg-blue-50 hover:bg-blue-105 border-blue-100 text-blue-700 dark:bg-blue-950/30 dark:border-blue-900/50 dark:text-blue-405'
+                }`}
             >
               <Video size={10} /> Video ({stats.videosCount})
             </button>
 
-            <button 
+            <button
               onClick={() => setContentTypeFilter(contentTypeFilter === 'notes' ? 'all' : 'notes')}
-              className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1 cursor-pointer transition-all border ${
-                contentTypeFilter === 'notes' 
-                  ? 'bg-emerald-600 border-emerald-605 text-white shadow-sm shadow-emerald-500/20' 
-                  : 'bg-emerald-50 hover:bg-emerald-105 border-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:border-emerald-900/50 dark:text-emerald-405'
-              }`}
+              className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1 cursor-pointer transition-all border ${contentTypeFilter === 'notes'
+                ? 'bg-emerald-600 border-emerald-605 text-white shadow-sm shadow-emerald-500/20'
+                : 'bg-emerald-50 hover:bg-emerald-105 border-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:border-emerald-900/50 dark:text-emerald-405'
+                }`}
             >
               <BookOpen size={10} /> Theory ({stats.notesCount})
             </button>
 
-            <button 
+            <button
               onClick={() => setContentTypeFilter(contentTypeFilter === 'assignment' ? 'all' : 'assignment')}
-              className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1 cursor-pointer transition-all border ${
-                contentTypeFilter === 'assignment' 
-                  ? 'bg-amber-600 border-amber-605 text-white shadow-sm shadow-amber-500/20' 
-                  : 'bg-amber-50 hover:bg-amber-105 border-amber-100 text-amber-705 dark:bg-amber-950/30 dark:border-amber-900/50 dark:text-amber-400'
-              }`}
+              className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1 cursor-pointer transition-all border ${contentTypeFilter === 'assignment'
+                ? 'bg-amber-600 border-amber-605 text-white shadow-sm shadow-amber-500/20'
+                : 'bg-amber-50 hover:bg-amber-105 border-amber-100 text-amber-705 dark:bg-amber-950/30 dark:border-amber-900/50 dark:text-amber-400'
+                }`}
             >
               <Award size={10} /> Assignment ({stats.assignmentsCount})
             </button>
 
-            <button 
-              onClick={() => setContentTypeFilter(contentTypeFilter === 'mcq' ? 'all' : 'mcq')}
-              className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1 cursor-pointer transition-all border ${
-                contentTypeFilter === 'mcq' 
-                  ? 'bg-purple-600 border-purple-605 text-white shadow-sm shadow-purple-500/20' 
-                  : 'bg-purple-50 hover:bg-purple-105 border-purple-100 text-purple-705 dark:bg-purple-950/30 dark:border-purple-900/50 dark:text-purple-400'
-              }`}
+            <button
+              onClick={() => setContentTypeFilter(contentTypeFilter === 'project' ? 'all' : 'project')}
+              className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1 cursor-pointer transition-all border ${contentTypeFilter === 'project'
+                ? 'bg-indigo-600 border-indigo-605 text-white shadow-sm shadow-indigo-500/20'
+                : 'bg-indigo-50 hover:bg-indigo-105 border-indigo-100 text-indigo-705 dark:bg-indigo-950/30 dark:border-indigo-900/50 dark:text-indigo-400'
+                }`}
             >
-              <HelpCircle size={10} /> MCQ ({stats.mcqsCount})
+              <FolderCode size={10} /> Project ({stats.projectsCount})
             </button>
-            
-            <button 
+
+            <button
+              onClick={() => setContentTypeFilter(contentTypeFilter === 'mcq' ? 'all' : 'mcq')}
+              className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1 cursor-pointer transition-all border ${contentTypeFilter === 'mcq'
+                ? 'bg-purple-600 border-purple-605 text-white shadow-sm shadow-purple-500/20'
+                : 'bg-purple-50 hover:bg-purple-105 border-purple-100 text-purple-705 dark:bg-purple-950/30 dark:border-purple-900/50 dark:text-purple-400'
+                }`}
+            >
+              <HelpCircle size={10} /> Quiz ({stats.mcqsCount})
+            </button>
+
+            <button
               onClick={() => setContentTypeFilter(contentTypeFilter === 'free' ? 'all' : 'free')}
-              className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1 cursor-pointer transition-all border ${
-                contentTypeFilter === 'free' 
-                  ? 'bg-emerald-600 border-emerald-650 text-white' 
-                  : 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300'
-              }`}
+              className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1 cursor-pointer transition-all border ${contentTypeFilter === 'free'
+                ? 'bg-emerald-600 border-emerald-650 text-white'
+                : 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300'
+                }`}
             >
               Free ({stats.freeCount})
             </button>
 
-            <button 
+            <button
               onClick={() => setContentTypeFilter(contentTypeFilter === 'locked' ? 'all' : 'locked')}
-              className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1 cursor-pointer transition-all border ${
-                contentTypeFilter === 'locked' 
-                  ? 'bg-rose-600 border-rose-605 text-white' 
-                  : 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300'
-              }`}
+              className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1 cursor-pointer transition-all border ${contentTypeFilter === 'locked'
+                ? 'bg-rose-600 border-rose-605 text-white'
+                : 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300'
+                }`}
             >
               Locked ({stats.lockedCount})
             </button>
@@ -1029,11 +1060,11 @@ export default function CourseContentManagement({
 
       {/* Search and Action Bar */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
-        
+
         {/* Search Input */}
         <div className="relative w-full md:max-w-md flex-1">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-550" size={16} />
-          <input 
+          <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -1041,7 +1072,7 @@ export default function CourseContentManagement({
             className="w-full pl-10 pr-4 py-2.5 bg-slate-50 hover:bg-slate-100/50 focus:bg-transparent border border-slate-200/80 dark:border-slate-800 dark:bg-slate-950/40 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all text-sm font-medium text-slate-800 dark:text-slate-200"
           />
           {searchQuery && (
-            <button 
+            <button
               onClick={() => setSearchQuery("")}
               className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
             >
@@ -1055,7 +1086,7 @@ export default function CourseContentManagement({
           {(searchQuery || contentTypeFilter !== 'all') && (
             <span className="px-3 py-1.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200/50 dark:border-amber-900/40 text-amber-800 dark:text-amber-400 text-xs font-bold rounded-lg flex items-center gap-1.5 animate-in fade-in zoom-in-95 duration-200">
               Active Filters
-              <button 
+              <button
                 onClick={() => { setSearchQuery(""); setContentTypeFilter('all'); }}
                 className="hover:text-rose-600 transition-colors cursor-pointer"
                 title="Clear all filters"
@@ -1066,13 +1097,13 @@ export default function CourseContentManagement({
           )}
 
           <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/60 p-1 rounded-xl border border-slate-100 dark:border-slate-800/80">
-            <button 
+            <button
               onClick={expandAll}
               className="px-3 py-1.5 hover:bg-white dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-bold rounded-lg transition-all active:scale-95 cursor-pointer shadow-sm border border-transparent hover:border-slate-100 dark:hover:border-slate-700/60"
             >
               Expand All
             </button>
-            <button 
+            <button
               onClick={collapseAll}
               className="px-3 py-1.5 hover:bg-white dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-bold rounded-lg transition-all active:scale-95 cursor-pointer shadow-sm border border-transparent hover:border-slate-100 dark:hover:border-slate-700/60"
             >
@@ -1085,22 +1116,22 @@ export default function CourseContentManagement({
 
       {/* Main Content Layout */}
       <div className={`grid grid-cols-1 gap-8 ${isFullScreen ? 'col-span-1' : 'lg:grid-cols-12'}`}>
-        
+
         {/* Module Sidebar Navigator */}
         {!isFullScreen && (
           <div className="lg:col-span-3 space-y-4">
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden sticky top-24">
               <div className="p-4 border-b border-slate-100/60 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-between">
-                 <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Module Roadmap</h3>
-                 <span className="px-2.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-[11px] font-bold text-slate-655 dark:text-slate-450 rounded-full">{filteredModules.length}</span>
+                <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Module Roadmap</h3>
+                <span className="px-2.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-[11px] font-bold text-slate-655 dark:text-slate-450 rounded-full">{filteredModules.length}</span>
               </div>
               <div className="p-3 max-h-[60vh] overflow-y-auto custom-scrollbar relative space-y-1">
                 {/* Visual Timeline line */}
                 <div className="absolute left-7 top-6 bottom-6 w-[2px] bg-slate-100 dark:bg-slate-800 pointer-events-none" />
-                
+
                 {filteredModules.map((module, index) => (
-                  <button 
-                    key={module.id} 
+                  <button
+                    key={module.id}
                     onClick={() => document.getElementById(module.id)?.scrollIntoView({ behavior: "smooth", block: "start" })}
                     className="w-full text-left px-3 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-xl transition-all group flex items-start gap-3 relative z-10 cursor-pointer"
                   >
@@ -1111,7 +1142,7 @@ export default function CourseContentManagement({
                       <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors line-clamp-1">{module.title}</p>
                       <div className="flex items-center gap-2 mt-0.5">
                         <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
-                          {(module.lms_chapters?.length || 0)} chapters • {(module.lessons?.length || 0) + (module.lms_chapters?.reduce((sum: number, c: any) => sum + (c.lessons?.length || 0), 0) || 0)} classes
+                          {(module.lms_chapters?.length || 0)} chapters • {getClassCount(module.lessons) + (module.lms_chapters?.reduce((sum: number, c: any) => sum + getClassCount(c.lessons), 0) || 0)} classes
                         </p>
                       </div>
                     </div>
@@ -1119,12 +1150,12 @@ export default function CourseContentManagement({
                 ))}
               </div>
               <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/20 dark:bg-slate-900/20">
-                 <button 
+                <button
                   onClick={() => setModuleModal({ show: true, isEditing: false })}
                   className="w-full py-2.5 border border-dashed border-slate-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-800 hover:bg-blue-50/30 dark:hover:bg-blue-950/20 hover:text-blue-600 dark:hover:text-blue-400 transition-all rounded-xl text-xs font-semibold text-slate-400 dark:text-slate-550 flex items-center justify-center gap-2 cursor-pointer"
                 >
-                    <Plus size={14} /> Add New Module
-                 </button>
+                  <Plus size={14} /> Add New Module
+                </button>
               </div>
             </div>
           </div>
@@ -1140,13 +1171,13 @@ export default function CourseContentManagement({
           ) : modules.length === 0 ? (
             <div className="bg-white dark:bg-slate-900 p-16 text-center rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col items-center gap-6">
               <div className="w-16 h-16 bg-blue-50 dark:bg-blue-950/40 rounded-2xl flex items-center justify-center text-blue-600 dark:text-blue-400">
-                 <BookOpen size={32} />
+                <BookOpen size={32} />
               </div>
               <div className="space-y-2 max-w-sm">
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white">Your Curriculum is Empty</h3>
                 <p className="text-sm text-slate-400 dark:text-slate-550">Get started by creating your first course module. You can then add chapters and classes to it.</p>
               </div>
-              <button 
+              <button
                 onClick={() => setModuleModal({ show: true, isEditing: false })}
                 className="px-6 py-3 bg-blue-600 hover:bg-blue-705 text-white rounded-xl font-semibold text-xs uppercase tracking-wider transition-all shadow-lg shadow-blue-500/10 cursor-pointer"
               >
@@ -1156,13 +1187,13 @@ export default function CourseContentManagement({
           ) : filteredModules.length === 0 ? (
             <div className="bg-white dark:bg-slate-900 p-16 text-center rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col items-center gap-6">
               <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-2xl flex items-center justify-center text-slate-400">
-                 <Search size={32} />
+                <Search size={32} />
               </div>
               <div className="space-y-2 max-w-sm">
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white">No Results Found</h3>
                 <p className="text-sm text-slate-400 dark:text-slate-550">We couldn't find any modules, chapters, or classes matching your search or filters.</p>
               </div>
-              <button 
+              <button
                 onClick={() => { setSearchQuery(""); setContentTypeFilter('all'); }}
                 className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-350 rounded-xl font-bold text-xs uppercase tracking-wider transition-all cursor-pointer"
               >
@@ -1171,9 +1202,9 @@ export default function CourseContentManagement({
             </div>
           ) : (
             filteredModules.map((module, mIndex) => (
-              <div 
-                key={module.id} 
-                id={module.id} 
+              <div
+                key={module.id}
+                id={module.id}
                 className="relative group scroll-mt-24 transition-all duration-300"
                 draggable={reorderEnabled}
                 onDragStart={(e) => reorderEnabled && onDragStart(e, module.id, 'module')}
@@ -1182,75 +1213,75 @@ export default function CourseContentManagement({
                 onDragEnter={(e) => reorderEnabled && handleDragEnter(e, module.id, 'module')}
               >                 <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800/80 shadow-sm overflow-hidden relative z-10 hover:border-slate-200 dark:hover:border-slate-700/80 hover:shadow-md transition-all">
                   <div className="px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/40 dark:bg-slate-900/40 border-b border-slate-100/50 dark:border-slate-800/40">
-                     <div 
-                        className="space-y-1.5 flex-1 cursor-pointer"
-                        onClick={() => toggleModule(module.id)}
+                    <div
+                      className="space-y-1.5 flex-1 cursor-pointer"
+                      onClick={() => toggleModule(module.id)}
+                    >
+                      <div className="flex flex-wrap items-center gap-3">
+                        {reorderEnabled ? (
+                          <GripVertical size={16} className="text-slate-300 dark:text-slate-600 hover:text-slate-500 cursor-grab active:cursor-grabbing shrink-0" onClick={(e) => e.stopPropagation()} />
+                        ) : (
+                          <div className="text-slate-305 dark:text-slate-700/60 p-0.5 shrink-0" title="Reordering disabled during filtering">
+                            <Lock size={12} className="opacity-60" />
+                          </div>
+                        )}
+                        <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 text-[10px] font-bold rounded-md uppercase tracking-wider">Module {mIndex + 1}</span>
+                        <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">
+                          {(module.lms_chapters?.length || 0)} chapters • {getClassCount(module.lessons) + (module.lms_chapters?.reduce((sum: number, c: any) => sum + getClassCount(c.lessons), 0) || 0)} classes
+                        </span>
+                        <span className="ml-auto md:ml-0 text-slate-400 dark:text-slate-550">
+                          {isModuleExpanded(module.id) ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                        </span>
+                      </div>
+                      <h2 className="text-lg font-bold text-slate-950 dark:text-white line-clamp-1">{module.title}</h2>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5 gap-0.5">
+                        <button onClick={(e) => { e.stopPropagation(); moveItem('module', module.id, 'up'); }} className="p-1 hover:bg-white dark:hover:bg-slate-700 rounded transition-colors cursor-pointer" title="Move Up"><ArrowUp size={12} className="text-slate-500 dark:text-slate-400" /></button>
+                        <button onClick={(e) => { e.stopPropagation(); moveItem('module', module.id, 'down'); }} className="p-1 hover:bg-white dark:hover:bg-slate-700 rounded transition-colors cursor-pointer" title="Move Down"><ArrowDown size={12} className="text-slate-500 dark:text-slate-400" /></button>
+                      </div>
+
+                      <button
+                        onClick={() => setChapterModal({ show: true, moduleId: module.id, isEditing: false, currentChaptersCount: (module.lms_chapters?.length || 0) })}
+                        className="p-1.5 bg-purple-50 hover:bg-purple-100/80 dark:bg-purple-950/35 dark:hover:bg-purple-950/60 text-purple-600 dark:text-purple-400 border border-purple-100/50 dark:border-purple-900/30 rounded-lg transition-all hover:scale-105 active:scale-95 cursor-pointer flex items-center justify-center shrink-0"
+                        title="Add Chapter to Module"
                       >
-                        <div className="flex flex-wrap items-center gap-3">
-                          {reorderEnabled ? (
-                            <GripVertical size={16} className="text-slate-300 dark:text-slate-600 hover:text-slate-500 cursor-grab active:cursor-grabbing shrink-0" onClick={(e) => e.stopPropagation()} />
-                          ) : (
-                            <div className="text-slate-305 dark:text-slate-700/60 p-0.5 shrink-0" title="Reordering disabled during filtering">
-                              <Lock size={12} className="opacity-60" />
-                            </div>
-                          )}
-                          <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 text-[10px] font-bold rounded-md uppercase tracking-wider">Module {mIndex + 1}</span>
-                          <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">
-                            {(module.lms_chapters?.length || 0)} chapters • {(module.lessons?.length || 0) + (module.lms_chapters?.reduce((sum: number, c: any) => sum + (c.lessons?.length || 0), 0) || 0)} classes
-                          </span>
-                          <span className="ml-auto md:ml-0 text-slate-400 dark:text-slate-550">
-                            {isModuleExpanded(module.id) ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                          </span>
-                        </div>
-                        <h2 className="text-lg font-bold text-slate-950 dark:text-white line-clamp-1">{module.title}</h2>
-                     </div>
-                     <div className="flex flex-wrap items-center gap-2">
-                        <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5 gap-0.5">
-                           <button onClick={(e) => { e.stopPropagation(); moveItem('module', module.id, 'up'); }} className="p-1 hover:bg-white dark:hover:bg-slate-700 rounded transition-colors cursor-pointer" title="Move Up"><ArrowUp size={12} className="text-slate-500 dark:text-slate-400" /></button>
-                           <button onClick={(e) => { e.stopPropagation(); moveItem('module', module.id, 'down'); }} className="p-1 hover:bg-white dark:hover:bg-slate-700 rounded transition-colors cursor-pointer" title="Move Down"><ArrowDown size={12} className="text-slate-500 dark:text-slate-400" /></button>
-                        </div>
-                        
-                        <button 
-                          onClick={() => setChapterModal({ show: true, moduleId: module.id, isEditing: false, currentChaptersCount: (module.lms_chapters?.length || 0) })}
-                          className="p-1.5 bg-purple-50 hover:bg-purple-100/80 dark:bg-purple-950/35 dark:hover:bg-purple-950/60 text-purple-600 dark:text-purple-400 border border-purple-100/50 dark:border-purple-900/30 rounded-lg transition-all hover:scale-105 active:scale-95 cursor-pointer flex items-center justify-center shrink-0"
-                          title="Add Chapter to Module"
-                        >
-                           <FolderPlus size={16} />
-                        </button>
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); setModuleModal({ show: true, isEditing: true, moduleId: module.id, initialData: module }); }}
-                          className="p-1.5 bg-amber-50 hover:bg-amber-100/80 dark:bg-amber-950/35 dark:hover:bg-amber-950/60 text-amber-600 dark:text-amber-450 border border-amber-100/50 dark:border-amber-900/30 rounded-lg transition-all hover:scale-105 active:scale-95 cursor-pointer flex items-center justify-center shrink-0"
-                          title="Edit Module Name"
-                        >
-                           <Edit2 size={16} />
-                        </button>
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); setCopyToCourseModal({ show: true, module }); setTargetCourseId(currentCourseId); }}
-                          className="p-1.5 bg-teal-50 hover:bg-teal-100/80 dark:bg-teal-950/35 dark:hover:bg-teal-950/60 text-teal-600 dark:text-teal-400 border border-teal-100/50 dark:border-teal-900/30 rounded-lg transition-all hover:scale-105 active:scale-95 cursor-pointer flex items-center justify-center shrink-0"
-                          title="Copy to Course"
-                        >
-                           <Copy size={16} />
-                        </button>
-                        <DeleteButton 
-                          id={module.id} 
-                          table="lms_modules" 
-                          title={module.title} 
-                          onSuccess={handleRefresh} 
-                          showText={false}
-                          className="p-1.5 bg-rose-50 hover:bg-rose-100/80 dark:bg-rose-950/35 dark:hover:bg-rose-950/60 text-rose-600 dark:text-rose-455 border border-rose-100/50 dark:border-rose-900/30 rounded-lg transition-all hover:scale-105 active:scale-95 cursor-pointer flex items-center justify-center shrink-0"
-                        />
-                     </div>
+                        <FolderPlus size={16} />
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setModuleModal({ show: true, isEditing: true, moduleId: module.id, initialData: module }); }}
+                        className="p-1.5 bg-amber-50 hover:bg-amber-100/80 dark:bg-amber-950/35 dark:hover:bg-amber-950/60 text-amber-600 dark:text-amber-450 border border-amber-100/50 dark:border-amber-900/30 rounded-lg transition-all hover:scale-105 active:scale-95 cursor-pointer flex items-center justify-center shrink-0"
+                        title="Edit Module Name"
+                      >
+                        <Edit2 size={16} />
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setCopyToCourseModal({ show: true, module }); setTargetCourseId(currentCourseId); }}
+                        className="p-1.5 bg-teal-50 hover:bg-teal-100/80 dark:bg-teal-950/35 dark:hover:bg-teal-950/60 text-teal-600 dark:text-teal-400 border border-teal-100/50 dark:border-teal-900/30 rounded-lg transition-all hover:scale-105 active:scale-95 cursor-pointer flex items-center justify-center shrink-0"
+                        title="Copy to Course"
+                      >
+                        <Copy size={16} />
+                      </button>
+                      <DeleteButton
+                        id={module.id}
+                        table="lms_modules"
+                        title={module.title}
+                        onSuccess={handleRefresh}
+                        showText={false}
+                        className="p-1.5 bg-rose-50 hover:bg-rose-100/80 dark:bg-rose-950/35 dark:hover:bg-rose-950/60 text-rose-600 dark:text-rose-455 border border-rose-100/50 dark:border-rose-900/30 rounded-lg transition-all hover:scale-105 active:scale-95 cursor-pointer flex items-center justify-center shrink-0"
+                      />
+                    </div>
                   </div>
 
                   {isModuleExpanded(module.id) && (
                     <div className="p-6 border-t border-slate-100/60 dark:border-slate-800/80 bg-slate-50/10 dark:bg-slate-900/10 animate-in slide-in-from-top-2 space-y-6">
-                      
+
                       {/* Chapters Area */}
                       {module.lms_chapters && module.lms_chapters.length > 0 && (
                         <div className="space-y-4">
-                          {[...module.lms_chapters].sort((a:any, b:any) => a.order_index - b.order_index).map((chapter: any, cIndex: number) => (
-                            <div 
-                              key={chapter.id} 
+                          {[...module.lms_chapters].sort((a: any, b: any) => a.order_index - b.order_index).map((chapter: any, cIndex: number) => (
+                            <div
+                              key={chapter.id}
                               className="bg-white dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm relative"
                               draggable={reorderEnabled}
                               onDragStart={(e) => { e.stopPropagation(); reorderEnabled && onDragStart(e, chapter.id, 'chapter', module.id); }}
@@ -1259,15 +1290,15 @@ export default function CourseContentManagement({
                               onDragEnter={(e) => { e.stopPropagation(); reorderEnabled && handleDragEnter(e, chapter.id, 'chapter', module.id); }}
                             >
                               {/* Chapter Header */}
-                              <div 
+                              <div
                                 onClick={() => toggleChapter(chapter.id)}
                                 className="px-4 py-3 bg-slate-50/30 dark:bg-slate-900/20 border-b border-slate-100/60 dark:border-slate-800/60 flex items-center justify-between cursor-pointer hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors group/chheader"
                               >
                                 <div className="flex items-center gap-3">
                                   {reorderEnabled ? (
-                                    <GripVertical 
-                                      size={14} 
-                                      className="text-slate-300 dark:text-slate-600 hover:text-slate-500 cursor-grab active:cursor-grabbing" 
+                                    <GripVertical
+                                      size={14}
+                                      className="text-slate-300 dark:text-slate-600 hover:text-slate-500 cursor-grab active:cursor-grabbing"
                                       onClick={(e) => e.stopPropagation()}
                                     />
                                   ) : (
@@ -1280,99 +1311,116 @@ export default function CourseContentManagement({
                                   </div>
                                   <div>
                                     <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 tracking-wide">{chapter.title}</h4>
-                                    <p className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold uppercase tracking-wider">{chapter.lessons?.length || 0} Classes</p>
+                                    <p className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold uppercase tracking-wider">{getClassCount(chapter.lessons)} Classes</p>
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <div className={`p-1.5 rounded-lg transition-all ${isChapterExpanded(chapter.id) ? 'rotate-180 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400' : 'text-slate-350 dark:text-slate-655'}`}>
-                                      <ChevronDown size={14} />
-                                    </div>
-                                    <div className="h-4 w-[1px] bg-slate-100 dark:bg-slate-800 mx-1" />
-                                    <button 
-                                      onClick={(e) => { 
-                                        e.stopPropagation(); 
-                                        setLessonModal({ 
-                                          show: true, 
-                                          moduleId: module.id, 
-                                          chapterId: chapter.id, 
-                                          isEditing: false, 
-                                          initialData: { type: 'video' },
-                                          currentLessonsCount: (chapter.lessons?.length || 0) 
-                                        }); 
-                                      }}
-                                      className="p-1.5 hover:bg-blue-50 dark:hover:bg-blue-950/40 text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-all rounded-lg cursor-pointer"
-                                      title="Add Video Class"
-                                    >
-                                      <Video size={14} />
-                                    </button>
-                                    <button 
-                                      onClick={(e) => { 
-                                        e.stopPropagation(); 
-                                        setLessonModal({ 
-                                          show: true, 
-                                          moduleId: module.id, 
-                                          chapterId: chapter.id, 
-                                          isEditing: false, 
-                                          initialData: { type: 'notes' },
-                                          currentLessonsCount: (chapter.lessons?.length || 0) 
-                                        }); 
-                                      }}
-                                      className="p-1.5 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all rounded-lg cursor-pointer"
-                                      title="Add Theory Lesson"
-                                    >
-                                      <BookOpen size={14} />
-                                    </button>
-                                    <button 
-                                      onClick={(e) => { 
-                                        e.stopPropagation(); 
-                                        setLessonModal({ 
-                                          show: true, 
-                                          moduleId: module.id, 
-                                          chapterId: chapter.id, 
-                                          isEditing: false, 
-                                          initialData: { type: 'assignment' },
-                                          currentLessonsCount: (chapter.lessons?.length || 0) 
-                                        }); 
-                                      }}
-                                      className="p-1.5 hover:bg-amber-50 dark:hover:bg-amber-950/40 text-slate-500 hover:text-amber-600 dark:hover:text-amber-400 transition-all rounded-lg cursor-pointer"
-                                      title="Add Assignment"
-                                    >
-                                      <Award size={14} />
-                                    </button>
-                                    <button 
-                                      onClick={(e) => { 
-                                        e.stopPropagation(); 
-                                        setLessonModal({ 
-                                          show: true, 
-                                          moduleId: module.id, 
-                                          chapterId: chapter.id, 
-                                          isEditing: false, 
-                                          initialData: { type: 'mcq' },
-                                          currentLessonsCount: (chapter.lessons?.length || 0) 
-                                        }); 
-                                      }}
-                                      className="p-1.5 hover:bg-purple-50 dark:hover:bg-purple-950/40 text-slate-500 hover:text-purple-600 dark:hover:text-purple-400 transition-all rounded-lg cursor-pointer"
-                                      title="Add MCQ Quiz"
-                                    >
-                                      <HelpCircle size={14} />
-                                    </button>
-                                    <button 
-                                      onClick={(e) => { e.stopPropagation(); setChapterModal({ show: true, moduleId: module.id, isEditing: true, chapterId: chapter.id, initialData: chapter, currentChaptersCount: module.lms_chapters.length }); }}
-                                      className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all rounded-lg cursor-pointer"
-                                      title="Edit Chapter"
-                                    >
-                                      <Edit2 size={14} />
-                                    </button>
-                                    <div onClick={(e) => e.stopPropagation()}>
-                                      <DeleteButton 
-                                        id={chapter.id} 
-                                        table="lms_chapters" 
-                                        title={chapter.title} 
-                                        onSuccess={handleRefresh} 
-                                        showText={false}
-                                        className="p-1.5 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-rose-500 hover:text-rose-600 border border-transparent hover:border-rose-200 dark:hover:border-rose-900/40 rounded-lg transition-all cursor-pointer flex items-center justify-center"
-                                      />
-                                    </div>
+                                  <div className={`p-1.5 rounded-lg transition-all ${isChapterExpanded(chapter.id) ? 'rotate-180 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400' : 'text-slate-350 dark:text-slate-655'}`}>
+                                    <ChevronDown size={14} />
+                                  </div>
+                                  <div className="h-4 w-[1px] bg-slate-100 dark:bg-slate-800 mx-1" />
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setLessonModal({
+                                        show: true,
+                                        moduleId: module.id,
+                                        chapterId: chapter.id,
+                                        isEditing: false,
+                                        initialData: { type: 'video' },
+                                        currentLessonsCount: (chapter.lessons?.length || 0)
+                                      });
+                                    }}
+                                    className="p-1.5 hover:bg-blue-50 dark:hover:bg-blue-950/40 text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-all rounded-lg cursor-pointer"
+                                    title="Add Video Class"
+                                  >
+                                    <Video size={14} />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setLessonModal({
+                                        show: true,
+                                        moduleId: module.id,
+                                        chapterId: chapter.id,
+                                        isEditing: false,
+                                        initialData: { type: 'notes' },
+                                        currentLessonsCount: (chapter.lessons?.length || 0)
+                                      });
+                                    }}
+                                    className="p-1.5 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all rounded-lg cursor-pointer"
+                                    title="Add Theory Lesson"
+                                  >
+                                    <BookOpen size={14} />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setLessonModal({
+                                        show: true,
+                                        moduleId: module.id,
+                                        chapterId: chapter.id,
+                                        isEditing: false,
+                                        initialData: { type: 'assignment' },
+                                        currentLessonsCount: (chapter.lessons?.length || 0)
+                                      });
+                                    }}
+                                    className="p-1.5 hover:bg-amber-50 dark:hover:bg-amber-950/40 text-slate-500 hover:text-amber-600 dark:hover:text-amber-400 transition-all rounded-lg cursor-pointer"
+                                    title="Add Assignment"
+                                  >
+                                    <Award size={14} />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setLessonModal({
+                                        show: true,
+                                        moduleId: module.id,
+                                        chapterId: chapter.id,
+                                        isEditing: false,
+                                        initialData: { type: 'project' },
+                                        currentLessonsCount: (chapter.lessons?.length || 0)
+                                      });
+                                    }}
+                                    className="p-1.5 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all rounded-lg cursor-pointer"
+                                    title="Add Project"
+                                  >
+                                    <FolderCode size={14} />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setLessonModal({
+                                        show: true,
+                                        moduleId: module.id,
+                                        chapterId: chapter.id,
+                                        isEditing: false,
+                                        initialData: { type: 'mcq' },
+                                        currentLessonsCount: (chapter.lessons?.length || 0)
+                                      });
+                                    }}
+                                    className="p-1.5 hover:bg-purple-50 dark:hover:bg-purple-950/40 text-slate-500 hover:text-purple-600 dark:hover:text-purple-400 transition-all rounded-lg cursor-pointer"
+                                    title="Add Quiz"
+                                  >
+                                    <HelpCircle size={14} />
+                                  </button>
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); setChapterModal({ show: true, moduleId: module.id, isEditing: true, chapterId: chapter.id, initialData: chapter, currentChaptersCount: module.lms_chapters.length }); }}
+                                    className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all rounded-lg cursor-pointer"
+                                    title="Edit Chapter"
+                                  >
+                                    <Edit2 size={14} />
+                                  </button>
+                                  <div onClick={(e) => e.stopPropagation()}>
+                                    <DeleteButton
+                                      id={chapter.id}
+                                      table="lms_chapters"
+                                      title={chapter.title}
+                                      onSuccess={handleRefresh}
+                                      showText={false}
+                                      className="p-1.5 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-rose-500 hover:text-rose-600 border border-transparent hover:border-rose-200 dark:hover:border-rose-900/40 rounded-lg transition-all cursor-pointer flex items-center justify-center"
+                                    />
+                                  </div>
                                 </div>
                               </div>
 
@@ -1384,50 +1432,65 @@ export default function CourseContentManagement({
                                       <p className="text-[10px] font-bold text-slate-300 dark:text-slate-550 uppercase tracking-widest">No classes in this chapter</p>
                                     </div>
                                   ) : (
-                                    [...chapter.lessons].sort((a:any, b:any) => a.order_index - b.order_index).map((lesson: any, lIndex: number) => {
-                                      const lessonType = lesson.lesson_type || lesson.type || 'video';
-                                      let TypeIcon = Video;
-                                      let typeColor = 'text-blue-600 bg-blue-50 dark:bg-blue-950/40 dark:text-blue-400';
-                                      let typeLabel = 'Video';
-                                      
-                                      if (lessonType === 'notes') {
-                                        TypeIcon = BookOpen;
-                                        typeColor = 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-400';
-                                        typeLabel = 'Theory';
-                                      } else if (lessonType === 'assignment') {
-                                        TypeIcon = Award;
-                                        typeColor = 'text-amber-600 bg-amber-50 dark:bg-amber-950/40 dark:text-amber-450';
-                                        typeLabel = 'Assignment';
-                                      } else if (lessonType === 'mcq') {
-                                        TypeIcon = HelpCircle;
-                                        typeColor = 'text-purple-600 bg-purple-50 dark:bg-purple-950/40 dark:text-purple-400';
-                                        typeLabel = 'MCQ';
-                                      }
+                                    (() => {
+                                      let classCounter = 0;
+                                      const sortedLessons = [...chapter.lessons].sort((a: any, b: any) => a.order_index - b.order_index).map((lesson: any) => {
+                                        const lessonType = lesson.lesson_type || lesson.type || 'video';
+                                        const isClass = lessonType === 'video' || lessonType === 'notes';
+                                        if (isClass) {
+                                          classCounter++;
+                                          return { ...lesson, classIndex: classCounter };
+                                        }
+                                        return lesson;
+                                      });
+                                      return sortedLessons.map((lesson: any) => {
+                                        const lessonType = lesson.lesson_type || lesson.type || 'video';
+                                        let TypeIcon = Video;
+                                        let typeColor = 'text-blue-600 bg-blue-50 dark:bg-blue-950/40 dark:text-blue-400';
+                                        let typeLabel = 'Video';
 
-                                      return (
-                                        <div 
-                                          key={lesson.id} 
-                                          className="group/lesson flex items-center gap-4 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all border border-transparent hover:border-slate-100 dark:hover:border-slate-800 shadow-sm bg-white dark:bg-slate-900"
-                                          draggable={reorderEnabled}
-                                          onDragStart={(e) => { e.stopPropagation(); reorderEnabled && onDragStart(e, lesson.id, 'lesson', chapter.id); }}
-                                          onDragEnd={(e) => { e.stopPropagation(); onDragEnd(e); }}
-                                          onDragOver={(e) => e.preventDefault()}
-                                          onDragEnter={(e) => { e.stopPropagation(); reorderEnabled && handleDragEnter(e, lesson.id, 'lesson', chapter.id); }}
-                                        >
-                                          {reorderEnabled ? (
-                                            <GripVertical size={14} className="text-slate-200 dark:text-slate-700 group-hover/lesson:text-slate-450 cursor-grab shrink-0" />
-                                          ) : (
-                                            <div className="text-slate-200 dark:text-slate-800/80 p-0.5 shrink-0" title="Reordering disabled during filtering">
-                                              <Lock size={10} className="opacity-60" />
+                                        if (lessonType === 'notes') {
+                                          TypeIcon = BookOpen;
+                                          typeColor = 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-400';
+                                          typeLabel = 'Theory';
+                                        } else if (lessonType === 'assignment') {
+                                          TypeIcon = Award;
+                                          typeColor = 'text-amber-600 bg-amber-50 dark:bg-amber-950/40 dark:text-amber-450';
+                                          typeLabel = 'Assignment';
+                                        } else if (lessonType === 'project') {
+                                          TypeIcon = FolderCode;
+                                          typeColor = 'text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40 dark:text-indigo-400';
+                                          typeLabel = 'Project';
+                                        } else if (lessonType === 'mcq') {
+                                          TypeIcon = HelpCircle;
+                                          typeColor = 'text-purple-600 bg-purple-50 dark:bg-purple-950/40 dark:text-purple-400';
+                                          typeLabel = 'Quiz';
+                                        }
+
+                                        return (
+                                          <div
+                                            key={lesson.id}
+                                            className="group/lesson flex items-center gap-4 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all border border-transparent hover:border-slate-100 dark:hover:border-slate-800 shadow-sm bg-white dark:bg-slate-900"
+                                            draggable={reorderEnabled}
+                                            onDragStart={(e) => { e.stopPropagation(); reorderEnabled && onDragStart(e, lesson.id, 'lesson', chapter.id); }}
+                                            onDragEnd={(e) => { e.stopPropagation(); onDragEnd(e); }}
+                                            onDragOver={(e) => e.preventDefault()}
+                                            onDragEnter={(e) => { e.stopPropagation(); reorderEnabled && handleDragEnter(e, lesson.id, 'lesson', chapter.id); }}
+                                          >
+                                            {reorderEnabled ? (
+                                              <GripVertical size={14} className="text-slate-200 dark:text-slate-700 group-hover/lesson:text-slate-455 cursor-grab shrink-0" />
+                                            ) : (
+                                              <div className="text-slate-200 dark:text-slate-800/80 p-0.5 shrink-0" title="Reordering disabled during filtering">
+                                                <Lock size={10} className="opacity-60" />
+                                              </div>
+                                            )}
+                                            <div className={`p-1.5 rounded-lg ${typeColor} shrink-0`}>
+                                              <TypeIcon size={14} />
                                             </div>
-                                          )}
-                                          <div className={`p-1.5 rounded-lg ${typeColor} shrink-0`}>
-                                            <TypeIcon size={14} />
-                                          </div>
-                                          <div className="px-2 h-6 shrink-0 rounded bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-[10px] font-bold text-slate-500 dark:text-slate-455 border border-slate-100/50 dark:border-slate-800">
-                                            Class {lIndex + 1}
-                                          </div>
-                                          <div className="flex-1 min-w-0">
+                                            <div className="px-2 h-6 shrink-0 rounded bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-[10px] font-bold text-slate-500 dark:text-slate-455 border border-slate-100/50 dark:border-slate-800">
+                                              {lesson.classIndex ? `Class ${lesson.classIndex}` : lessonType === 'assignment' ? 'Assignment' : lessonType === 'project' ? 'Project' : 'Quiz'}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
                                               <div className="flex flex-wrap items-center gap-2">
                                                 <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{lesson.title}</h4>
                                                 <span className={`text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md ${typeColor}`}>
@@ -1447,52 +1510,51 @@ export default function CourseContentManagement({
                                                   </div>
                                                 )}
                                               </div>
-                                          </div>
-                                          
-                                          {/* Access Toggles */}
-                                          <div className="flex items-center gap-1.5 shrink-0 select-none">
-                                            <button 
-                                              onClick={(e) => { e.stopPropagation(); toggleLessonField(lesson.id, 'is_free', lesson.is_free); }}
-                                              className={`px-1.5 py-0.5 rounded-md border text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer hover:scale-[1.03] active:scale-[0.97] ${
-                                                lesson.is_free 
-                                                  ? 'bg-emerald-50 hover:bg-emerald-105 border-emerald-200 text-emerald-705 dark:bg-emerald-950/30 dark:border-emerald-900/50 dark:text-emerald-400' 
+                                            </div>
+
+                                            {/* Access Toggles */}
+                                            <div className="flex items-center gap-1.5 shrink-0 select-none">
+                                              <button
+                                                onClick={(e) => { e.stopPropagation(); toggleLessonField(lesson.id, 'is_free', lesson.is_free); }}
+                                                className={`px-1.5 py-0.5 rounded-md border text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer hover:scale-[1.03] active:scale-[0.97] ${lesson.is_free
+                                                  ? 'bg-emerald-50 hover:bg-emerald-105 border-emerald-200 text-emerald-705 dark:bg-emerald-950/30 dark:border-emerald-900/50 dark:text-emerald-400'
                                                   : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-455'
-                                              }`}
-                                              title={lesson.is_free ? "Toggle to Paid only" : "Toggle to Free Preview"}
-                                            >
-                                              {lesson.is_free ? <Eye size={10} className="text-emerald-600 dark:text-emerald-400" /> : <EyeOff size={10} className="text-slate-400 dark:text-slate-500" />}
-                                              {lesson.is_free ? "Free" : "Paid"}
-                                            </button>
+                                                  }`}
+                                                title={lesson.is_free ? "Toggle to Paid only" : "Toggle to Free Preview"}
+                                              >
+                                                {lesson.is_free ? <Eye size={10} className="text-emerald-600 dark:text-emerald-400" /> : <EyeOff size={10} className="text-slate-400 dark:text-slate-555" />}
+                                                {lesson.is_free ? "Free" : "Paid"}
+                                              </button>
 
-                                            <button 
-                                              onClick={(e) => { e.stopPropagation(); toggleLessonField(lesson.id, 'is_locked', lesson.is_locked); }}
-                                              className={`px-1.5 py-0.5 rounded-md border text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer hover:scale-[1.03] active:scale-[0.97] ${
-                                                lesson.is_locked 
-                                                  ? 'bg-rose-50 hover:bg-rose-100 border-rose-200 text-rose-700 dark:bg-rose-950/30 dark:border-rose-900/50 dark:text-rose-455' 
+                                              <button
+                                                onClick={(e) => { e.stopPropagation(); toggleLessonField(lesson.id, 'is_locked', lesson.is_locked); }}
+                                                className={`px-1.5 py-0.5 rounded-md border text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer hover:scale-[1.03] active:scale-[0.97] ${lesson.is_locked
+                                                  ? 'bg-rose-50 hover:bg-rose-100 border-rose-200 text-rose-700 dark:bg-rose-950/30 dark:border-rose-900/50 dark:text-rose-455'
                                                   : 'bg-blue-50 hover:bg-blue-105 border-blue-200 text-blue-700 dark:bg-blue-950/30 dark:border-blue-900/50 dark:text-blue-400'
-                                              }`}
-                                              title={lesson.is_locked ? "Click to unlock class" : "Click to lock class"}
-                                            >
-                                              {lesson.is_locked ? <Lock size={10} className="text-rose-600 dark:text-rose-455" /> : <Unlock size={10} className="text-blue-600 dark:text-blue-400" />}
-                                              {lesson.is_locked ? "Locked" : "Unlocked"}
-                                            </button>
-                                          </div>
+                                                  }`}
+                                                title={lesson.is_locked ? "Click to unlock class" : "Click to lock class"}
+                                              >
+                                                {lesson.is_locked ? <Lock size={10} className="text-rose-600 dark:text-rose-455" /> : <Unlock size={10} className="text-blue-600 dark:text-blue-400" />}
+                                                {lesson.is_locked ? "Locked" : "Unlocked"}
+                                              </button>
+                                            </div>
 
-                                          <div className="flex items-center gap-1 opacity-0 group-hover/lesson:opacity-100 transition-opacity">
+                                            <div className="flex items-center gap-1 opacity-0 group-hover/lesson:opacity-100 transition-opacity">
                                               <button onClick={() => setPreviewLesson(lesson)} className="w-7 h-7 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-555 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all shadow-sm cursor-pointer" title="Preview Class"><Eye size={12} /></button>
                                               <button onClick={() => setLessonModal({ show: true, moduleId: module.id, chapterId: chapter.id, isEditing: true, lessonId: lesson.id, initialData: lesson })} className="w-7 h-7 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-555 hover:text-blue-600 dark:hover:text-blue-400 transition-all shadow-sm cursor-pointer" title="Edit Class"><Edit2 size={12} /></button>
-                                              <DeleteButton 
-                                                id={lesson.id} 
-                                                table="lessons" 
-                                                title={lesson.title} 
-                                                onSuccess={handleRefresh} 
+                                              <DeleteButton
+                                                id={lesson.id}
+                                                table="lessons"
+                                                title={lesson.title}
+                                                onSuccess={handleRefresh}
                                                 showText={false}
                                                 className="w-7 h-7 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-555 hover:text-rose-600 hover:border-rose-100 hover:bg-rose-50 dark:hover:text-rose-455 dark:hover:border-rose-900/40 dark:hover:bg-rose-950/30 transition-all shadow-sm cursor-pointer"
                                               />
+                                            </div>
                                           </div>
-                                        </div>
-                                      );
-                                    })
+                                        );
+                                      });
+                                    })()
                                   )}
                                 </div>
                               )}
@@ -1504,18 +1566,18 @@ export default function CourseContentManagement({
                       {/* Direct Lessons (Legacy / Uncategorized) */}
                       {module.lessons?.length > 0 && (
                         <div className="space-y-3 pt-2">
-                           <div className="flex items-center gap-3 px-3">
-                              <div className="h-[1px] flex-1 bg-slate-200 dark:bg-slate-800/60" />
-                              <h4 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest whitespace-nowrap">Uncategorized Classes</h4>
-                              <div className="h-[1px] flex-1 bg-slate-200 dark:bg-slate-800/60" />
-                           </div>
-                           <div className="space-y-2">
-                            {module.lessons.sort((a:any, b:any) => a.order_index - b.order_index).map((lesson: any, lIndex: number) => {
+                          <div className="flex items-center gap-3 px-3">
+                            <div className="h-[1px] flex-1 bg-slate-200 dark:bg-slate-800/60" />
+                            <h4 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest whitespace-nowrap">Uncategorized Classes</h4>
+                            <div className="h-[1px] flex-1 bg-slate-200 dark:bg-slate-800/60" />
+                          </div>
+                          <div className="space-y-2">
+                            {module.lessons.sort((a: any, b: any) => a.order_index - b.order_index).map((lesson: any, lIndex: number) => {
                               const lessonType = lesson.lesson_type || lesson.type || 'video';
                               let TypeIcon = Video;
                               let typeColor = 'text-blue-600 bg-blue-50 dark:bg-blue-950/40 dark:text-blue-400';
                               let typeLabel = 'Video';
-                              
+
                               if (lessonType === 'notes') {
                                 TypeIcon = BookOpen;
                                 typeColor = 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-400';
@@ -1524,15 +1586,19 @@ export default function CourseContentManagement({
                                 TypeIcon = Award;
                                 typeColor = 'text-amber-600 bg-amber-50 dark:bg-amber-950/40 dark:text-amber-450';
                                 typeLabel = 'Assignment';
+                              } else if (lessonType === 'project') {
+                                TypeIcon = FolderCode;
+                                typeColor = 'text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40 dark:text-indigo-400';
+                                typeLabel = 'Project';
                               } else if (lessonType === 'mcq') {
                                 TypeIcon = HelpCircle;
                                 typeColor = 'text-purple-600 bg-purple-50 dark:bg-purple-950/40 dark:text-purple-400';
-                                typeLabel = 'MCQ';
+                                typeLabel = 'Quiz';
                               }
 
                               return (
-                                <div 
-                                  key={lesson.id} 
+                                <div
+                                  key={lesson.id}
                                   className="group/lesson flex items-center gap-4 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all border border-transparent hover:border-slate-100 dark:hover:border-slate-800 shadow-sm bg-white dark:bg-slate-900"
                                   draggable={reorderEnabled}
                                   onDragStart={(e) => { e.stopPropagation(); reorderEnabled && onDragStart(e, lesson.id, 'lesson', module.id); }}
@@ -1540,92 +1606,90 @@ export default function CourseContentManagement({
                                   onDragOver={(e) => e.preventDefault()}
                                   onDragEnter={(e) => { e.stopPropagation(); reorderEnabled && handleDragEnter(e, lesson.id, 'lesson', module.id); }}
                                 >
-                                   {reorderEnabled ? (
-                                     <GripVertical size={14} className="text-slate-200 dark:text-slate-700 group-hover/lesson:text-slate-455 cursor-grab shrink-0" />
-                                   ) : (
-                                     <div className="text-slate-200 dark:text-slate-800/80 p-0.5 shrink-0" title="Reordering disabled during filtering">
-                                       <Lock size={10} className="opacity-60" />
-                                     </div>
-                                   )}
-                                   <div className={`p-1.5 rounded-lg ${typeColor} shrink-0`}>
-                                     <TypeIcon size={14} />
-                                   </div>
-                                   <div className="px-2 h-6 shrink-0 rounded bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-[10px] font-bold text-slate-500 dark:text-slate-455 border border-slate-100/50 dark:border-slate-800">
-                                     Class {lIndex + 1}
-                                   </div>
-                                   <div className="flex-1 min-w-0">
-                                       <div className="flex flex-wrap items-center gap-2">
-                                         <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{lesson.title}</h4>
-                                         <span className={`text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md ${typeColor}`}>
-                                           {typeLabel}
-                                         </span>
-                                         {lesson.batches && lesson.batches.length > 0 && (
-                                           <div className="flex flex-wrap gap-1">
-                                             {lesson.batches.map((bid: string) => {
-                                               const b = availableBatches.find(x => x.id === bid);
-                                               if (!b) return null;
-                                               return (
-                                                 <span key={bid} className="text-[8px] font-bold text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40 dark:text-indigo-400 px-1.5 py-0.5 rounded uppercase tracking-wider">
-                                                   {b.type}
-                                                 </span>
-                                               );
-                                             })}
-                                           </div>
-                                         )}
-                                       </div>
-                                   </div>
-                                   
-                                   {/* Access Toggles */}
-                                   <div className="flex items-center gap-1.5 shrink-0 select-none">
-                                     <button 
-                                       onClick={(e) => { e.stopPropagation(); toggleLessonField(lesson.id, 'is_free', lesson.is_free); }}
-                                       className={`px-1.5 py-0.5 rounded-md border text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer hover:scale-[1.03] active:scale-[0.97] ${
-                                         lesson.is_free 
-                                           ? 'bg-emerald-50 hover:bg-emerald-105 border-emerald-200 text-emerald-705 dark:bg-emerald-950/30 dark:border-emerald-900/50 dark:text-emerald-400' 
-                                           : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-455'
-                                       }`}
-                                       title={lesson.is_free ? "Toggle to Paid only" : "Toggle to Free Preview"}
-                                     >
-                                       {lesson.is_free ? <Eye size={10} className="text-emerald-600 dark:text-emerald-400" /> : <EyeOff size={10} className="text-slate-400 dark:text-slate-555" />}
-                                       {lesson.is_free ? "Free" : "Paid"}
-                                     </button>
+                                  {reorderEnabled ? (
+                                    <GripVertical size={14} className="text-slate-200 dark:text-slate-700 group-hover/lesson:text-slate-455 cursor-grab shrink-0" />
+                                  ) : (
+                                    <div className="text-slate-200 dark:text-slate-800/80 p-0.5 shrink-0" title="Reordering disabled during filtering">
+                                      <Lock size={10} className="opacity-60" />
+                                    </div>
+                                  )}
+                                  <div className={`p-1.5 rounded-lg ${typeColor} shrink-0`}>
+                                    <TypeIcon size={14} />
+                                  </div>
+                                  <div className="px-2 h-6 shrink-0 rounded bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-[10px] font-bold text-slate-500 dark:text-slate-455 border border-slate-100/50 dark:border-slate-800">
+                                    Class {lIndex + 1}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{lesson.title}</h4>
+                                      <span className={`text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md ${typeColor}`}>
+                                        {typeLabel}
+                                      </span>
+                                      {lesson.batches && lesson.batches.length > 0 && (
+                                        <div className="flex flex-wrap gap-1">
+                                          {lesson.batches.map((bid: string) => {
+                                            const b = availableBatches.find(x => x.id === bid);
+                                            if (!b) return null;
+                                            return (
+                                              <span key={bid} className="text-[8px] font-bold text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40 dark:text-indigo-400 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                                                {b.type}
+                                              </span>
+                                            );
+                                          })}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
 
-                                     <button 
-                                       onClick={(e) => { e.stopPropagation(); toggleLessonField(lesson.id, 'is_locked', lesson.is_locked); }}
-                                       className={`px-1.5 py-0.5 rounded-md border text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer hover:scale-[1.03] active:scale-[0.97] ${
-                                         lesson.is_locked 
-                                           ? 'bg-rose-50 hover:bg-rose-100 border-rose-200 text-rose-700 dark:bg-rose-950/30 dark:border-rose-900/50 dark:text-rose-455' 
-                                           : 'bg-blue-50 hover:bg-blue-105 border-blue-200 text-blue-700 dark:bg-blue-950/30 dark:border-blue-900/50 dark:text-blue-400'
-                                       }`}
-                                       title={lesson.is_locked ? "Click to unlock class" : "Click to lock class"}
-                                     >
-                                       {lesson.is_locked ? <Lock size={10} className="text-rose-600 dark:text-rose-455" /> : <Unlock size={10} className="text-blue-600 dark:text-blue-400" />}
-                                       {lesson.is_locked ? "Locked" : "Unlocked"}
-                                     </button>
-                                   </div>
+                                  {/* Access Toggles */}
+                                  <div className="flex items-center gap-1.5 shrink-0 select-none">
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); toggleLessonField(lesson.id, 'is_free', lesson.is_free); }}
+                                      className={`px-1.5 py-0.5 rounded-md border text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer hover:scale-[1.03] active:scale-[0.97] ${lesson.is_free
+                                        ? 'bg-emerald-50 hover:bg-emerald-105 border-emerald-200 text-emerald-705 dark:bg-emerald-950/30 dark:border-emerald-900/50 dark:text-emerald-400'
+                                        : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-455'
+                                        }`}
+                                      title={lesson.is_free ? "Toggle to Paid only" : "Toggle to Free Preview"}
+                                    >
+                                      {lesson.is_free ? <Eye size={10} className="text-emerald-600 dark:text-emerald-400" /> : <EyeOff size={10} className="text-slate-400 dark:text-slate-555" />}
+                                      {lesson.is_free ? "Free" : "Paid"}
+                                    </button>
 
-                                   <div className="flex items-center gap-1 opacity-0 group-hover/lesson:opacity-100 transition-opacity">
-                                      <button onClick={() => setPreviewLesson(lesson)} className="w-7 h-7 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-555 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all shadow-sm cursor-pointer" title="Preview Class"><Eye size={12} /></button>
-                                      <button onClick={() => setLessonModal({ show: true, moduleId: module.id, isEditing: true, lessonId: lesson.id, initialData: lesson })} className="w-7 h-7 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-555 hover:text-blue-600 dark:hover:text-blue-400 transition-all shadow-sm cursor-pointer" title="Edit Class"><Edit2 size={12} /></button>
-                                      <DeleteButton 
-                                        id={lesson.id} 
-                                        table="lessons" 
-                                        title={lesson.title} 
-                                        onSuccess={handleRefresh} 
-                                        showText={false}
-                                        className="w-7 h-7 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-555 hover:text-rose-600 hover:border-rose-100 hover:bg-rose-50 dark:hover:text-rose-455 dark:hover:border-rose-900/40 dark:hover:bg-rose-950/30 transition-all shadow-sm cursor-pointer"
-                                      />
-                                   </div>
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); toggleLessonField(lesson.id, 'is_locked', lesson.is_locked); }}
+                                      className={`px-1.5 py-0.5 rounded-md border text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer hover:scale-[1.03] active:scale-[0.97] ${lesson.is_locked
+                                        ? 'bg-rose-50 hover:bg-rose-100 border-rose-200 text-rose-700 dark:bg-rose-950/30 dark:border-rose-900/50 dark:text-rose-455'
+                                        : 'bg-blue-50 hover:bg-blue-105 border-blue-200 text-blue-700 dark:bg-blue-950/30 dark:border-blue-900/50 dark:text-blue-400'
+                                        }`}
+                                      title={lesson.is_locked ? "Click to unlock class" : "Click to lock class"}
+                                    >
+                                      {lesson.is_locked ? <Lock size={10} className="text-rose-600 dark:text-rose-455" /> : <Unlock size={10} className="text-blue-600 dark:text-blue-400" />}
+                                      {lesson.is_locked ? "Locked" : "Unlocked"}
+                                    </button>
+                                  </div>
+
+                                  <div className="flex items-center gap-1 opacity-0 group-hover/lesson:opacity-100 transition-opacity">
+                                    <button onClick={() => setPreviewLesson(lesson)} className="w-7 h-7 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-555 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all shadow-sm cursor-pointer" title="Preview Class"><Eye size={12} /></button>
+                                    <button onClick={() => setLessonModal({ show: true, moduleId: module.id, isEditing: true, lessonId: lesson.id, initialData: lesson })} className="w-7 h-7 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-555 hover:text-blue-600 dark:hover:text-blue-400 transition-all shadow-sm cursor-pointer" title="Edit Class"><Edit2 size={12} /></button>
+                                    <DeleteButton
+                                      id={lesson.id}
+                                      table="lessons"
+                                      title={lesson.title}
+                                      onSuccess={handleRefresh}
+                                      showText={false}
+                                      className="w-7 h-7 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-555 hover:text-rose-600 hover:border-rose-100 hover:bg-rose-50 dark:hover:text-rose-455 dark:hover:border-rose-900/40 dark:hover:bg-rose-950/30 transition-all shadow-sm cursor-pointer"
+                                    />
+                                  </div>
                                 </div>
                               );
                             })}
-                           </div>
+                          </div>
                         </div>
                       )}
 
                       {(!module.lms_chapters || module.lms_chapters.length === 0) && (!module.lessons || module.lessons.length === 0) && (
                         <div className="py-10 text-center border border-dashed border-slate-100 dark:border-slate-800 rounded-2xl">
-                           <p className="text-[10px] font-bold text-slate-350 dark:text-slate-550 uppercase tracking-widest">No chapters or topics added to this module yet</p>
+                          <p className="text-[10px] font-bold text-slate-350 dark:text-slate-550 uppercase tracking-widest">No chapters or topics added to this module yet</p>
                         </div>
                       )}
                     </div>

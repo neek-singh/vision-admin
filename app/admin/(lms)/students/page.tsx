@@ -1,5 +1,6 @@
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import StudentTable from "@/components/lms/students/StudentTable";
+import { UserPlus } from "lucide-react";
 
 export const revalidate = 0;
 
@@ -43,21 +44,38 @@ export default async function AdminStudentsPage({
 
   const batchNames = batchesData?.map(b => b.title) || [];
 
+  // Fetch courses from Supabase
+  const { data: coursesData } = await supabase
+    .from("courses")
+    .select("id, title, course_code")
+    .order("title");
+
+  const courses = coursesData || [];
+
   return (
-    <div className="container mx-auto px-6 lg:px-8 py-12">
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-        <h1 className="text-3xl font-bold text-blue-950">Manage Students</h1>
-        <div className="flex gap-4">
+        <div>
+          <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Manage Students</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">View, edit, assign courses, and generate badges for students.</p>
+        </div>
+        <div className="flex gap-4 w-full md:w-auto">
           <a
             href="/admin/students/add"
-            className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-all"
+            className="w-full md:w-auto px-5 py-3 bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500 text-white rounded-2xl text-sm font-black transition-all hover:-translate-y-0.5 shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2"
           >
-            Add Student
+            <UserPlus size={16} />
+            <span>Add Student</span>
           </a>
         </div>
       </div>
 
-      <StudentTable initialStudents={students || []} availableBatches={batchNames} />
+      <StudentTable 
+        initialStudents={students || []} 
+        availableBatches={batchNames} 
+        availableCourses={courses}
+      />
     </div>
   );
 }
+

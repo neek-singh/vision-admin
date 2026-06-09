@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Video, ExternalLink, FileText, CheckCircle2, XCircle, HelpCircle } from "lucide-react";
+import { X, Video, ExternalLink, FileText, CheckCircle2, XCircle, HelpCircle, FolderCode } from "lucide-react";
 
 interface LessonPreviewModalProps {
   lesson: any;
@@ -77,7 +77,9 @@ export default function LessonPreviewModal({
               <span className="px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded text-[9px] font-black uppercase tracking-widest border border-indigo-100">Admin Preview</span>
               <h3 className="text-xl font-bold text-slate-900 tracking-tight">{lesson.title}</h3>
             </div>
-            <p className="text-xs font-medium text-slate-400 mt-0.5">{lessonType} • {lesson.duration || '0'} Mins</p>
+            <p className="text-xs font-medium text-slate-400 mt-0.5">
+              {lessonType === 'mcq' ? 'Quiz' : lessonType === 'notes' ? 'Theory' : lessonType === 'assignment' ? 'Assignment' : lessonType === 'project' ? 'Project' : 'Video'} • {lesson.duration || '0'} Mins
+            </p>
           </div>
           <button 
             onClick={onClose} 
@@ -183,6 +185,45 @@ export default function LessonPreviewModal({
                 </div>
              )}
 
+             {lessonType === 'project' && (
+                <div className="space-y-8 mb-10 animate-in fade-in duration-300">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-6 bg-indigo-50/50 rounded-2xl border border-indigo-100/50">
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 bg-indigo-100 text-indigo-700 rounded-xl">
+                        <FolderCode size={24} />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-900">Project Workspace / PDF Brief</h4>
+                        <p className="text-xs font-medium text-slate-400 mt-0.5">Attached project brief or workspace reference link</p>
+                      </div>
+                    </div>
+                    {lesson.pdf_url?.startsWith('http') || lesson.content_url?.startsWith('http') ? (
+                      <a 
+                        href={lesson.pdf_url || lesson.content_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-all shadow-md shadow-indigo-500/10 shrink-0 cursor-pointer"
+                      >
+                         Open Brief / PDF <ExternalLink size={14} />
+                      </a>
+                    ) : (
+                      <span className="text-xs font-semibold text-slate-400 italic">No brief file attached</span>
+                    )}
+                  </div>
+                  
+                  <article className="prose prose-slate max-w-none text-slate-655 leading-relaxed text-base">
+                    <h4 className="text-sm font-bold text-slate-900 mb-4 font-sans uppercase tracking-wider">Project Guidelines & Specifications</h4>
+                    <div className="p-6 bg-slate-50 border border-slate-100 rounded-2xl rich-content">
+                      {lesson.notes_content?.includes('<!-- THEORY_BLOCKS_JSON:') || lesson.notes_content?.includes('<p') || lesson.notes_content?.includes('<h2') ? (
+                        <div dangerouslySetInnerHTML={{ __html: lesson.notes_content.replace(/<!-- THEORY_BLOCKS_JSON:(.*?) -->/, "") }} />
+                      ) : (
+                        <div className="whitespace-pre-wrap font-medium text-slate-700 text-sm">{lesson.notes_content || "No specifications provided."}</div>
+                      )}
+                    </div>
+                  </article>
+                </div>
+             )}
+
              {lessonType === 'mcq' && (
                 <div className="space-y-8 mb-10 animate-in fade-in duration-300">
                   <div className="p-6 bg-purple-50/50 rounded-2xl border border-purple-100/50 flex items-center gap-3">
@@ -278,7 +319,7 @@ export default function LessonPreviewModal({
                 </div>
              )}
 
-             {lessonType !== 'video' && lessonType !== 'assignment' && lessonType !== 'mcq' && (
+             {lessonType !== 'video' && lessonType !== 'assignment' && lessonType !== 'mcq' && lessonType !== 'project' && (
                 <div className="mb-10 animate-in fade-in duration-300">
                    <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-6">
                       {lesson.content_url?.startsWith('http') && (

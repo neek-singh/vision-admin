@@ -17,27 +17,32 @@ export default async function LMSModules({ courseTitle }: LMSModulesProps) {
 
   let videoCount = 0;
   let notesCount = 0;
+  let projectCount = 0;
 
   if (course) {
-    // Try to fetch counts from 'lessons' table
-    const { count: videos } = await supabase
+    // Fetch all lessons for this course to count types in memory
+    // This is robust against both legacy type values and new lesson_type values
+    const { data: lessons } = await supabase
       .from("lessons")
-      .select("*", { count: "exact", head: true })
-      .eq("course_id", course.id)
-      .eq("type", "video");
+      .select("type, lesson_type")
+      .eq("course_id", course.id);
 
-    const { count: notes } = await supabase
-      .from("lessons")
-      .select("*", { count: "exact", head: true })
-      .eq("course_id", course.id)
-      .eq("type", "notes");
-
-    videoCount = videos || 0;
-    notesCount = notes || 0;
+    if (lessons) {
+      lessons.forEach((l: any) => {
+        const type = l.lesson_type || l.type || 'video';
+        if (type === 'video') {
+          videoCount++;
+        } else if (type === 'notes') {
+          notesCount++;
+        } else if (type === 'project') {
+          projectCount++;
+        }
+      });
+    }
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
       <ModuleCard 
         title="Video Lectures" 
         count={videoCount.toString()} 
@@ -49,6 +54,12 @@ export default async function LMSModules({ courseTitle }: LMSModulesProps) {
         count={notesCount.toString()} 
         icon="📚" 
         description={notesCount > 0 ? "Review materials" : "Stay tuned"}
+      />
+      <ModuleCard 
+        title="Practical Projects" 
+        count={projectCount.toString()} 
+        icon="📁" 
+        description={projectCount > 0 ? "Work on projects" : "Stay tuned"}
       />
     </div>
   );

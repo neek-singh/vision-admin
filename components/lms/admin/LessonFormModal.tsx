@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { X, Loader2, Plus, Trash2, GripVertical, Heading, FileText, Image, List, ArrowUp, ArrowDown, ChevronDown } from "lucide-react";
+import { X, Loader2, Plus, Trash2, GripVertical, Heading, FileText, Image, List, ArrowUp, ArrowDown, ChevronDown, FolderCode } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import MultiSelect from "@/components/ui/MultiSelect";
 
@@ -66,10 +66,12 @@ export default function LessonFormModal({
     switch (lesson.type) {
       case 'assignment':
         return isEditing ? "Edit Assignment" : "Add Assignment";
+      case 'project':
+        return isEditing ? "Edit Project" : "Add Project";
       case 'notes':
         return isEditing ? "Edit Theory Lesson" : "Add Theory Lesson";
       case 'mcq':
-        return isEditing ? "Edit MCQ Quiz" : "Add MCQ Quiz";
+        return isEditing ? "Edit Quiz" : "Add Quiz";
       case 'video':
       default:
         return isEditing ? "Edit Video Class" : "Add Video Class";
@@ -115,7 +117,7 @@ export default function LessonFormModal({
     }
 
     const strippedContent = content.replace(/<!-- THEORY_DATA_JSON:(.*?) -->/, "").trim();
-    const isNotesOrAssignment = (initialData?.lesson_type || initialData?.type) === 'notes' || (initialData?.lesson_type || initialData?.type) === 'assignment';
+    const isNotesOrAssignment = (initialData?.lesson_type || initialData?.type) === 'notes' || (initialData?.lesson_type || initialData?.type) === 'assignment' || (initialData?.lesson_type || initialData?.type) === 'project';
     if (strippedContent && isNotesOrAssignment) {
       return [{ id: 'fallback-text', type: 'paragraph', value: strippedContent }];
     }
@@ -347,7 +349,7 @@ export default function LessonFormModal({
       let finalNotesContent = "";
       if (lesson.type === 'video') {
         finalNotesContent = lesson.html_content;
-      } else if (lesson.type === 'notes' || lesson.type === 'assignment') {
+      } else if (lesson.type === 'notes' || lesson.type === 'assignment' || lesson.type === 'project') {
         finalNotesContent = `${generateHTMLFromBlocks(blocks)}\n<!-- THEORY_BLOCKS_JSON:${JSON.stringify(blocks)} -->`;
       } else if (lesson.type === 'mcq') {
         finalNotesContent = `${generateHTMLFromQuestions(questions)}\n<!-- MCQ_QUESTIONS_JSON:${JSON.stringify(questions)} -->`;
@@ -424,7 +426,8 @@ export default function LessonFormModal({
                     <option value="video">Live / Video Class</option>
                     <option value="notes">Theory</option>
                     <option value="assignment">Assignment / Practical Task</option>
-                    <option value="mcq">MCQ Quiz / Test</option>
+                    <option value="project">Practical Project</option>
+                    <option value="mcq">Quiz / Test</option>
                   </select>
                 </div>
               )}
@@ -452,11 +455,11 @@ export default function LessonFormModal({
                 </div>
               )}
 
-              {(lesson.type === 'notes' || lesson.type === 'assignment') && (
+              {(lesson.type === 'notes' || lesson.type === 'assignment' || lesson.type === 'project') && (
                 <div className="md:col-span-2 space-y-6 animate-in fade-in duration-300">
                   <div className="flex flex-col space-y-4">
                     <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                      {lesson.type === 'assignment' ? "Assignment Instructions Builder (Drag blocks to reorder)" : "Theory Block Builder (Drag blocks to reorder)"}
+                      {lesson.type === 'assignment' ? "Assignment Instructions Builder (Drag blocks to reorder)" : lesson.type === 'project' ? "Project Guidelines & Specifications Builder (Drag blocks to reorder)" : "Theory Block Builder (Drag blocks to reorder)"}
                     </label>
                     
                     {/* Add block buttons bar */}
@@ -624,6 +627,8 @@ export default function LessonFormModal({
                         <p className="text-xs font-semibold text-slate-400">
                           {lesson.type === 'assignment' 
                             ? "No instructions blocks added. Add headers, paragraphs, images, or lists above to build your assignment." 
+                            : lesson.type === 'project'
+                            ? "No specifications blocks added. Add headers, paragraphs, images, or lists above to build your project."
                             : "No content blocks added. Add headers, paragraphs, images, or lists above to build your theory class."}
                         </p>
                       </div>
@@ -636,7 +641,7 @@ export default function LessonFormModal({
                 <div className="md:col-span-2 space-y-6 animate-in fade-in duration-300">
                   <div className="flex flex-col space-y-4">
                     <div className="flex items-center justify-between">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">MCQ Quiz Builder ({questions.length} Questions)</label>
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Quiz Builder ({questions.length} Questions)</label>
                       <button 
                         type="button" onClick={addQuestion}
                         className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 border border-slate-200/60 shadow-sm cursor-pointer transition-all active:scale-95"
@@ -795,10 +800,12 @@ export default function LessonFormModal({
                 {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : (
                   lesson.type === 'assignment' 
                     ? (isEditing ? "Update Assignment" : "Create Assignment") 
-                    : lesson.type === 'notes'
+                  : lesson.type === 'project'
+                    ? (isEditing ? "Update Project" : "Create Project")
+                  : lesson.type === 'notes'
                     ? (isEditing ? "Update Theory Lesson" : "Create Theory Lesson")
-                    : lesson.type === 'mcq'
-                    ? (isEditing ? "Update MCQ Quiz" : "Create MCQ Quiz")
+                  : lesson.type === 'mcq'
+                    ? (isEditing ? "Update Quiz" : "Create Quiz")
                     : (isEditing ? "Update Video Class" : "Create Video Class")
                 )}
               </button>
