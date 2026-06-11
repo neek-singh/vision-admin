@@ -29,3 +29,5 @@ export default async function AttendancePage() {
     </div>
   );
 }
+
+

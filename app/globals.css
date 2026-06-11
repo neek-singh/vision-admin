@@ -28,7 +28,48 @@ body {
     transform: translateX(100%);
   }
 }
-
 .animate-shimmer {
   animation: shimmer 2s infinite;
+}
+
+@keyframes scan {
+  0% {
+    top: 0%;
+  }
+  50% {
+    top: 100%;
+  }
+  100% {
+    top: 0%;
+  }
+}
+
+.animate-scan {
+  animation: scan 2.5s linear infinite;
+}
+
+@keyframes flash-green {
+  0% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes flash-red {
+  0% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.animate-flash-green {
+  animation: flash-green 0.5s ease-out forwards;
+}
+
+.animate-flash-red {
+  animation: flash-red 0.5s ease-out forwards;
 }
