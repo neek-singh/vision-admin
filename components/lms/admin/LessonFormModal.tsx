@@ -401,6 +401,21 @@ export default function LessonFormModal({
     };
   };
 
+  const cleanListHTML = (listEl: HTMLElement): string => {
+    const tagName = listEl.tagName.toLowerCase();
+    const isOrdered = tagName === 'ol';
+    const listClass = isOrdered 
+      ? 'list-decimal list-inside space-y-1.5 text-slate-655 dark:text-slate-400 my-2' 
+      : 'list-disc list-inside space-y-1.5 text-slate-655 dark:text-slate-400 my-2';
+    
+    let html = `<${tagName} class="${listClass}">\n`;
+    listEl.querySelectorAll('li').forEach(li => {
+      html += `  <li class="pl-1">${cleanInlineHTML(li.innerHTML)}</li>\n`;
+    });
+    html += `</${tagName}>`;
+    return html;
+  };
+
   const handleTextareaPaste = (
     e: React.ClipboardEvent<HTMLTextAreaElement>,
     index: number
@@ -447,22 +462,17 @@ export default function LessonFormModal({
                 value: el.textContent || ""
               });
             } else if (['ul', 'ol'].includes(tagName)) {
-              const points: string[] = [];
-              el.querySelectorAll('li').forEach(li => {
-                points.push(cleanInlineHTML(li.innerHTML));
-              });
+              const listHtml = cleanListHTML(el);
               newBlocks.push({
                 id: `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                type: 'list',
-                value: "",
-                points
+                type: 'paragraph',
+                value: listHtml
               });
             } else if (tagName === 'li') {
               newBlocks.push({
                 id: `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                type: 'list',
-                value: "",
-                points: [cleanInlineHTML(el.innerHTML)]
+                type: 'paragraph',
+                value: `<ul class="list-disc list-inside space-y-1.5 text-slate-655 dark:text-slate-400 my-2"><li class="pl-1">${cleanInlineHTML(el.innerHTML)}</li></ul>`
               });
             } else if (tagName === 'img') {
               newBlocks.push({
@@ -496,10 +506,27 @@ export default function LessonFormModal({
         
         childNodes.forEach(child => processNode(child));
         
-        const shouldSplit = newBlocks.length > 1 || (
-          newBlocks.length === 1 && (
-            newBlocks[0].type !== 'paragraph' || 
-            newBlocks[0].value.includes('<table') ||
+        // Merge consecutive paragraph blocks (including lists and tables converted to html)
+        const mergedBlocks: TheoryBlock[] = [];
+        newBlocks.forEach(b => {
+          if (b.type === 'paragraph') {
+            const last = mergedBlocks[mergedBlocks.length - 1];
+            if (last && last.type === 'paragraph') {
+              last.value += `\n\n${b.value}`;
+            } else {
+              mergedBlocks.push(b);
+            }
+          } else {
+            mergedBlocks.push(b);
+          }
+        });
+        
+        const shouldSplit = mergedBlocks.length > 1 || (
+          mergedBlocks.length === 1 && (
+            mergedBlocks[0].type !== 'paragraph' || 
+            mergedBlocks[0].value.includes('<table') ||
+            mergedBlocks[0].value.includes('<ul') ||
+            mergedBlocks[0].value.includes('<ol') ||
             textarea.value.trim() === ""
           )
         );
@@ -511,7 +538,7 @@ export default function LessonFormModal({
             const replaceCount = currentBlockEmpty ? 1 : 0;
             const insertIndex = currentBlockEmpty ? index : index + 1;
             
-            updated.splice(insertIndex, replaceCount, ...newBlocks);
+            updated.splice(insertIndex, replaceCount, ...mergedBlocks);
             return updated;
           });
           return;
@@ -520,7 +547,7 @@ export default function LessonFormModal({
       
       parsedContent = cleanInlineHTML(htmlData);
     } else {
-      // Plain text parser fallback with Markdown Table parsing support
+      // Plain text parser fallback with Markdown Table and List parsing support
       const lines = plainText.split('\n');
       const hasStructure = lines.length > 1 && (
         lines.some(l => l.startsWith('#') || l.trim().startsWith('- ') || l.trim().startsWith('* ') || l.trim().startsWith('• ') || l.trim().startsWith('|'))
@@ -529,16 +556,28 @@ export default function LessonFormModal({
       if (hasStructure) {
         const newBlocks: TheoryBlock[] = [];
         let currentListPoints: string[] = [];
+        let activeListType: 'ul' | 'ol' | null = null;
         
         const flushList = () => {
-          if (currentListPoints.length > 0) {
+          if (currentListPoints.length > 0 && activeListType) {
+            const listClass = activeListType === 'ol'
+              ? 'list-decimal list-inside space-y-1.5 text-slate-655 dark:text-slate-400 my-2'
+              : 'list-disc list-inside space-y-1.5 text-slate-655 dark:text-slate-400 my-2';
+            
+            let listHtml = `<${activeListType} class="${listClass}">\n`;
+            currentListPoints.forEach(pt => {
+              listHtml += `  <li class="pl-1">${pt}</li>\n`;
+            });
+            listHtml += `</${activeListType}>`;
+            
             newBlocks.push({
               id: `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-              type: 'list',
-              value: "",
-              points: [...currentListPoints]
+              type: 'paragraph',
+              value: listHtml
             });
+            
             currentListPoints = [];
+            activeListType = null;
           }
         };
         
@@ -570,9 +609,13 @@ export default function LessonFormModal({
               value: text
             });
           } else if (trimmed.startsWith('- ') || trimmed.startsWith('* ') || trimmed.startsWith('• ')) {
+            if (activeListType === 'ol') flushList();
+            activeListType = 'ul';
             const text = trimmed.replace(/^[-*•]\s*/, '');
             currentListPoints.push(cleanMarkdownToHTML(text));
           } else if (trimmed.match(/^\d+\.\s/)) {
+            if (activeListType === 'ul') flushList();
+            activeListType = 'ol';
             const text = trimmed.replace(/^\d+\.\s*/, '');
             currentListPoints.push(cleanMarkdownToHTML(text));
           } else if (trimmed) {
@@ -590,10 +633,27 @@ export default function LessonFormModal({
         
         flushList();
         
-        const shouldSplit = newBlocks.length > 1 || (
-          newBlocks.length === 1 && (
-            newBlocks[0].type !== 'paragraph' || 
-            newBlocks[0].value.includes('<table') ||
+        // Merge consecutive paragraph blocks (including parsed lists/tables)
+        const mergedBlocks: TheoryBlock[] = [];
+        newBlocks.forEach(b => {
+          if (b.type === 'paragraph') {
+            const last = mergedBlocks[mergedBlocks.length - 1];
+            if (last && last.type === 'paragraph') {
+              last.value += `\n\n${b.value}`;
+            } else {
+              mergedBlocks.push(b);
+            }
+          } else {
+            mergedBlocks.push(b);
+          }
+        });
+        
+        const shouldSplit = mergedBlocks.length > 1 || (
+          mergedBlocks.length === 1 && (
+            mergedBlocks[0].type !== 'paragraph' || 
+            mergedBlocks[0].value.includes('<table') ||
+            mergedBlocks[0].value.includes('<ul') ||
+            mergedBlocks[0].value.includes('<ol') ||
             textarea.value.trim() === ""
           )
         );
@@ -605,7 +665,7 @@ export default function LessonFormModal({
             const replaceCount = currentBlockEmpty ? 1 : 0;
             const insertIndex = currentBlockEmpty ? index : index + 1;
             
-            updated.splice(insertIndex, replaceCount, ...newBlocks);
+            updated.splice(insertIndex, replaceCount, ...mergedBlocks);
             return updated;
           });
           return;
