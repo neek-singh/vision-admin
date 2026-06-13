@@ -228,6 +228,409 @@ export default function LessonFormModal({
     }
   };
 
+  const cleanInlineHTML = (html: string): string => {
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    
+    // Convert styled spans to semantic inline tags
+    tempDiv.querySelectorAll('span').forEach(span => {
+      const style = span.getAttribute('style') || '';
+      
+      if (style.includes('font-weight:700') || style.includes('font-weight: 700') || style.includes('font-weight:bold') || style.includes('font-weight: bold')) {
+        const strong = document.createElement('strong');
+        strong.innerHTML = span.innerHTML;
+        span.replaceWith(strong);
+      } else if (style.includes('font-style:italic') || style.includes('font-style: italic')) {
+        const em = document.createElement('em');
+        em.innerHTML = span.innerHTML;
+        span.replaceWith(em);
+      } else if (style.includes('text-decoration:underline') || style.includes('text-decoration: underline')) {
+        const u = document.createElement('u');
+        u.innerHTML = span.innerHTML;
+        span.replaceWith(u);
+      }
+    });
+    
+    const cleanNode = (node: ChildNode): string => {
+      if (node.nodeType === 3) { // Text Node
+        return node.textContent || "";
+      }
+      if (node.nodeType === 1) { // Element Node
+        const el = node as HTMLElement;
+        const tagName = el.tagName.toLowerCase();
+        
+        let innerText = "";
+        el.childNodes.forEach(child => {
+          innerText += cleanNode(child);
+        });
+        
+        if (['strong', 'b'].includes(tagName)) {
+          return `<strong>${innerText}</strong>`;
+        }
+        if (['em', 'i'].includes(tagName)) {
+          return `<em>${innerText}</em>`;
+        }
+        if (['u'].includes(tagName)) {
+          return `<u>${innerText}</u>`;
+        }
+        if (tagName === 'a') {
+          const href = el.getAttribute('href') || '#';
+          return `<a href="${href}" class="text-blue-600 underline" target="_blank" rel="noopener noreferrer">${innerText}</a>`;
+        }
+        if (tagName === 'code') {
+          return `<code class="px-1.5 py-0.5 bg-slate-100 rounded text-xs font-mono text-slate-800">${innerText}</code>`;
+        }
+        if (tagName === 'br') {
+          return '<br />';
+        }
+        
+        return innerText;
+      }
+      return "";
+    };
+    
+    let result = "";
+    tempDiv.childNodes.forEach(child => {
+      result += cleanNode(child);
+    });
+    
+    return result;
+  };
+
+  const cleanMarkdownToHTML = (text: string): string => {
+    let html = text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+      
+    // Bold: **text**
+    html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    // Italic: *text*
+    html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    
+    return html;
+  };
+
+  const cleanTableHTML = (tableEl: HTMLElement): string => {
+    let html = '<div class="overflow-x-auto my-4 rounded-xl border border-slate-200/80 shadow-sm"><table class="w-full border-collapse text-left text-xs">\n';
+    
+    const thead = tableEl.querySelector('thead');
+    const tbody = tableEl.querySelector('tbody') || tableEl;
+    
+    const processRows = (rows: HTMLTableRowElement[], isHeader: boolean) => {
+      let rowHtml = "";
+      rows.forEach((row) => {
+        rowHtml += `  <tr class="${isHeader ? 'bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800' : 'border-b border-slate-100 dark:border-slate-800/60 last:border-0 hover:bg-slate-50/50 dark:hover:bg-slate-900/30 transition-colors'}">\n`;
+        const cells = row.querySelectorAll('th, td');
+        cells.forEach(cell => {
+          const content = cleanInlineHTML(cell.innerHTML);
+          const cellClass = isHeader 
+            ? 'px-4 py-3 font-bold text-slate-700 dark:text-slate-350' 
+            : 'px-4 py-3 text-slate-600 dark:text-slate-400 font-medium';
+          const tag = isHeader ? 'th' : 'td';
+          rowHtml += `    <${tag} class="${cellClass}">${content}</${tag}>\n`;
+        });
+        rowHtml += '  </tr>\n';
+      });
+      return rowHtml;
+    };
+    
+    if (thead) {
+      html += '  <thead>\n';
+      html += processRows(Array.from(thead.querySelectorAll('tr')), true);
+      html += '  </thead>\n';
+    }
+    
+    if (tbody) {
+      html += '  <tbody>\n';
+      const rows = Array.from(tbody.querySelectorAll('tr'));
+      const hasHeaderRow = !thead && rows[0]?.querySelector('th') !== null;
+      if (hasHeaderRow) {
+        html += processRows(rows.slice(0, 1), true);
+        html += processRows(rows.slice(1), false);
+      } else {
+        html += processRows(rows, false);
+      }
+      html += '  </tbody>\n';
+    }
+    
+    html += '</table></div>';
+    return html;
+  };
+
+  const parseMarkdownTable = (lines: string[]): { tableHtml: string, tableLineCount: number } | null => {
+    if (lines.length < 2) return null;
+    
+    const firstLine = lines[0].trim();
+    const secondLine = lines[1].trim();
+    
+    if (!firstLine.startsWith('|') || !secondLine.startsWith('|')) return null;
+    
+    const isSeparator = /^\|[\s-|-]*\|$/.test(secondLine);
+    if (!isSeparator) return null;
+    
+    const headers = firstLine.split('|').map(s => s.trim()).filter((_, idx, arr) => idx > 0 && idx < arr.length - 1);
+    
+    let html = '<div class="overflow-x-auto my-4 rounded-xl border border-slate-200/80 shadow-sm"><table class="w-full border-collapse text-left text-xs">\n';
+    html += '  <thead>\n';
+    html += '    <tr class="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">\n';
+    headers.forEach(h => {
+      html += `      <th class="px-4 py-3 font-bold text-slate-700 dark:text-slate-350">${cleanMarkdownToHTML(h)}</th>\n`;
+    });
+    html += '    </tr>\n';
+    html += '  </thead>\n';
+    html += '  <tbody>\n';
+    
+    let lineIdx = 2;
+    while (lineIdx < lines.length && lines[lineIdx].trim().startsWith('|')) {
+      const cells = lines[lineIdx].trim().split('|').map(s => s.trim()).filter((_, idx, arr) => idx > 0 && idx < arr.length - 1);
+      html += '    <tr class="border-b border-slate-100 dark:border-slate-800/60 last:border-0 hover:bg-slate-50/50 dark:hover:bg-slate-900/30 transition-colors">\n';
+      cells.forEach(c => {
+        html += `      <td class="px-4 py-3 text-slate-600 dark:text-slate-400 font-medium">${cleanMarkdownToHTML(c)}</td>\n`;
+      });
+      html += '    </tr>\n';
+      lineIdx++;
+    }
+    
+    html += '  </tbody>\n';
+    html += '</table></div>';
+    
+    return {
+      tableHtml: html,
+      tableLineCount: lineIdx
+    };
+  };
+
+  const handleTextareaPaste = (
+    e: React.ClipboardEvent<HTMLTextAreaElement>,
+    index: number
+  ) => {
+    const htmlData = e.clipboardData.getData('text/html');
+    const plainText = e.clipboardData.getData('text/plain');
+    
+    if (!htmlData && !plainText) return;
+    
+    e.preventDefault();
+    
+    const textarea = e.currentTarget;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    
+    let parsedContent = "";
+    
+    if (htmlData) {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(htmlData, 'text/html');
+      
+      const hasBlocks = doc.querySelector('h1, h2, h3, h4, h5, h6, ul, ol, li, p, br, div, pre, table') !== null;
+      
+      if (hasBlocks) {
+        const newBlocks: TheoryBlock[] = [];
+        const childNodes = doc.body.childNodes;
+        
+        const processNode = (node: Node) => {
+          if (node.nodeType === 1) { // Element Node
+            const el = node as HTMLElement;
+            const tagName = el.tagName.toLowerCase();
+            
+            if (tagName === 'table') {
+              const tableHtml = cleanTableHTML(el);
+              newBlocks.push({
+                id: `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                type: 'paragraph',
+                value: tableHtml
+              });
+            } else if (['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(tagName)) {
+              newBlocks.push({
+                id: `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                type: 'header',
+                value: el.textContent || ""
+              });
+            } else if (['ul', 'ol'].includes(tagName)) {
+              const points: string[] = [];
+              el.querySelectorAll('li').forEach(li => {
+                points.push(cleanInlineHTML(li.innerHTML));
+              });
+              newBlocks.push({
+                id: `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                type: 'list',
+                value: "",
+                points
+              });
+            } else if (tagName === 'li') {
+              newBlocks.push({
+                id: `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                type: 'list',
+                value: "",
+                points: [cleanInlineHTML(el.innerHTML)]
+              });
+            } else if (tagName === 'img') {
+              newBlocks.push({
+                id: `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                type: 'image',
+                value: el.getAttribute('src') || ""
+              });
+            } else if (tagName === 'p' || tagName === 'pre') {
+              const content = cleanInlineHTML(el.innerHTML);
+              if (content.trim()) {
+                newBlocks.push({
+                  id: `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                  type: 'paragraph',
+                  value: content
+                });
+              }
+            } else {
+              el.childNodes.forEach(child => processNode(child));
+            }
+          } else if (node.nodeType === 3) { // Text Node
+            const text = node.textContent || "";
+            if (text.trim()) {
+              newBlocks.push({
+                id: `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                type: 'paragraph',
+                value: text.trim()
+              });
+            }
+          }
+        };
+        
+        childNodes.forEach(child => processNode(child));
+        
+        const shouldSplit = newBlocks.length > 1 || (
+          newBlocks.length === 1 && (
+            newBlocks[0].type !== 'paragraph' || 
+            newBlocks[0].value.includes('<table') ||
+            textarea.value.trim() === ""
+          )
+        );
+        
+        if (shouldSplit) {
+          setBlocks(prev => {
+            const updated = [...prev];
+            const currentBlockEmpty = prev[index]?.value.trim() === "";
+            const replaceCount = currentBlockEmpty ? 1 : 0;
+            const insertIndex = currentBlockEmpty ? index : index + 1;
+            
+            updated.splice(insertIndex, replaceCount, ...newBlocks);
+            return updated;
+          });
+          return;
+        }
+      }
+      
+      parsedContent = cleanInlineHTML(htmlData);
+    } else {
+      // Plain text parser fallback with Markdown Table parsing support
+      const lines = plainText.split('\n');
+      const hasStructure = lines.length > 1 && (
+        lines.some(l => l.startsWith('#') || l.trim().startsWith('- ') || l.trim().startsWith('* ') || l.trim().startsWith('• ') || l.trim().startsWith('|'))
+      );
+      
+      if (hasStructure) {
+        const newBlocks: TheoryBlock[] = [];
+        let currentListPoints: string[] = [];
+        
+        const flushList = () => {
+          if (currentListPoints.length > 0) {
+            newBlocks.push({
+              id: `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+              type: 'list',
+              value: "",
+              points: [...currentListPoints]
+            });
+            currentListPoints = [];
+          }
+        };
+        
+        let i = 0;
+        while (i < lines.length) {
+          const line = lines[i];
+          const trimmed = line.trim();
+          
+          if (trimmed.startsWith('|')) {
+            const tableResult = parseMarkdownTable(lines.slice(i));
+            if (tableResult) {
+              flushList();
+              newBlocks.push({
+                id: `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                type: 'paragraph',
+                value: tableResult.tableHtml
+              });
+              i += tableResult.tableLineCount;
+              continue;
+            }
+          }
+          
+          if (trimmed.startsWith('#')) {
+            flushList();
+            const text = trimmed.replace(/^#+\s*/, '');
+            newBlocks.push({
+              id: `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+              type: 'header',
+              value: text
+            });
+          } else if (trimmed.startsWith('- ') || trimmed.startsWith('* ') || trimmed.startsWith('• ')) {
+            const text = trimmed.replace(/^[-*•]\s*/, '');
+            currentListPoints.push(cleanMarkdownToHTML(text));
+          } else if (trimmed.match(/^\d+\.\s/)) {
+            const text = trimmed.replace(/^\d+\.\s*/, '');
+            currentListPoints.push(cleanMarkdownToHTML(text));
+          } else if (trimmed) {
+            flushList();
+            newBlocks.push({
+              id: `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+              type: 'paragraph',
+              value: cleanMarkdownToHTML(trimmed)
+            });
+          } else {
+            flushList();
+          }
+          i++;
+        }
+        
+        flushList();
+        
+        const shouldSplit = newBlocks.length > 1 || (
+          newBlocks.length === 1 && (
+            newBlocks[0].type !== 'paragraph' || 
+            newBlocks[0].value.includes('<table') ||
+            textarea.value.trim() === ""
+          )
+        );
+        
+        if (shouldSplit) {
+          setBlocks(prev => {
+            const updated = [...prev];
+            const currentBlockEmpty = prev[index]?.value.trim() === "";
+            const replaceCount = currentBlockEmpty ? 1 : 0;
+            const insertIndex = currentBlockEmpty ? index : index + 1;
+            
+            updated.splice(insertIndex, replaceCount, ...newBlocks);
+            return updated;
+          });
+          return;
+        }
+      }
+      
+      parsedContent = cleanMarkdownToHTML(plainText);
+    }
+    
+    const value = textarea.value;
+    const replacement = parsedContent;
+    let commandExecuted = false;
+    try {
+      textarea.focus();
+      commandExecuted = document.execCommand('insertText', false, replacement);
+    } catch (err) {
+      console.error("Paste execCommand error:", err);
+    }
+    
+    if (!commandExecuted) {
+      const newValue = value.substring(0, start) + replacement + value.substring(end);
+      updateBlockValue(index, newValue);
+    }
+  };
+
   const addPointToBlock = (blockIndex: number, blockId: string) => {
     const val = newPointInputs[blockId] || "";
     if (!val.trim()) return;
@@ -655,6 +1058,7 @@ export default function LessonFormModal({
                                 placeholder="Type paragraph text..."
                                 onChange={(e) => updateBlockValue(index, e.target.value)}
                                 onKeyDown={(e) => handleTextareaKeyDown(e, index, block.value)}
+                                onPaste={(e) => handleTextareaPaste(e, index)}
                                 ref={(el) => {
                                   if (el) {
                                     el.style.height = 'auto';
