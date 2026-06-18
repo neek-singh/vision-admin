@@ -92,3 +92,38 @@ export async function deleteCourse(id: string) {
     return { error: e.message || "Failed to delete course" };
   }
 }
+
+export async function getAvailableTrainers() {
+  try {
+    const supabase = await createServerSupabaseClient();
+    const { data, error } = await supabase
+      .from("courses")
+      .select("trainers")
+      .not("trainers", "is", null);
+
+    if (error) throw error;
+
+    const trainersMap = new Map<string, { name: string; role: string; image_url: string }>();
+    data.forEach((course: any) => {
+      if (Array.isArray(course.trainers)) {
+        course.trainers.forEach((trainer: any) => {
+          if (trainer && trainer.name && trainer.name.trim()) {
+            const key = trainer.name.trim().toLowerCase();
+            if (!trainersMap.has(key)) {
+              trainersMap.set(key, {
+                name: trainer.name.trim(),
+                role: (trainer.role || "").trim(),
+                image_url: (trainer.image_url || "").trim()
+              });
+            }
+          }
+        });
+      }
+    });
+
+    return { success: true, trainers: Array.from(trainersMap.values()) };
+  } catch (e: any) {
+    console.error("Failed to fetch trainers:", e);
+    return { error: e.message || "Failed to fetch trainers", trainers: [] };
+  }
+}

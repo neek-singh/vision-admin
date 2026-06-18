@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 export async function createSchedule(data: {
   course_id: string;
   batch?: string;
-  type: 'class' | 'test' | 'assignment';
+  type: 'class' | 'test' | 'assignment' | 'project' | 'quiz';
   title: string;
   description?: string;
   date: string;
@@ -43,12 +43,60 @@ export async function deleteSchedule(id: string) {
 export async function getCurriculumTopics(courseId: string) {
   const supabase = await createServerSupabaseClient();
   
-  // 1. Fetch modules and their lessons
-  const { data: modules } = await supabase
+  // 1. Fetch modules, chapters, and lessons
+  const { data: modules, error } = await supabase
     .from("lms_modules")
-    .select(`id, title, lessons:lessons(id, title)`)
+    .select(`
+      id,
+      title,
+      subtitle,
+      order_index,
+      lms_chapters(
+        id,
+        title,
+        order_index,
+        lessons(
+          id,
+          title,
+          lesson_type,
+          order_index
+        )
+      ),
+      lessons(
+        id,
+        title,
+        lesson_type,
+        chapter_id,
+        order_index
+      )
+    `)
     .eq("course_id", courseId)
     .order("order_index");
+
+  if (error) {
+    console.error("Error in getCurriculumTopics:", error);
+    return { modules: [], tests: [], materials: [] };
+  }
+
+  // Sort and clean nested arrays
+  const cleanedModules = (modules || []).map((mod: any) => {
+    const sortedChapters = (mod.lms_chapters || [])
+      .sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0))
+      .map((chap: any) => ({
+        ...chap,
+        lessons: (chap.lessons || []).sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0))
+      }));
+
+    const uncategorizedLessons = (mod.lessons || [])
+      .filter((l: any) => !l.chapter_id)
+      .sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0));
+
+    return {
+      ...mod,
+      lms_chapters: sortedChapters,
+      lessons: uncategorizedLessons
+    };
+  });
 
   // 2. Fetch tests for this course
   const { data: tests } = await supabase
@@ -63,7 +111,7 @@ export async function getCurriculumTopics(courseId: string) {
     .eq("course_id", courseId);
 
   return {
-    modules: modules || [],
+    modules: cleanedModules,
     tests: tests || [],
     materials: materials || []
   };

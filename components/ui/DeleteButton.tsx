@@ -67,11 +67,11 @@ export default function DeleteButton({ id, table, title, onSuccess, showText = t
     <button
       onClick={handleDelete}
       disabled={isDeleting}
-      className={className || "text-red-500 hover:text-red-700 font-bold text-sm disabled:opacity-50 flex items-center gap-1 cursor-pointer"}
+      className={className || "text-rose-500 dark:text-rose-450 hover:text-rose-700 dark:hover:text-rose-400 font-medium text-sm disabled:opacity-50 flex items-center gap-1.5 cursor-pointer transition-colors"}
       title={title ? `Delete "${title}"` : "Delete"}
     >
       {isDeleting ? (
-        <Loader2 size={14} className="animate-spin text-red-500" />
+        <Loader2 size={14} className="animate-spin text-rose-500" />
       ) : (
         <Trash2 size={14} />
       )}

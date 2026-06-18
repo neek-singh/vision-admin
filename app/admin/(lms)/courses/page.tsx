@@ -24,8 +24,8 @@ export default async function AdminCoursesPage() {
   return (
     <div className="container mx-auto px-6 lg:px-8 py-12">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-blue-950">Manage Courses</h1>
-        <Button href="/admin/courses/new">Add New Course</Button>
+        <h1 className="text-2xl font-semibold text-slate-800 dark:text-slate-100 tracking-tight">Manage Courses</h1>
+        <Button href="/admin/courses/new" id="btn-add-new-course">Add New Course</Button>
       </div>
 
       <CoursesTableClient initialCourses={coursesList} />
