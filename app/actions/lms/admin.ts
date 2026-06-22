@@ -10,92 +10,6 @@ export async function updateAdmissionStatus(
 ) {
     const supabase = await createServerSupabaseClient();
 
-    let studentIdGenerated = "";
-    let passwordGenerated = "";
-
-    // If approving, create a student account
-    if (status === "approved") {
-        // 1. Get admission details
-        const { data: admission, error: fetchError } = await supabase
-            .from("admissions")
-            .select("*, courses(course_code, title)")
-            .eq("id", id)
-            .single();
-
-        if (fetchError || !admission) {
-            return { error: "Could not find admission record." };
-        }
-
-        // 2. Check if student already exists for this admission
-        const { data: existingStudent } = await supabase
-            .from("students")
-            .select("id, student_id")
-            .eq("admission_id", id)
-            .single();
-
-        if (!existingStudent) {
-            // 3. Generate Sequential Student ID
-            const year = new Date().getFullYear();
-            const idPrefix = `VIT${year}STD`;
-            
-            // Count existing students with this year and STD prefix to get the next number
-            const { count } = await supabase
-                .from("students")
-                .select("*", { count: "exact", head: true })
-                .ilike("student_id", `${idPrefix}%`);
-            
-            const nextNumber = (count || 0) + 1;
-            const sequence = nextNumber.toString().padStart(3, "0");
-            const studentId = `${idPrefix}${sequence}`;
-
-            // 4. Generate Password
-            const firstName = admission.student_name.split(" ")[0];
-            const last4Phone = admission.phone.slice(-4);
-            const plainPassword = `${firstName}@${last4Phone}`;
-            
-            studentIdGenerated = studentId;
-            passwordGenerated = plainPassword;
-
-            // 5. Hash Password
-            const hashedPassword = await bcrypt.hash(plainPassword, 10);
-
-            // 6. Insert into students table
-            const { data: newStudent, error: studentError } = await supabase
-                .from("students")
-                .insert({
-                    student_id: studentId,
-                    name: admission.student_name,
-                    email: admission.email,
-                    phone: admission.phone,
-                    course: (admission.courses as any)?.title || "N/A",
-                    password: hashedPassword,
-                    admission_id: id
-                })
-                .select()
-                .single();
-
-            if (studentError) {
-                console.error("Student creation error:", studentError);
-                return { error: "Failed to create student account: " + studentError.message };
-            }
-
-            // 7. Create enrollment
-            if (newStudent) {
-                await supabase
-                    .from("enrollments")
-                    .insert({
-                        student_id: newStudent.id,
-                        course_id: admission.course_id,
-                        batch: null, // assigned later or not applicable
-                        progress_percentage: 0
-                    });
-            }
-        } else {
-            studentIdGenerated = existingStudent.student_id;
-            passwordGenerated = "(Already Generated)";
-        }
-    }
-
     // Update admission status
     const { error } = await supabase
         .from("admissions")
@@ -110,11 +24,7 @@ export async function updateAdmissionStatus(
     revalidatePath("/admin/students");
 
     return { 
-        success: true, 
-        credentials: status === "approved" ? {
-            studentId: studentIdGenerated,
-            password: passwordGenerated
-        } : null
+        success: true
     };
 }
 
@@ -235,4 +145,26 @@ export async function updateStudentBatch(studentId: string, batch: string | null
 
     revalidatePath("/admin/students");
     return { success: true };
+}
+
+export async function verifyAdmissionDocuments(admissionId: string, verified: boolean) {
+    try {
+        const supabase = await createServerSupabaseClient();
+
+        const { error } = await supabase
+            .from("admissions")
+            .update({
+                document_verified: verified,
+                flow_step: verified ? "payment" : "review",
+            })
+            .eq("id", admissionId);
+
+        if (error) throw error;
+
+        revalidatePath("/admin/admissions");
+        return { success: true };
+    } catch (e: any) {
+        console.error("Document verification error:", e);
+        return { error: e.message || "Failed to verify documents" };
+    }
 }

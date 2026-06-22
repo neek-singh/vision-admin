@@ -1,6 +1,7 @@
 import { createServerSupabaseClient } from "@/lib/supabase-server";
-import AdminActions from "@/components/lms/admissions/AdminActions";
 import SearchAndFilter from "@/components/lms/admissions/SearchAndFilter";
+import AdmissionRow from "@/components/lms/admissions/AdmissionRow";
+import AdmissionMobileCard from "@/components/lms/admissions/AdmissionMobileCard";
 
 export const revalidate = 0;
 
@@ -18,14 +19,7 @@ export default async function AdminAdmissionsPage({
   let dbQuery = supabase
     .from("admissions")
     .select(`
-      id,
-      student_name,
-      email,
-      phone,
-      status,
-      created_at,
-      father_name,
-      qualification,
+      *,
       courses(title, course_code),
       students(student_id)
     `)
@@ -72,44 +66,7 @@ export default async function AdminAdmissionsPage({
                 </tr>
               ) : (
                 admissionsList.map((item: any) => (
-                  <tr key={item.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="font-bold text-gray-900">{item.student_name}</div>
-                      <div className="text-xs text-gray-400">{new Date(item.created_at).toLocaleDateString('en-IN')}</div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{item.father_name || "—"}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      <div>{item.phone}</div>
-                      <div className="text-xs text-gray-400">{item.email}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-bold">
-                        {(item.courses as any)?.title || "Unknown Course"}
-                      </span>
-                      <div className="text-[10px] text-gray-400 mt-1 uppercase font-bold tracking-wider">{(item.courses as any)?.course_code}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                        item.status === 'approved' 
-                          ? 'bg-green-50 text-green-700' 
-                          : item.status === 'rejected' 
-                            ? 'bg-red-50 text-red-700' 
-                            : 'bg-amber-50 text-amber-700'
-                      }`}>
-                        {item.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <AdminActions 
-                        id={item.id} 
-                        status={item.status} 
-                        phone={item.phone}
-                        studentName={item.student_name}
-                        courseTitle={(item.courses as any)?.title}
-                        studentId={item.students?.[0]?.student_id}
-                      />
-                    </td>
-                  </tr>
+                  <AdmissionRow key={item.id} item={item} />
                 ))
               )}
             </tbody>
@@ -124,47 +81,7 @@ export default async function AdminAdmissionsPage({
             </div>
           ) : (
             admissionsList.map((item: any) => (
-              <div key={item.id} className="p-4 space-y-4">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="font-bold text-slate-900">{item.student_name}</h4>
-                    <p className="text-[10px] text-slate-400 uppercase font-bold">{new Date(item.created_at).toLocaleDateString('en-IN')}</p>
-                  </div>
-                  <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                    item.status === 'approved' 
-                      ? 'bg-green-50 text-green-700' 
-                      : item.status === 'rejected' 
-                        ? 'bg-red-50 text-red-700' 
-                        : 'bg-amber-50 text-amber-700'
-                  }`}>
-                    {item.status}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Contact</p>
-                    <p className="text-xs font-bold text-slate-700">{item.phone}</p>
-                    <p className="text-[10px] text-slate-500 truncate">{item.email}</p>
-                  </div>
-                  <div>
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Course</p>
-                    <p className="text-xs font-bold text-blue-600 line-clamp-1">{(item.courses as any)?.title}</p>
-                    <p className="text-[9px] text-slate-400 uppercase font-black">{(item.courses as any)?.course_code}</p>
-                  </div>
-                </div>
-
-                <div className="pt-2 border-t border-slate-50">
-                   <AdminActions 
-                    id={item.id} 
-                    status={item.status} 
-                    phone={item.phone}
-                    studentName={item.student_name}
-                    courseTitle={(item.courses as any)?.title}
-                    studentId={item.students?.[0]?.student_id}
-                  />
-                </div>
-              </div>
+              <AdmissionMobileCard key={item.id} item={item} />
             ))
           )}
         </div>
