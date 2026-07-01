@@ -18,7 +18,10 @@ import {
   IdCard,
   RotateCcw,
   Trash2,
-  Check
+  Check,
+  KeyRound,
+  Copy,
+  CheckCircle2
 } from "lucide-react";
 import dynamic from "next/dynamic";
 
@@ -72,6 +75,15 @@ export default function StudentTable({
   const [isAssigningBatchTo, setIsAssigningBatchTo] = useState<any | null>(null);
   const [idCardStudent, setIdCardStudent] = useState<any | null>(null);
   const [availableCourses, setAvailableCourses] = useState<any[]>(passedCourses);
+
+  // Credentials Modal State
+  const [credentialsStudent, setCredentialsStudent] = useState<any | null>(null);
+  const [isGeneratingCreds, setIsGeneratingCreds] = useState(false);
+  const [generatedCreds, setGeneratedCreds] = useState<{ student_id: string; password: string } | null>(null);
+  const [credsError, setCredsError] = useState("");
+  const [copiedField, setCopiedField] = useState<"id" | "pass" | null>(null);
+  // Track which students had credentials generated this session
+  const [credentialsDoneIds, setCredentialsDoneIds] = useState<Set<string>>(new Set());
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -137,6 +149,37 @@ export default function StudentTable({
     setIdCardStudent(null);
     setSelectedIds([]);
     router.refresh();
+  };
+
+  const handleGenerateCredentials = async (student: any) => {
+    setCredsError("");
+    setGeneratedCreds(null);
+    setIsGeneratingCreds(true);
+    try {
+      const res = await fetch("/api/students/credentials", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ studentDbId: student.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setCredsError(data.error || "Failed to generate credentials.");
+      } else {
+        setGeneratedCreds(data.credentials);
+        setCredentialsDoneIds(prev => new Set(prev).add(student.id));
+        router.refresh();
+      }
+    } catch {
+      setCredsError("Network error. Please try again.");
+    } finally {
+      setIsGeneratingCreds(false);
+    }
+  };
+
+  const copyToClipboard = async (text: string, field: "id" | "pass") => {
+    await navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField(null), 2000);
   };
 
   // Client-Side Dynamic Filtering
@@ -599,7 +642,6 @@ export default function StudentTable({
                       </td>
                       <td className="px-6 py-4">
                         <div className="font-bold text-slate-900 dark:text-white text-sm">{student.name}</div>
-                        <div className="text-[10px] font-mono font-black text-amber-600 mt-1 dark:text-amber-500">Hint: {passHint}</div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="font-mono text-[10px] font-bold text-blue-600 dark:text-blue-450 mb-1">{student.student_id}</div>
@@ -683,6 +725,19 @@ export default function StudentTable({
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-end gap-3">
+                          {!credentialsDoneIds.has(student.id) && (
+                            <button 
+                              onClick={() => {
+                                setCredentialsStudent(student);
+                                setGeneratedCreds(null);
+                                setCredsError("");
+                              }}
+                              className="p-2 text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
+                              title="Generate Credentials"
+                            >
+                              <KeyRound size={18} />
+                            </button>
+                          )}
                           <button 
                             onClick={() => setIdCardStudent(student)}
                             className="p-2 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
@@ -749,10 +804,6 @@ export default function StudentTable({
                     <div className="flex-1">
                       <h4 className="font-black text-slate-900 dark:text-white leading-tight">{student.name}</h4>
                       <p className="font-mono text-[10px] font-bold text-blue-600 dark:text-blue-450 mt-0.5 tracking-wider uppercase">{student.student_id}</p>
-                      <div className="mt-1 flex items-center gap-1.5">
-                         <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Support:</span>
-                         <span className="text-[9px] font-mono font-black text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-100/50 dark:border-amber-900/30">{passHint}</span>
-                      </div>
                     </div>
                     <button
                       onClick={() => toggleStatus(student.id, student.status || "active")}
@@ -810,6 +861,18 @@ export default function StudentTable({
                   </div>
 
                   <div className="pt-2 flex gap-3 flex-wrap">
+                    {!credentialsDoneIds.has(student.id) && (
+                      <button 
+                        onClick={() => {
+                          setCredentialsStudent(student);
+                          setGeneratedCreds(null);
+                          setCredsError("");
+                        }}
+                        className="flex-1 py-3 bg-amber-50/50 hover:bg-amber-50 dark:bg-amber-500/10 dark:hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 border border-amber-100/50 dark:border-amber-900/30 shadow-sm transition-all cursor-pointer"
+                      >
+                        <KeyRound size={14} className="text-amber-600 dark:text-amber-400" /> Generate Credentials
+                      </button>
+                    )}
                     <button 
                       onClick={() => setIdCardStudent(student)}
                       className="flex-1 py-3 bg-blue-50/50 hover:bg-blue-50 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 text-blue-700 dark:text-blue-400 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 border border-blue-100/50 dark:border-blue-900/30 shadow-sm transition-all cursor-pointer"
@@ -830,6 +893,118 @@ export default function StudentTable({
           )}
         </div>
       </div>
+
+      {/* ── Generate Credentials Modal ── */}
+      {credentialsStudent && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            onClick={() => { setCredentialsStudent(null); setGeneratedCreds(null); setCredsError(""); }}
+          />
+          <div className="relative w-full max-w-md bg-white dark:bg-[#0f172a] rounded-[2rem] shadow-2xl border border-slate-200/60 dark:border-slate-800 overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-900/30 rounded-xl flex items-center justify-center">
+                  <KeyRound size={18} className="text-amber-600 dark:text-amber-400" />
+                </div>
+                <div>
+                  <p className="font-bold text-slate-900 dark:text-white text-sm">Generate Credentials</p>
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 truncate max-w-[200px]">{credentialsStudent.name}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => { setCredentialsStudent(null); setGeneratedCreds(null); setCredsError(""); }}
+                className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 space-y-5">
+              {!generatedCreds ? (
+                <>
+                  <div className="p-4 bg-amber-50/60 dark:bg-amber-950/20 border border-amber-100/60 dark:border-amber-900/30 rounded-2xl">
+                    <p className="text-xs text-amber-800 dark:text-amber-300 font-medium leading-relaxed">
+                      This will generate login credentials for <strong>{credentialsStudent.name}</strong>.
+                      Password will be auto-set as <span className="font-mono bg-white dark:bg-slate-900 px-1.5 py-0.5 rounded text-[11px]">
+                        {credentialsStudent.name.split(" ")[0]}@{(credentialsStudent.phone || "0000").slice(-4)}
+                      </span>
+                    </p>
+                  </div>
+
+                  {credsError && (
+                    <div className="p-3 bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 rounded-xl text-xs text-rose-700 dark:text-rose-400 font-medium">
+                      {credsError}
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => handleGenerateCredentials(credentialsStudent)}
+                    disabled={isGeneratingCreds}
+                    className="w-full py-3.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2.5 shadow-lg shadow-amber-500/20 disabled:opacity-60 cursor-pointer text-sm"
+                  >
+                    {isGeneratingCreds ? (
+                      <><Loader2 size={16} className="animate-spin" /> Generating...</>
+                    ) : (
+                      <><KeyRound size={16} /> Generate Credentials</>
+                    )}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-3 p-4 bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-100/50 dark:border-emerald-900/30 rounded-2xl">
+                    <CheckCircle2 size={20} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <p className="text-sm font-bold text-emerald-800 dark:text-emerald-300">Credentials Generated!</p>
+                  </div>
+
+                  <div className="space-y-3">
+                    {/* Student ID */}
+                    <div className="p-4 bg-slate-50 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800 rounded-2xl">
+                      <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Student ID (Login)</p>
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="font-mono text-sm font-bold text-blue-600 dark:text-blue-400 select-all">{generatedCreds.student_id}</p>
+                        <button
+                          onClick={() => copyToClipboard(generatedCreds.student_id, "id")}
+                          className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer shrink-0"
+                          title="Copy"
+                        >
+                          {copiedField === "id" ? <CheckCircle2 size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Password */}
+                    <div className="p-4 bg-slate-50 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800 rounded-2xl">
+                      <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Password</p>
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="font-mono text-sm font-bold text-slate-800 dark:text-slate-200 select-all">{generatedCreds.password}</p>
+                        <button
+                          onClick={() => copyToClipboard(generatedCreds.password, "pass")}
+                          className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer shrink-0"
+                          title="Copy"
+                        >
+                          {copiedField === "pass" ? <CheckCircle2 size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 text-center font-medium">Share these details with the student. Password can be changed anytime.</p>
+
+                  <button
+                    onClick={() => { setCredentialsStudent(null); setGeneratedCreds(null); }}
+                    className="w-full py-3 bg-slate-900 dark:bg-slate-800 hover:bg-blue-600 dark:hover:bg-blue-700 text-white font-bold rounded-xl transition-all text-sm cursor-pointer"
+                  >
+                    Done
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Floating Bulk Actions Bar */}
       {selectedIds.length > 0 && (

@@ -23,11 +23,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { name, course, password, email, phone } = await request.json();
+    const { name, course, email, phone } = await request.json();
 
-    if (!name || !password) {
+    if (!name) {
       return NextResponse.json(
-        { error: "Name and Password are required." },
+        { error: "Name is required." },
         { status: 400 }
       );
     }
@@ -46,19 +46,28 @@ export async function POST(request: Request) {
 
     const year = new Date().getFullYear();
     const idPrefix = `VIT${year}STD`;
-    
-    // Count existing students with this year and STD prefix to get the next number
-    const { count } = await supabase
-      .from("students")
-      .select("*", { count: "exact", head: true })
-      .ilike("student_id", `${idPrefix}%`);
-    
-    const nextNumber = (count || 0) + 1;
-    const sequence = nextNumber.toString().padStart(3, "0");
-    const studentId = `${idPrefix}${sequence}`;
 
+    // Robust ID generation: find the highest existing sequence, then +1
+    const { data: lastStudent } = await supabase
+      .from("students")
+      .select("student_id")
+      .ilike("student_id", `${idPrefix}%`)
+      .order("student_id", { ascending: false })
+      .limit(1)
+      .single();
+
+    let nextNumber = 1;
+    if (lastStudent?.student_id) {
+      const lastSeq = parseInt(lastStudent.student_id.replace(idPrefix, ""), 10);
+      if (!isNaN(lastSeq)) nextNumber = lastSeq + 1;
+    }
+
+    const studentId = `${idPrefix}${nextNumber.toString().padStart(3, "0")}`;
+
+    // Store a random unguessable hash — student cannot login until admin generates credentials
+    const randomToken = crypto.randomUUID();
     const salt = await bcrypt.genSalt(10);
-    const passwordHash = await bcrypt.hash(password, salt);
+    const placeholderHash = await bcrypt.hash(randomToken, salt);
 
     const { data, error } = await supabase
       .from("students")
@@ -69,7 +78,7 @@ export async function POST(request: Request) {
           email,
           phone,
           course: course || null,
-          password: passwordHash,
+          password: placeholderHash,  // unguessable — credentials generated separately
           status: "active",
         },
       ])
