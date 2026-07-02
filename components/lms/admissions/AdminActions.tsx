@@ -41,7 +41,7 @@ export default function AdminActions({ id, status, phone, studentName, courseTit
                         disabled={pending}
                         onClick={() =>
                             startTransition(async () => {
-                                const result = await updateAdmissionStatus(id, "approved");
+                                const result = await updateAdmissionStatus(id, "approved") as any;
                                 if (result?.error) {
                                     alert(result.error);
                                 } else if (result?.credentials) {
