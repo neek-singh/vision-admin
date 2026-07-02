@@ -75,7 +75,7 @@ export default function LessonPreviewModal({
           <div className="flex flex-col">
             <div className="flex items-center gap-2">
               <span className="px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded text-[9px] font-black uppercase tracking-widest border border-indigo-100">Admin Preview</span>
-              <h3 className="text-xl font-bold text-slate-900 tracking-tight">{lesson.title}</h3>
+              <h3 className="text-xl font-bold text-black tracking-tight">{lesson.title}</h3>
             </div>
             <p className="text-xs font-medium text-slate-400 mt-0.5">
               {lessonType === 'mcq' ? 'Quiz' : lessonType === 'notes' ? 'Theory' : lessonType === 'assignment' ? 'Assignment' : lessonType === 'project' ? 'Project' : 'Video'} • {lesson.duration || '0'} Mins
@@ -135,11 +135,11 @@ export default function LessonPreviewModal({
                     </div>
                   )}
                   {lesson.notes_content && (
-                    <article className="prose prose-slate max-w-none text-slate-655 leading-relaxed text-base border-t border-slate-100 pt-6">
-                      <h4 className="text-sm font-bold text-slate-900 mb-4 font-sans uppercase tracking-wider">Class Notes</h4>
+                    <article className="prose prose-slate max-w-none text-black leading-relaxed text-base border-t border-slate-100 pt-6">
+                      <h4 className="text-sm font-bold text-black mb-4 font-sans uppercase tracking-wider">Class Notes</h4>
                       <div 
-                        dangerouslySetInnerHTML={{ __html: lesson.notes_content.replace(/<!-- THEORY_DATA_JSON:(.*?) -->/, "") }} 
-                        className="rich-content"
+                        dangerouslySetInnerHTML={{ __html: lesson.notes_content.replace(/<!-- THEORY_DATA_JSON:(.*?) -->/, "").replace(/<!-- THEORY_BLOCKS_JSON:(.*?) -->/, "") }} 
+                        className="rich-content text-sm text-slate-700 dark:text-slate-355 leading-relaxed [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-slate-900 dark:[&_h2]:text-white [&_h2]:mb-2 [&_h2]:mt-3 [&_p]:mb-3 [&_ul]:list-disc [&_ul]:list-inside [&_ul]:space-y-1 [&_ul]:mb-3 [&_ol]:list-decimal [&_ol]:list-inside [&_ol]:space-y-1 [&_ol]:mb-3 [&_li]:pl-1 [&_img]:rounded-xl [&_img]:max-h-72 [&_img]:object-cover [&_img]:my-3 [&_strong]:font-bold [&_em]:italic [&_u]:underline"
                       />
                     </article>
                   )}
@@ -172,9 +172,9 @@ export default function LessonPreviewModal({
                     )}
                   </div>
                   
-                  <article className="prose prose-slate max-w-none text-slate-655 leading-relaxed text-base">
-                    <h4 className="text-sm font-bold text-slate-900 mb-4 font-sans uppercase tracking-wider">Assignment Details & Instructions</h4>
-                    <div className="p-6 bg-slate-50 border border-slate-100 rounded-2xl rich-content">
+                  <article className="prose prose-slate max-w-none text-black leading-relaxed text-base">
+                    <h4 className="text-sm font-bold text-black mb-4 font-sans uppercase tracking-wider">Assignment Details & Instructions</h4>
+                    <div className="p-6 bg-slate-50 border border-slate-100 rounded-2xl rich-content text-sm text-slate-700 dark:text-slate-355 leading-relaxed [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-slate-900 dark:[&_h2]:text-white [&_h2]:mb-2 [&_h2]:mt-3 [&_p]:mb-3 [&_ul]:list-disc [&_ul]:list-inside [&_ul]:space-y-1 [&_ul]:mb-3 [&_ol]:list-decimal [&_ol]:list-inside [&_ol]:space-y-1 [&_ol]:mb-3 [&_li]:pl-1 [&_img]:rounded-xl [&_img]:max-h-72 [&_img]:object-cover [&_img]:my-3 [&_strong]:font-bold [&_em]:italic [&_u]:underline">
                       {lesson.notes_content?.includes('<!-- THEORY_BLOCKS_JSON:') || lesson.notes_content?.includes('<p') || lesson.notes_content?.includes('<h2') ? (
                         <div dangerouslySetInnerHTML={{ __html: lesson.notes_content.replace(/<!-- THEORY_BLOCKS_JSON:(.*?) -->/, "") }} />
                       ) : (
@@ -211,9 +211,9 @@ export default function LessonPreviewModal({
                     )}
                   </div>
                   
-                  <article className="prose prose-slate max-w-none text-slate-655 leading-relaxed text-base">
-                    <h4 className="text-sm font-bold text-slate-900 mb-4 font-sans uppercase tracking-wider">Project Guidelines & Specifications</h4>
-                    <div className="p-6 bg-slate-50 border border-slate-100 rounded-2xl rich-content">
+                  <article className="prose prose-slate max-w-none text-black leading-relaxed text-base">
+                    <h4 className="text-sm font-bold text-black mb-4 font-sans uppercase tracking-wider">Project Guidelines & Specifications</h4>
+                    <div className="p-6 bg-slate-50 border border-slate-100 rounded-2xl rich-content text-sm text-slate-700 dark:text-slate-355 leading-relaxed [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-slate-900 dark:[&_h2]:text-white [&_h2]:mb-2 [&_h2]:mt-3 [&_p]:mb-3 [&_ul]:list-disc [&_ul]:list-inside [&_ul]:space-y-1 [&_ul]:mb-3 [&_ol]:list-decimal [&_ol]:list-inside [&_ol]:space-y-1 [&_ol]:mb-3 [&_li]:pl-1 [&_img]:rounded-xl [&_img]:max-h-72 [&_img]:object-cover [&_img]:my-3 [&_strong]:font-bold [&_em]:italic [&_u]:underline">
                       {lesson.notes_content?.includes('<!-- THEORY_BLOCKS_JSON:') || lesson.notes_content?.includes('<p') || lesson.notes_content?.includes('<h2') ? (
                         <div dangerouslySetInnerHTML={{ __html: lesson.notes_content.replace(/<!-- THEORY_BLOCKS_JSON:(.*?) -->/, "") }} />
                       ) : (
@@ -251,7 +251,7 @@ export default function LessonPreviewModal({
                             key={q.id}
                             className="p-6 bg-white border border-slate-200 rounded-2xl flex flex-col gap-4 shadow-sm"
                           >
-                            <p className="text-sm font-bold text-slate-900"><span className="text-purple-650 mr-1">Q{idx + 1}.</span> {q.question}</p>
+                            <p className="text-sm font-bold text-black"><span className="text-purple-650 mr-1">Q{idx + 1}.</span> {q.question}</p>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                               {q.options.map((opt, optIdx) => {
                                 const letter = ['A', 'B', 'C', 'D'][optIdx];
@@ -333,11 +333,11 @@ export default function LessonPreviewModal({
                         </a>
                       )}
                    </div>
-                   <article className="prose prose-slate max-w-none text-slate-655 leading-relaxed text-base">
+                   <article className="prose prose-slate max-w-none text-black leading-relaxed text-base">
                       {lesson.notes_content ? (
                         <div 
-                          dangerouslySetInnerHTML={{ __html: lesson.notes_content.replace(/<!-- THEORY_DATA_JSON:(.*?) -->/, "") }} 
-                          className="rich-content"
+                          dangerouslySetInnerHTML={{ __html: lesson.notes_content.replace(/<!-- THEORY_DATA_JSON:(.*?) -->/, "").replace(/<!-- THEORY_BLOCKS_JSON:(.*?) -->/, "") }} 
+                          className="rich-content text-sm text-slate-700 dark:text-slate-355 leading-relaxed [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-slate-900 dark:[&_h2]:text-white [&_h2]:mb-2 [&_h2]:mt-3 [&_p]:mb-3 [&_ul]:list-disc [&_ul]:list-inside [&_ul]:space-y-1 [&_ul]:mb-3 [&_ol]:list-decimal [&_ol]:list-inside [&_ol]:space-y-1 [&_ol]:mb-3 [&_li]:pl-1 [&_img]:rounded-xl [&_img]:max-h-72 [&_img]:object-cover [&_img]:my-3 [&_strong]:font-bold [&_em]:italic [&_u]:underline"
                         />
                       ) : (lesson.lesson_type || lesson.type)?.toLowerCase().includes('offline') ? (
                         <div>
@@ -361,7 +361,7 @@ export default function LessonPreviewModal({
              )}
 
              <div className="mt-12 p-6 bg-slate-50 rounded-2xl border border-slate-100">
-                <h4 className="text-sm font-bold text-slate-900 mb-2">Admin Note</h4>
+                <h4 className="text-sm font-bold text-black mb-2">Admin Note</h4>
                 <p className="text-xs text-slate-500 leading-relaxed">
                    This is a preview of how the class will appear to students. Progress tracking and homework sections are disabled in preview mode.
                 </p>

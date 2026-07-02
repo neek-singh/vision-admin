@@ -1,6 +1,6 @@
 "use client";
-import { useState, Fragment } from "react";
-import { X, Loader2, Plus, Trash2, GripVertical, Heading, FileText, Image, List, ArrowUp, ArrowDown, ChevronDown, FolderCode } from "lucide-react";
+import { useState, useRef } from "react";
+import { X, Loader2, Plus, Trash2, GripVertical, Heading, FileText, Image, List, ArrowUp, ArrowDown, ChevronDown, FolderCode, Maximize2, Minimize2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import MultiSelect from "@/components/ui/MultiSelect";
 
@@ -145,6 +145,237 @@ export default function LessonFormModal({
   const [draggedQuestionIndex, setDraggedQuestionIndex] = useState<number | null>(null);
   const [collapsedQuestions, setCollapsedQuestions] = useState<Set<string>>(new Set());
   const [newPointInputs, setNewPointInputs] = useState<Record<string, string>>({});
+  const [isFullScreen, setIsFullScreen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importText, setImportText] = useState("");
+
+  // ── Rich Text Editor ──
+  const editorRef = useRef<HTMLDivElement>(null);
+
+  const getInitialEditorHtml = (): string => {
+    const content = initialData?.notes_content || '';
+    const blocksMatch = content.match(/<!-- THEORY_BLOCKS_JSON:(.*?) -->/);
+    if (blocksMatch?.[1]) {
+      try {
+        const parsedBlocks: TheoryBlock[] = JSON.parse(blocksMatch[1]);
+        return parsedBlocks.map((block) => {
+          if (block.type === 'header' && block.value.trim())
+            return `<h2>${block.value}</h2>`;
+          if (block.type === 'paragraph' && block.value.trim())
+            return `<p>${block.value}</p>`;
+          if (block.type === 'image' && block.value.trim())
+            return `<div><img src="${block.value}" alt="Content Image" class="rounded-xl max-h-72 object-cover border border-slate-100 my-3 block" /></div>`;
+          if (block.type === 'list' && block.points?.length)
+            return `<ul>${block.points.filter((p) => p.trim()).map((p) => `<li>${p}</li>`).join('')}</ul>`;
+          return '';
+        }).join('');
+      } catch (_e) { /* fall through */ }
+    }
+    return content
+      .replace(/<!-- THEORY_BLOCKS_JSON:.*? -->/, '')
+      .replace(/<!-- THEORY_DATA_JSON:.*? -->/, '')
+      .trim();
+  };
+
+  const initialHtmlRef = useRef<string>(getInitialEditorHtml());
+
+  const execCmd = (command: string, value?: string) => {
+    document.execCommand(command, false, value ?? undefined);
+  };
+
+  const insertEditorImage = () => {
+    const url = prompt('Image URL daalen:');
+    if (url?.trim()) {
+      editorRef.current?.focus();
+      document.execCommand(
+        'insertHTML',
+        false,
+        `<img src="${url.trim()}" alt="Content Image" class="rounded-xl max-h-72 object-cover border border-slate-100 my-3 block" />`
+      );
+    }
+  };
+
+  const handleEditorShortcuts = () => {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+
+    const range = sel.getRangeAt(0);
+    const node = range.startContainer;
+    if (node.nodeType !== Node.TEXT_NODE) return;
+
+    const text = node.textContent || '';
+    const offset = range.startOffset;
+
+    // Shortcut: -> → →
+    if (offset >= 2 && text.slice(offset - 2, offset) === '->') {
+      const before = text.slice(0, offset - 2);
+      const after = text.slice(offset);
+      node.textContent = before + '→' + after;
+      const newRange = document.createRange();
+      newRange.setStart(node, before.length + 1);
+      newRange.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(newRange);
+      return;
+    }
+
+    // Shortcut: => → ⇒
+    if (offset >= 2 && text.slice(offset - 2, offset) === '=>') {
+      const before = text.slice(0, offset - 2);
+      const after = text.slice(offset);
+      node.textContent = before + '⇒' + after;
+      const newRange = document.createRange();
+      newRange.setStart(node, before.length + 1);
+      newRange.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(newRange);
+      return;
+    }
+
+    // Shortcut: --- (alone on a line) → <hr />
+    if (text.trim() === '---') {
+      const parentEl = node.parentElement;
+      if (!parentEl) return;
+
+      const hr = document.createElement('hr');
+      hr.style.cssText = 'margin: 14px 0; border: 0; border-top: 2px solid #e2e8f0;';
+
+      const newP = document.createElement('p');
+      newP.innerHTML = '<br>';
+
+      parentEl.replaceWith(hr, newP);
+
+      const newRange = document.createRange();
+      newRange.setStart(newP, 0);
+      newRange.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(newRange);
+    }
+  };
+
+  // ── Smart Paste Handler ──
+  const cleanPastedNode = (node: Node): string => {
+    if (node.nodeType === Node.TEXT_NODE) return node.textContent || '';
+    if (node.nodeType !== Node.ELEMENT_NODE) return '';
+
+    const el = node as HTMLElement;
+    const tag = el.tagName.toLowerCase();
+    const children = Array.from(el.childNodes).map(cleanPastedNode).join('');
+
+    switch (tag) {
+      case 'h1': case 'h2': case 'h3': case 'h4': case 'h5': case 'h6':
+        return children.trim() ? `<h2>${children}</h2>` : '';
+      case 'strong': case 'b':
+        return `<strong>${children}</strong>`;
+      case 'em': case 'i':
+        return `<em>${children}</em>`;
+      case 'u':
+        return `<u>${children}</u>`;
+      case 's': case 'del': case 'strike':
+        return children; // strip strikethrough
+      case 'p':
+        return children.trim() ? `<p>${children}</p>` : '';
+      case 'br':
+        return '<br>';
+      case 'hr':
+        return '<hr style="margin:14px 0;border:0;border-top:2px solid #e2e8f0;">';
+      case 'ul':
+        return children.trim() ? `<ul>${children}</ul>` : '';
+      case 'ol':
+        return children.trim() ? `<ol>${children}</ol>` : '';
+      case 'li':
+        return `<li>${children}</li>`;
+      case 'code': {
+        const isBlock = el.parentElement?.tagName.toLowerCase() === 'pre';
+        return isBlock
+          ? children
+          : `<code style="background:#f1f5f9;padding:2px 6px;border-radius:4px;font-family:monospace;font-size:0.85em;">${children}</code>`;
+      }
+      case 'pre':
+        return `<pre style="background:#f1f5f9;padding:12px 16px;border-radius:8px;font-family:monospace;font-size:0.82em;overflow-x:auto;margin:8px 0;white-space:pre-wrap;">${children}</pre>`;
+      case 'blockquote':
+        return `<blockquote style="border-left:4px solid #94a3b8;padding:8px 16px;margin:8px 0;color:#64748b;font-style:italic;">${children}</blockquote>`;
+      case 'a': {
+        const href = el.getAttribute('href') || '#';
+        const isImageLink =
+          children.trim().toLowerCase() === 'image' ||
+          /\.(jpeg|jpg|gif|png|webp|svg)/i.test(href) ||
+          href.includes('prod-files-secure') ||
+          href.includes('amazonaws.com') ||
+          href.includes('chatgpt-user-files');
+
+        if (isImageLink) {
+          return `<img src="${href}" alt="Pasted Image" style="max-height:280px;border-radius:8px;margin:8px 0;display:block;object-fit:cover;border:1px solid #e2e8f0;">`;
+        }
+        return `<a href="${href}" style="color:#2563eb;text-decoration:underline;" target="_blank" rel="noopener noreferrer">${children}</a>`;
+      }
+      case 'img': {
+        const src = el.getAttribute('src') || '';
+        return src ? `<img src="${src}" alt="Pasted Image" style="max-height:280px;border-radius:8px;margin:8px 0;display:block;object-fit:cover;border:1px solid #e2e8f0;">` : '';
+      }
+      case 'table':
+        return `<div style="overflow-x:auto;margin:12px 0;"><table style="border-collapse:collapse;width:100%;font-size:0.875em;">${children}</table></div>`;
+      case 'thead': return `<thead>${children}</thead>`;
+      case 'tbody': return `<tbody>${children}</tbody>`;
+      case 'tr':   return `<tr>${children}</tr>`;
+      case 'th':   return `<th style="border:1px solid #e2e8f0;padding:8px 12px;background:#f8fafc;font-weight:700;text-align:left;">${children}</th>`;
+      case 'td':   return `<td style="border:1px solid #e2e8f0;padding:8px 12px;">${children}</td>`;
+      case 'span': {
+        const style = el.getAttribute('style') || '';
+        if (/font-weight\s*:\s*(700|bold)/i.test(style)) return `<strong>${children}</strong>`;
+        if (/font-style\s*:\s*italic/i.test(style)) return `<em>${children}</em>`;
+        if (/text-decoration[^:]*:\s*underline/i.test(style)) return `<u>${children}</u>`;
+        return children;
+      }
+      // Block containers — pass children through
+      case 'div': case 'section': case 'article':
+      case 'header': case 'footer': case 'nav': case 'aside': case 'main':
+        return children;
+      default:
+        return children;
+    }
+  };
+
+  const handleEditorPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+    // Check if there are images in clipboard files (e.g. screenshots, right-click "Copy Image")
+    const items = e.clipboardData.items;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        const file = items[i].getAsFile();
+        if (file) {
+          e.preventDefault();
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            const base64 = event.target?.result;
+            if (base64) {
+              document.execCommand(
+                'insertHTML',
+                false,
+                `<img src="${base64}" alt="Pasted Image" class="rounded-xl max-h-72 object-cover border border-slate-100 my-3 block" />`
+              );
+            }
+          };
+          reader.readAsDataURL(file);
+          return; // Stop processing further to avoid duplicate pasting
+        }
+      }
+    }
+
+    e.preventDefault();
+    const htmlData = e.clipboardData.getData('text/html');
+    const plainText = e.clipboardData.getData('text/plain');
+
+    if (htmlData) {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(htmlData, 'text/html');
+      const cleaned = Array.from(doc.body.childNodes).map(cleanPastedNode).join('');
+      document.execCommand('insertHTML', false, cleaned || plainText);
+    } else if (plainText) {
+      const escaped = plainText
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      document.execCommand('insertHTML', false, escaped.split('\n').map(l => l ? `<p>${l}</p>` : '<br>').join(''));
+    }
+  };
 
   const addBlock = (type: 'header' | 'paragraph' | 'image' | 'list', index?: number) => {
     const newBlock: TheoryBlock = {
@@ -721,6 +952,96 @@ export default function LessonFormModal({
   };
 
   // MCQ Question Builders
+  const handleImportQuiz = (text: string) => {
+    if (!text.trim()) return;
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    const parsedQuestions: MCQQuestion[] = [];
+    
+    let currentQuestion: { question: string; options: string[]; correctIndex: number; explanation: string } | null = null;
+    
+    const qRegex = /^(?:Q|q)?\d+[\.\:\)\s]+(.*)/i;
+    const optRegex = /^([A-D])[\.\:\)\s]+(.*)/i;
+    
+    for (const line of lines) {
+      const qMatch = line.match(qRegex);
+      const optMatch = line.match(optRegex);
+      
+      if (qMatch && !optMatch) {
+        if (currentQuestion && currentQuestion.question && currentQuestion.options.length > 0) {
+          while (currentQuestion.options.length < 4) {
+            currentQuestion.options.push(`Option ${currentQuestion.options.length + 1}`);
+          }
+          parsedQuestions.push({
+            id: `q-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            question: currentQuestion.question,
+            options: currentQuestion.options.slice(0, 4),
+            correctIndex: currentQuestion.correctIndex,
+            explanation: currentQuestion.explanation
+          });
+        }
+        
+        currentQuestion = {
+          question: qMatch[1].trim(),
+          options: [],
+          correctIndex: 0,
+          explanation: ''
+        };
+      } else if (optMatch && currentQuestion) {
+        const letter = optMatch[1].toUpperCase();
+        let optionText = optMatch[2].trim();
+        
+        let isCorrect = false;
+        if (optionText.toLowerCase().includes('(correct)') || optionText.toLowerCase().includes('(ans)') || optionText.toLowerCase().includes('(answer)') || optionText.startsWith('*')) {
+          isCorrect = true;
+          optionText = optionText
+            .replace(/\(correct\)/i, '')
+            .replace(/\(ans\)/i, '')
+            .replace(/\(answer\)/i, '')
+            .replace(/^\*/, '')
+            .trim();
+        }
+        
+        currentQuestion.options.push(optionText);
+        if (isCorrect) {
+          currentQuestion.correctIndex = currentQuestion.options.length - 1;
+        }
+      } else if (currentQuestion) {
+        const lowerLine = line.toLowerCase();
+        if (lowerLine.startsWith('ans:') || lowerLine.startsWith('answer:') || lowerLine.startsWith('correct:')) {
+          const ansChar = line.replace(/^(ans|answer|correct):/i, '').trim().toUpperCase();
+          if (['A', 'B', 'C', 'D'].includes(ansChar)) {
+            currentQuestion.correctIndex = ['A', 'B', 'C', 'D'].indexOf(ansChar);
+          }
+        } else if (lowerLine.startsWith('explanation:') || lowerLine.startsWith('exp:')) {
+          currentQuestion.explanation = line.replace(/^(explanation|exp):/i, '').trim();
+        } else {
+          if (currentQuestion.options.length === 0) {
+            currentQuestion.question += '\n' + line;
+          } else {
+            currentQuestion.explanation = (currentQuestion.explanation ? currentQuestion.explanation + '\n' : '') + line;
+          }
+        }
+      }
+    }
+    
+    if (currentQuestion && currentQuestion.question && currentQuestion.options.length > 0) {
+      while (currentQuestion.options.length < 4) {
+        currentQuestion.options.push(`Option ${currentQuestion.options.length + 1}`);
+      }
+      parsedQuestions.push({
+        id: `q-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        question: currentQuestion.question,
+        options: currentQuestion.options.slice(0, 4),
+        correctIndex: currentQuestion.correctIndex,
+        explanation: currentQuestion.explanation
+      });
+    }
+    
+    if (parsedQuestions.length > 0) {
+      setQuestions(prev => [...prev, ...parsedQuestions]);
+    }
+  };
+
   const addQuestion = () => {
     const newQ: MCQQuestion = {
       id: `q-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -877,7 +1198,7 @@ export default function LessonFormModal({
       if (lesson.type === 'video') {
         finalNotesContent = lesson.html_content;
       } else if (lesson.type === 'notes' || lesson.type === 'assignment' || lesson.type === 'project') {
-        finalNotesContent = `${generateHTMLFromBlocks(blocks)}\n<!-- THEORY_BLOCKS_JSON:${JSON.stringify(blocks)} -->`;
+        finalNotesContent = editorRef.current?.innerHTML || '';
       } else if (lesson.type === 'mcq') {
         finalNotesContent = `${generateHTMLFromQuestions(questions)}\n<!-- MCQ_QUESTIONS_JSON:${JSON.stringify(questions)} -->`;
       }
@@ -965,7 +1286,7 @@ export default function LessonFormModal({
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] overflow-y-auto p-4 animate-in fade-in duration-300">
       <div className="min-h-full flex items-center justify-center py-8">
-        <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-5xl overflow-hidden animate-in zoom-in-95 duration-300">
+        <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-5xl overflow-hidden animate-in zoom-in-95 duration-300 always-light">
           <div className="px-6 py-4 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
             <h3 className="text-lg font-bold text-slate-900">{getModalTitle()}</h3>
             <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-lg transition-all cursor-pointer"><X size={18} className="text-slate-900" /></button>
@@ -1022,194 +1343,75 @@ export default function LessonFormModal({
               )}
 
               {(lesson.type === 'notes' || lesson.type === 'assignment' || lesson.type === 'project') && (
-                <div className="md:col-span-2 space-y-6 animate-in fade-in duration-300">
-                  <div className="flex flex-col space-y-4">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                      {lesson.type === 'assignment' ? "Assignment Instructions Builder (Drag blocks to reorder)" : lesson.type === 'project' ? "Project Guidelines & Specifications Builder (Drag blocks to reorder)" : "Theory Block Builder (Drag blocks to reorder)"}
-                    </label>
-                    
-                    {/* Add block buttons bar */}
-                    <div className="flex flex-wrap gap-2 p-3 bg-slate-50 border border-slate-100 rounded-2xl">
-                      <button 
-                        type="button" onClick={() => addBlock('header')}
-                        className="px-3 py-1.5 bg-white hover:bg-blue-50 text-blue-600 rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 border border-slate-200/60 shadow-sm cursor-pointer transition-all active:scale-95"
-                      >
-                        <Heading size={12} /> + Header
+                <div className={`md:col-span-2 animate-in fade-in duration-350 ${isFullScreen ? 'fixed inset-0 bg-white z-[150] p-3 flex flex-col space-y-2 w-screen h-screen' : 'space-y-0'}`}>
+                  <div className={`flex flex-col w-full bg-white border border-slate-200 ${isFullScreen ? 'flex-1 space-y-2 border-none p-0' : ''}`}>
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 block">
+                        {lesson.type === 'assignment' ? 'Assignment Instructions' : lesson.type === 'project' ? 'Project Guidelines & Specifications' : 'Theory Content'}
+                      </label>
+                    </div>
+
+                    {/* Rich Text Toolbar */}
+                    <div className={`flex flex-wrap items-center gap-1 px-3 py-2 bg-slate-50 border border-slate-200 ${isFullScreen ? 'rounded-t-xl' : 'rounded-t-2xl border-b-0'}`}>
+                      <button type="button" onMouseDown={(e) => { e.preventDefault(); execCmd('bold'); }}
+                        className="px-2.5 py-1.5 hover:bg-white border border-transparent hover:border-slate-200 rounded-lg text-xs font-black text-slate-700 cursor-pointer transition-all" title="Bold (Ctrl+B)">B</button>
+                      <button type="button" onMouseDown={(e) => { e.preventDefault(); execCmd('italic'); }}
+                        className="px-2.5 py-1.5 hover:bg-white border border-transparent hover:border-slate-200 rounded-lg text-xs italic font-semibold text-slate-600 cursor-pointer transition-all" title="Italic (Ctrl+I)">I</button>
+                      <button type="button" onMouseDown={(e) => { e.preventDefault(); execCmd('underline'); }}
+                        className="px-2.5 py-1.5 hover:bg-white border border-transparent hover:border-slate-200 rounded-lg text-xs underline font-semibold text-slate-600 cursor-pointer transition-all" title="Underline (Ctrl+U)">U</button>
+                      <div className="w-px h-5 bg-slate-200 mx-1" />
+                      <button type="button" onMouseDown={(e) => { e.preventDefault(); execCmd('formatBlock', 'h2'); }}
+                        className="px-2.5 py-1.5 hover:bg-white border border-transparent hover:border-slate-200 rounded-lg text-[10px] font-black text-slate-700 cursor-pointer transition-all flex items-center gap-1" title="Heading H2">
+                        <Heading size={11} /> H2
                       </button>
-                      <button 
-                        type="button" onClick={() => addBlock('paragraph')}
-                        className="px-3 py-1.5 bg-white hover:bg-emerald-50 text-emerald-600 rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 border border-slate-200/60 shadow-sm cursor-pointer transition-all active:scale-95"
-                      >
-                        <FileText size={12} /> + Paragraph
+                      <button type="button" onMouseDown={(e) => { e.preventDefault(); execCmd('formatBlock', 'p'); }}
+                        className="px-2.5 py-1.5 hover:bg-white border border-transparent hover:border-slate-200 rounded-lg text-[10px] font-semibold text-slate-600 cursor-pointer transition-all flex items-center gap-1" title="Normal Paragraph">
+                        <FileText size={11} /> Para
                       </button>
-                      <button 
-                        type="button" onClick={() => addBlock('image')}
-                        className="px-3 py-1.5 bg-white hover:bg-purple-50 text-purple-600 rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 border border-slate-200/60 shadow-sm cursor-pointer transition-all active:scale-95"
-                      >
-                        <Image size={12} /> + Image
+                      <div className="w-px h-5 bg-slate-200 mx-1" />
+                      <button type="button" onMouseDown={(e) => { e.preventDefault(); execCmd('insertUnorderedList'); }}
+                        className="px-2.5 py-1.5 hover:bg-white border border-transparent hover:border-slate-200 rounded-lg text-[10px] font-semibold text-slate-600 cursor-pointer transition-all flex items-center gap-1" title="Bullet List">
+                        <List size={11} /> • List
                       </button>
-                      <button 
-                        type="button" onClick={() => addBlock('list')}
-                        className="px-3 py-1.5 bg-white hover:bg-amber-50 text-amber-600 rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 border border-slate-200/60 shadow-sm cursor-pointer transition-all active:scale-95"
-                      >
-                        <List size={12} /> + Bullet List
+                      <button type="button" onMouseDown={(e) => { e.preventDefault(); execCmd('insertOrderedList'); }}
+                        className="px-2.5 py-1.5 hover:bg-white border border-transparent hover:border-slate-200 rounded-lg text-[10px] font-semibold text-slate-600 cursor-pointer transition-all flex items-center gap-1" title="Numbered List">
+                        <List size={11} /> 1. List
+                      </button>
+                      <div className="w-px h-5 bg-slate-200 mx-1" />
+                      <button type="button" onMouseDown={(e) => { e.preventDefault(); insertEditorImage(); }}
+                        className="px-2.5 py-1.5 hover:bg-white border border-transparent hover:border-slate-200 rounded-lg text-[10px] font-semibold text-slate-600 cursor-pointer transition-all flex items-center gap-1" title="Insert Image">
+                        <Image size={11} /> Image
+                      </button>
+                      <div className="flex-1" />
+                      <button type="button" onMouseDown={(e) => { e.preventDefault(); setIsFullScreen(!isFullScreen); }}
+                        className="px-2.5 py-1.5 hover:bg-white border border-transparent hover:border-slate-200 rounded-lg text-[10px] font-semibold text-slate-500 cursor-pointer transition-all flex items-center gap-1" title={isFullScreen ? "Minimize Editor" : "Full Screen Editor"}>
+                        {isFullScreen ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
+                        {isFullScreen ? "Exit Full Screen" : "Full Screen"}
                       </button>
                     </div>
-                  </div>
 
-                  {/* Drag and Drop list container */}
-                  <div className="space-y-4 max-h-[65vh] overflow-y-auto pr-1 py-2">
-                    {blocks.length > 0 && renderInsertBar(0)}
-                    {blocks.map((block, index) => (
-                      <Fragment key={block.id}>
-                        <div 
-                          draggable
-                          onDragStart={() => handleBlockDragStart(index)}
-                          onDragOver={(e) => handleBlockDragOver(e, index)}
-                          onDragEnd={handleBlockDragEnd}
-                          className={`p-4 bg-white dark:bg-slate-900 border rounded-2xl flex items-start gap-4 transition-all relative group/block ${draggedBlockIndex === index ? 'opacity-40 border-blue-500 border-dashed' : 'border-slate-200 hover:border-slate-300'}`}
-                        >
-                          {/* Drag Handle */}
-                          <div className="cursor-grab active:cursor-grabbing text-slate-350 hover:text-slate-500 p-1 mt-1.5 select-none">
-                            <GripVertical size={16} />
-                          </div>
-
-                          {/* Content inputs based on block type */}
-                          <div className="flex-1 space-y-2">
-                            <div className="flex items-center gap-2">
-                              {block.type === 'header' && (
-                                <>
-                                  <Heading size={12} className="text-blue-500" />
-                                  <span className="text-[9px] font-bold uppercase tracking-wider text-blue-500">Header Block</span>
-                                </>
-                              )}
-                              {block.type === 'paragraph' && (
-                                <>
-                                  <FileText size={12} className="text-emerald-500" />
-                                  <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-500">Paragraph Block</span>
-                                </>
-                              )}
-                              {block.type === 'image' && (
-                                <>
-                                  <Image size={12} className="text-purple-500" />
-                                  <span className="text-[9px] font-bold uppercase tracking-wider text-purple-500">Image Block</span>
-                                </>
-                              )}
-                              {block.type === 'list' && (
-                                <>
-                                  <List size={12} className="text-amber-500" />
-                                  <span className="text-[9px] font-bold uppercase tracking-wider text-amber-500">Bullet List Block</span>
-                                </>
-                              )}
-                            </div>
-
-                            {block.type === 'header' && (
-                              <input 
-                                type="text" value={block.value}
-                                placeholder="Type heading text..."
-                                onChange={(e) => updateBlockValue(index, e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-blue-500 transition-colors"
-                              />
-                            )}
-
-                            {block.type === 'paragraph' && (
-                              <textarea 
-                                value={block.value}
-                                placeholder="Type paragraph text..."
-                                onChange={(e) => updateBlockValue(index, e.target.value)}
-                                onKeyDown={(e) => handleTextareaKeyDown(e, index, block.value)}
-                                onPaste={(e) => handleTextareaPaste(e, index)}
-                                ref={(el) => {
-                                  if (el) {
-                                    el.style.height = 'auto';
-                                    el.style.height = `${el.scrollHeight}px`;
-                                  }
-                                }}
-                                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 min-h-[80px] outline-none focus:border-blue-500 transition-colors resize-none overflow-hidden"
-                              />
-                            )}
-
-                            {block.type === 'image' && (
-                              <div className="space-y-2">
-                                <input 
-                                  type="text" value={block.value}
-                                  placeholder="https://example.com/image.png"
-                                  onChange={(e) => updateBlockValue(index, e.target.value)}
-                                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-blue-500 transition-colors"
-                                />
-                                {block.value && (
-                                  <div className="relative w-28 h-16 rounded-lg overflow-hidden bg-slate-50 border border-slate-200">
-                                    <img
-                                      src={block.value}
-                                      alt="Preview"
-                                      className="w-full h-full object-cover"
-                                      onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/150x100?text=Error'; }}
-                                    />
-                                  </div>
-                                )}
-                              </div>
-                            )}
-
-                            {block.type === 'list' && (
-                              <div className="space-y-2">
-                                <div className="flex gap-2">
-                                  <input 
-                                    type="text" 
-                                    value={newPointInputs[block.id] || ""}
-                                    placeholder="Type point..."
-                                    onChange={(e) => setNewPointInputs(prev => ({ ...prev, [block.id]: e.target.value }))}
-                                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addPointToBlock(index, block.id); } }}
-                                    className="flex-1 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 outline-none focus:border-blue-500 transition-colors"
-                                  />
-                                  <button 
-                                    type="button" onClick={() => addPointToBlock(index, block.id)}
-                                    className="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[10px] font-bold uppercase flex items-center gap-1 cursor-pointer"
-                                  >
-                                    <Plus size={10} /> Add
-                                  </button>
-                                </div>
-
-                                <div className="space-y-1 mt-2">
-                                  {(block.points || []).map((point, pIdx) => (
-                                    <div key={pIdx} className="flex items-center justify-between p-2 bg-slate-50 border border-slate-100 rounded-lg gap-2">
-                                      <span className="text-xs text-slate-600 font-medium leading-relaxed">• {point}</span>
-                                      <button 
-                                        type="button" onClick={() => removePointFromBlock(index, pIdx)}
-                                        className="text-slate-400 hover:text-rose-600 transition-colors p-1 cursor-pointer"
-                                      >
-                                        <Trash2 size={12} />
-                                      </button>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Delete Block Button */}
-                          <button 
-                            type="button" onClick={() => removeBlock(index)}
-                            className="opacity-0 group-hover/block:opacity-100 text-slate-400 hover:text-rose-600 p-2 rounded-lg transition-all cursor-pointer self-start"
-                            title="Delete Block"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                        {renderInsertBar(index + 1)}
-                      </Fragment>
-                    ))}
-
-                    {blocks.length === 0 && (
-                      <div className="py-12 text-center border border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
-                        <p className="text-xs font-semibold text-slate-400">
-                          {lesson.type === 'assignment' 
-                            ? "No instructions blocks added. Add headers, paragraphs, images, or lists above to build your assignment." 
-                            : lesson.type === 'project'
-                            ? "No specifications blocks added. Add headers, paragraphs, images, or lists above to build your project."
-                            : "No content blocks added. Add headers, paragraphs, images, or lists above to build your theory class."}
-                        </p>
-                      </div>
-                    )}
+                    {/* Editable Content Area */}
+                    <div
+                      ref={(el) => {
+                        (editorRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
+                        if (el && !el.dataset.initialized) {
+                          el.innerHTML = initialHtmlRef.current;
+                          el.dataset.initialized = 'true';
+                        }
+                      }}
+                      contentEditable
+                      suppressContentEditableWarning
+                      onInput={handleEditorShortcuts}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Tab') {
+                          e.preventDefault();
+                          document.execCommand('insertHTML', false, '&nbsp;&nbsp;&nbsp;&nbsp;');
+                        }
+                      }}
+                      onPaste={handleEditorPaste}
+                      className={`rich-content overflow-y-auto p-5 bg-white border border-slate-200 rounded-b-2xl outline-none focus:border-blue-500 transition-colors text-sm text-slate-700 leading-relaxed cursor-text ${isFullScreen ? 'flex-1 rounded-b-xl border-t-0 p-8' : 'min-h-[320px] max-h-[55vh]'}`}
+                    />
+                    <p className="text-[10px] text-slate-400 mt-2">Tip: Ctrl+B Bold │ Ctrl+I Italic │ Ctrl+U Underline │ <strong>-&gt;</strong> → → │ <strong>---</strong> → divider line</p>
                   </div>
                 </div>
               )}
@@ -1219,12 +1421,20 @@ export default function LessonFormModal({
                   <div className="flex flex-col space-y-4">
                     <div className="flex items-center justify-between">
                       <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Quiz Builder ({questions.length} Questions)</label>
-                      <button 
-                        type="button" onClick={addQuestion}
-                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 border border-slate-200/60 shadow-sm cursor-pointer transition-all active:scale-95"
-                      >
-                        <Plus size={12} /> Add Question
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button 
+                          type="button" onClick={() => setIsImportModalOpen(true)}
+                          className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 border border-slate-200/60 shadow-sm cursor-pointer transition-all active:scale-95"
+                        >
+                          Import Quiz
+                        </button>
+                        <button 
+                          type="button" onClick={addQuestion}
+                          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 border border-slate-200/60 shadow-sm cursor-pointer transition-all active:scale-95"
+                        >
+                          <Plus size={12} /> Add Question
+                        </button>
+                      </div>
                     </div>
                   </div>
 
@@ -1246,9 +1456,9 @@ export default function LessonFormModal({
                             <div className="cursor-grab active:cursor-grabbing text-slate-350 hover:text-slate-500 p-0.5 select-none" onClick={(e) => e.stopPropagation()}>
                               <GripVertical size={14} />
                             </div>
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-purple-650 shrink-0">Question {qIndex + 1}</span>
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-purple-600 shrink-0">Question {qIndex + 1}</span>
                             {collapsedQuestions.has(q.id) && q.question && (
-                              <span className="text-xs text-slate-400 font-medium truncate max-w-[200px] md:max-w-[350px] border-l border-slate-200 pl-2 ml-1">
+                              <span className="text-xs text-slate-800 font-bold truncate max-w-[200px] md:max-w-[350px] border-l border-slate-200 pl-2 ml-1">
                                 {q.question}
                               </span>
                             )}
@@ -1299,7 +1509,7 @@ export default function LessonFormModal({
                                     el.style.height = `${el.scrollHeight}px`;
                                   }
                                 }}
-                                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 outline-none focus:border-blue-500 transition-colors min-h-[60px] resize-none overflow-hidden"
+                                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-black outline-none focus:border-blue-500 transition-colors min-h-[60px] resize-none overflow-hidden"
                               />
                             </div>
 
@@ -1317,14 +1527,14 @@ export default function LessonFormModal({
                                         onChange={() => updateCorrectIndex(qIndex, optIndex)}
                                         className="w-4 h-4 text-purple-600 focus:ring-purple-500/20 border-slate-300 cursor-pointer"
                                       />
-                                      <span className="text-xs font-black text-slate-400 mr-1">{letter}</span>
+                                      <span className="text-xs font-black text-slate-800 mr-1">{letter}</span>
                                       <input 
                                         required
                                         type="text" 
                                         value={opt}
                                         placeholder={`Option ${letter}`}
                                         onChange={(e) => updateOptionText(qIndex, optIndex, e.target.value)}
-                                        className="flex-1 bg-transparent text-xs font-semibold text-slate-900 outline-none"
+                                        className="flex-1 bg-transparent text-xs font-semibold text-black outline-none"
                                       />
                                     </div>
                                   );
@@ -1339,7 +1549,7 @@ export default function LessonFormModal({
                                 value={q.explanation}
                                 placeholder="Why is this the correct answer? Explain..."
                                 onChange={(e) => updateExplanation(qIndex, e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 outline-none focus:border-blue-500 transition-colors"
+                                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-black outline-none focus:border-blue-500 transition-colors"
                               />
                             </div>
                           </>
@@ -1396,6 +1606,72 @@ export default function LessonFormModal({
           </form>
         </div>
       </div>
+
+      {/* Import Quiz Modal */}
+      {isImportModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[200] flex items-center justify-center p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden p-6 space-y-4 always-light">
+            <div className="flex items-center justify-between border-b pb-3">
+              <h3 className="text-sm font-bold text-black">Bulk Import Quiz Questions</h3>
+              <button 
+                type="button" 
+                onClick={() => {
+                  setIsImportModalOpen(false);
+                  setImportText("");
+                }}
+                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-black cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            
+            <div className="space-y-2">
+              <p className="text-[11px] text-slate-500 font-semibold leading-relaxed">
+                Apne quiz questions ko niche diye gaye format mein paste karein. Har question ke sath 4 options (A, B, C, D) hone chahiye:
+              </p>
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/80 text-[10px] font-mono text-slate-600 space-y-1">
+                <p>Q1. Computer kya hai?</p>
+                <p>A. Ek electronic machine (Correct)</p>
+                <p>B. Ek mobile phone</p>
+                <p>C. Ek TV</p>
+                <p>D. Ek printer</p>
+                <p className="text-purple-600 font-bold mt-1">// Tip: Correct answer ke aage (Correct) likh sakte hain ya niche Answer: A likhein.</p>
+              </div>
+            </div>
+
+            <textarea
+              value={importText}
+              onChange={(e) => setImportText(e.target.value)}
+              placeholder="Paste questions here...&#10;&#10;Q1. Computer kya hai?&#10;A. Ek electronic machine&#10;B. Ek mobile phone&#10;C. Ek TV&#10;D. Ek printer&#10;Answer: A"
+              className="w-full h-64 p-4 border border-slate-200 rounded-xl outline-none focus:border-blue-500 text-xs font-semibold text-black resize-none"
+            />
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsImportModalOpen(false);
+                  setImportText("");
+                }}
+                className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-750 font-bold uppercase tracking-wider rounded-xl text-[10px] cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  handleImportQuiz(importText);
+                  setIsImportModalOpen(false);
+                  setImportText("");
+                }}
+                className="flex-1 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold uppercase tracking-wider rounded-xl text-[10px] cursor-pointer shadow-lg shadow-purple-100"
+              >
+                Parse & Import
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
