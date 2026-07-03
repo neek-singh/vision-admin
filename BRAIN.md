@@ -366,6 +366,7 @@ NEXT_PUBLIC_SITE_URL=               # https://admin.visionitinstitute.com
 | 2026-07-01 | Credentials flow changed: registration me password remove kiya, Student Management me "Generate Credentials" button + modal add kiya. New API: `POST /api/students/credentials` |
 | 2026-07-02 | `LessonFormModal.tsx`: Block Builder (Header/Para/Image/List blocks) ko replace kiya ek simple contentEditable Rich Text Editor se. Toolbar: B, I, U, H2, Para, • List, 1. List, Image. Backward compatible: purana THEORY_BLOCKS_JSON data load hote waqt HTML me convert ho jata hai. Added custom Tab support (4 spaces), -> to →, => to ⇒, --- to divider, Notion/ChatGPT smart paste cleanup (links auto-converted to inline images), Full Screen toggle mode, and bulk MCQ/Quiz questions importer. |
 | 2026-07-02 | `LessonPreviewModal.tsx`: Added rich-content container styling (H2 headings, custom lists, images, colors, font-weights, blocks comments removal) to ensure that previews for theory classes, assignments, and projects display HTML formatting identically to the editor. |
+| 2026-07-03 | `LessonFormModal.tsx`, `LessonPreviewModal.tsx`, `globals.css`: Dark themed the "Edit Theory Lesson" modal and "Admin Preview" modal. Fixed the black text issue inside the dark editor/viewer by creating a `.dark-modal` target in `globals.css` that forces white/light colors for all heading, paragraph, list, strong, and span elements. |
 
 ---
 

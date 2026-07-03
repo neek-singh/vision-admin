@@ -1246,8 +1246,8 @@ export default function LessonFormModal({
 
   const renderInsertBar = (targetIndex: number) => (
     <div className="group/insert-bar flex items-center justify-center h-4 relative -my-2 z-20">
-      <div className="absolute left-4 right-4 h-[1px] bg-slate-100 dark:bg-slate-800/60 group-hover/insert-bar:bg-blue-300 transition-colors" />
-      <div className="opacity-0 group-hover/insert-bar:opacity-100 transition-all flex items-center gap-1.5 bg-white dark:bg-slate-900 px-3 py-1 rounded-full border border-slate-200 shadow-sm scale-90 group-hover/insert-bar:scale-100 duration-200">
+      <div className="absolute left-4 right-4 h-[1px] bg-slate-700 group-hover/insert-bar:bg-blue-500 transition-colors" />
+      <div className="opacity-0 group-hover/insert-bar:opacity-100 transition-all flex items-center gap-1.5 bg-slate-800 px-3 py-1 rounded-full border border-slate-700 shadow-sm scale-90 group-hover/insert-bar:scale-100 duration-200">
         <button 
           type="button" onClick={() => addBlock('header', targetIndex)}
           className="p-1 hover:bg-blue-50 text-blue-600 rounded-lg text-[9px] font-bold uppercase tracking-wider flex items-center gap-1 cursor-pointer transition-all active:scale-95"
@@ -1284,31 +1284,31 @@ export default function LessonFormModal({
   );
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] overflow-y-auto p-4 animate-in fade-in duration-300">
+    <div className="dark-modal fixed inset-0 bg-black/70 backdrop-blur-md z-[100] overflow-y-auto p-4 animate-in fade-in duration-300">
       <div className="min-h-full flex items-center justify-center py-8">
-        <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-5xl overflow-hidden animate-in zoom-in-95 duration-300 always-light">
-          <div className="px-6 py-4 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
-            <h3 className="text-lg font-bold text-slate-900">{getModalTitle()}</h3>
-            <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-lg transition-all cursor-pointer"><X size={18} className="text-slate-900" /></button>
+        <div className="bg-slate-900 rounded-[2rem] shadow-2xl w-full max-w-5xl overflow-hidden animate-in zoom-in-95 duration-300">
+          <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-800/60">
+            <h3 className="text-lg font-bold text-white">{getModalTitle()}</h3>
+            <button onClick={onClose} className="p-2 hover:bg-slate-700 rounded-lg transition-all cursor-pointer"><X size={18} className="text-slate-300" /></button>
           </div>
           <form onSubmit={handleSubmit} className="p-8 space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="md:col-span-2 space-y-2 group">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Class Title</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Class Title</label>
                 <input 
                   required type="text" value={lesson.title}
                   onChange={(e) => setLesson({...lesson, title: e.target.value})}
-                  className="w-full px-0 py-2 bg-transparent border-b-2 border-slate-100 focus:border-blue-600 outline-none transition-all font-bold text-slate-900" 
+                  className="w-full px-0 py-2 bg-transparent border-b-2 border-slate-700 focus:border-blue-500 outline-none transition-all font-bold text-white placeholder:text-slate-500" 
                 />
               </div>
 
               {!isTypePreSelected && (
                 <div className="md:col-span-2 space-y-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Content Type</label>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Content Type</label>
                   <select 
                     value={lesson.type}
                     onChange={(e) => setLesson({...lesson, type: e.target.value})}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-black"
+                    className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-white"
                   >
                     <option value="video">Live / Video Class</option>
                     <option value="notes">Theory</option>
@@ -1322,69 +1322,69 @@ export default function LessonFormModal({
               {lesson.type === 'video' && (
                 <div className="md:col-span-2 space-y-6">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">YouTube Video URL</label>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">YouTube Video URL</label>
                     <input 
                       type="text" value={lesson.content_url}
                       placeholder="https://www.youtube.com/watch?v=..."
                       onChange={(e) => setLesson({...lesson, content_url: e.target.value})}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-slate-900" 
+                      className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-white placeholder:text-slate-500" 
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Resource Link (PDF/Document/Website Link)</label>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Resource Link (PDF/Document/Website Link)</label>
                     <input 
                       type="text" value={lesson.pdf_url}
                       placeholder="https://example.com/class-resources.pdf"
                       onChange={(e) => setLesson({...lesson, pdf_url: e.target.value})}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-slate-900" 
+                      className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-white placeholder:text-slate-500" 
                     />
                   </div>
                 </div>
               )}
 
               {(lesson.type === 'notes' || lesson.type === 'assignment' || lesson.type === 'project') && (
-                <div className={`md:col-span-2 animate-in fade-in duration-350 ${isFullScreen ? 'fixed inset-0 bg-white z-[150] p-3 flex flex-col space-y-2 w-screen h-screen' : 'space-y-0'}`}>
-                  <div className={`flex flex-col w-full bg-white border border-slate-200 ${isFullScreen ? 'flex-1 space-y-2 border-none p-0' : ''}`}>
+                <div className={`md:col-span-2 animate-in fade-in duration-350 ${isFullScreen ? 'fixed inset-0 bg-slate-900 z-[150] p-3 flex flex-col space-y-2 w-screen h-screen' : 'space-y-0'}`}>
+                  <div className={`flex flex-col w-full bg-slate-900 border border-slate-700 ${isFullScreen ? 'flex-1 space-y-2 border-none p-0' : ''}`}>
                     <div className="flex items-center justify-between">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 block">
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 block">
                         {lesson.type === 'assignment' ? 'Assignment Instructions' : lesson.type === 'project' ? 'Project Guidelines & Specifications' : 'Theory Content'}
                       </label>
                     </div>
 
                     {/* Rich Text Toolbar */}
-                    <div className={`flex flex-wrap items-center gap-1 px-3 py-2 bg-slate-50 border border-slate-200 ${isFullScreen ? 'rounded-t-xl' : 'rounded-t-2xl border-b-0'}`}>
+                    <div className={`flex flex-wrap items-center gap-1 px-3 py-2 bg-slate-800 border border-slate-700 ${isFullScreen ? 'rounded-t-xl' : 'rounded-t-2xl border-b-0'}`}>
                       <button type="button" onMouseDown={(e) => { e.preventDefault(); execCmd('bold'); }}
-                        className="px-2.5 py-1.5 hover:bg-white border border-transparent hover:border-slate-200 rounded-lg text-xs font-black text-slate-700 cursor-pointer transition-all" title="Bold (Ctrl+B)">B</button>
+                        className="px-2.5 py-1.5 hover:bg-slate-700 border border-transparent hover:border-slate-600 rounded-lg text-xs font-black text-slate-200 cursor-pointer transition-all" title="Bold (Ctrl+B)">B</button>
                       <button type="button" onMouseDown={(e) => { e.preventDefault(); execCmd('italic'); }}
-                        className="px-2.5 py-1.5 hover:bg-white border border-transparent hover:border-slate-200 rounded-lg text-xs italic font-semibold text-slate-600 cursor-pointer transition-all" title="Italic (Ctrl+I)">I</button>
+                        className="px-2.5 py-1.5 hover:bg-slate-700 border border-transparent hover:border-slate-600 rounded-lg text-xs italic font-semibold text-slate-300 cursor-pointer transition-all" title="Italic (Ctrl+I)">I</button>
                       <button type="button" onMouseDown={(e) => { e.preventDefault(); execCmd('underline'); }}
-                        className="px-2.5 py-1.5 hover:bg-white border border-transparent hover:border-slate-200 rounded-lg text-xs underline font-semibold text-slate-600 cursor-pointer transition-all" title="Underline (Ctrl+U)">U</button>
-                      <div className="w-px h-5 bg-slate-200 mx-1" />
+                        className="px-2.5 py-1.5 hover:bg-slate-700 border border-transparent hover:border-slate-600 rounded-lg text-xs underline font-semibold text-slate-300 cursor-pointer transition-all" title="Underline (Ctrl+U)">U</button>
+                      <div className="w-px h-5 bg-slate-600 mx-1" />
                       <button type="button" onMouseDown={(e) => { e.preventDefault(); execCmd('formatBlock', 'h2'); }}
-                        className="px-2.5 py-1.5 hover:bg-white border border-transparent hover:border-slate-200 rounded-lg text-[10px] font-black text-slate-700 cursor-pointer transition-all flex items-center gap-1" title="Heading H2">
+                        className="px-2.5 py-1.5 hover:bg-slate-700 border border-transparent hover:border-slate-600 rounded-lg text-[10px] font-black text-slate-200 cursor-pointer transition-all flex items-center gap-1" title="Heading H2">
                         <Heading size={11} /> H2
                       </button>
                       <button type="button" onMouseDown={(e) => { e.preventDefault(); execCmd('formatBlock', 'p'); }}
-                        className="px-2.5 py-1.5 hover:bg-white border border-transparent hover:border-slate-200 rounded-lg text-[10px] font-semibold text-slate-600 cursor-pointer transition-all flex items-center gap-1" title="Normal Paragraph">
+                        className="px-2.5 py-1.5 hover:bg-slate-700 border border-transparent hover:border-slate-600 rounded-lg text-[10px] font-semibold text-slate-300 cursor-pointer transition-all flex items-center gap-1" title="Normal Paragraph">
                         <FileText size={11} /> Para
                       </button>
-                      <div className="w-px h-5 bg-slate-200 mx-1" />
+                      <div className="w-px h-5 bg-slate-600 mx-1" />
                       <button type="button" onMouseDown={(e) => { e.preventDefault(); execCmd('insertUnorderedList'); }}
-                        className="px-2.5 py-1.5 hover:bg-white border border-transparent hover:border-slate-200 rounded-lg text-[10px] font-semibold text-slate-600 cursor-pointer transition-all flex items-center gap-1" title="Bullet List">
+                        className="px-2.5 py-1.5 hover:bg-slate-700 border border-transparent hover:border-slate-600 rounded-lg text-[10px] font-semibold text-slate-300 cursor-pointer transition-all flex items-center gap-1" title="Bullet List">
                         <List size={11} /> • List
                       </button>
                       <button type="button" onMouseDown={(e) => { e.preventDefault(); execCmd('insertOrderedList'); }}
-                        className="px-2.5 py-1.5 hover:bg-white border border-transparent hover:border-slate-200 rounded-lg text-[10px] font-semibold text-slate-600 cursor-pointer transition-all flex items-center gap-1" title="Numbered List">
+                        className="px-2.5 py-1.5 hover:bg-slate-700 border border-transparent hover:border-slate-600 rounded-lg text-[10px] font-semibold text-slate-300 cursor-pointer transition-all flex items-center gap-1" title="Numbered List">
                         <List size={11} /> 1. List
                       </button>
-                      <div className="w-px h-5 bg-slate-200 mx-1" />
+                      <div className="w-px h-5 bg-slate-600 mx-1" />
                       <button type="button" onMouseDown={(e) => { e.preventDefault(); insertEditorImage(); }}
-                        className="px-2.5 py-1.5 hover:bg-white border border-transparent hover:border-slate-200 rounded-lg text-[10px] font-semibold text-slate-600 cursor-pointer transition-all flex items-center gap-1" title="Insert Image">
+                        className="px-2.5 py-1.5 hover:bg-slate-700 border border-transparent hover:border-slate-600 rounded-lg text-[10px] font-semibold text-slate-300 cursor-pointer transition-all flex items-center gap-1" title="Insert Image">
                         <Image size={11} /> Image
                       </button>
                       <div className="flex-1" />
                       <button type="button" onMouseDown={(e) => { e.preventDefault(); setIsFullScreen(!isFullScreen); }}
-                        className="px-2.5 py-1.5 hover:bg-white border border-transparent hover:border-slate-200 rounded-lg text-[10px] font-semibold text-slate-500 cursor-pointer transition-all flex items-center gap-1" title={isFullScreen ? "Minimize Editor" : "Full Screen Editor"}>
+                        className="px-2.5 py-1.5 hover:bg-slate-700 border border-transparent hover:border-slate-600 rounded-lg text-[10px] font-semibold text-slate-400 cursor-pointer transition-all flex items-center gap-1" title={isFullScreen ? "Minimize Editor" : "Full Screen Editor"}>
                         {isFullScreen ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
                         {isFullScreen ? "Exit Full Screen" : "Full Screen"}
                       </button>
@@ -1409,9 +1409,9 @@ export default function LessonFormModal({
                         }
                       }}
                       onPaste={handleEditorPaste}
-                      className={`rich-content overflow-y-auto p-5 bg-white border border-slate-200 rounded-b-2xl outline-none focus:border-blue-500 transition-colors text-sm text-slate-700 leading-relaxed cursor-text ${isFullScreen ? 'flex-1 rounded-b-xl border-t-0 p-8' : 'min-h-[320px] max-h-[55vh]'}`}
+                      className={`rich-content overflow-y-auto p-5 bg-slate-950 border border-slate-700 rounded-b-2xl outline-none focus:border-blue-500 transition-colors text-sm text-slate-200 leading-relaxed cursor-text ${isFullScreen ? 'flex-1 rounded-b-xl border-t-0 p-8' : 'min-h-[320px] max-h-[55vh]'}`}
                     />
-                    <p className="text-[10px] text-slate-400 mt-2">Tip: Ctrl+B Bold │ Ctrl+I Italic │ Ctrl+U Underline │ <strong>-&gt;</strong> → → │ <strong>---</strong> → divider line</p>
+                    <p className="text-[10px] text-slate-500 mt-2">Tip: Ctrl+B Bold │ Ctrl+I Italic │ Ctrl+U Underline │ <strong>-&gt;</strong> → → │ <strong>---</strong> → divider line</p>
                   </div>
                 </div>
               )}
@@ -1420,7 +1420,7 @@ export default function LessonFormModal({
                 <div className="md:col-span-2 space-y-6 animate-in fade-in duration-300">
                   <div className="flex flex-col space-y-4">
                     <div className="flex items-center justify-between">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Quiz Builder ({questions.length} Questions)</label>
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Quiz Builder ({questions.length} Questions)</label>
                       <div className="flex items-center gap-2">
                         <button 
                           type="button" onClick={() => setIsImportModalOpen(true)}
@@ -1446,9 +1446,9 @@ export default function LessonFormModal({
                         onDragStart={() => handleQuestionDragStart(qIndex)}
                         onDragOver={(e) => handleQuestionDragOver(e, qIndex)}
                         onDragEnd={handleQuestionDragEnd}
-                        className={`p-5 bg-white border rounded-2xl flex flex-col gap-4 relative group/question transition-all ${draggedQuestionIndex === qIndex ? 'opacity-40 border-blue-500 border-dashed' : 'border-slate-200 hover:border-slate-300'}`}
+                        className={`p-5 bg-slate-800 border rounded-2xl flex flex-col gap-4 relative group/question transition-all ${draggedQuestionIndex === qIndex ? 'opacity-40 border-blue-500 border-dashed' : 'border-slate-700 hover:border-slate-600'}`}
                       >
-                        <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                        <div className="flex items-center justify-between pb-2 border-b border-slate-700">
                           <div 
                             className="flex items-center gap-2 cursor-pointer select-none flex-1 min-w-0" 
                             onClick={() => toggleQuestionCollapse(q.id)}
@@ -1458,20 +1458,20 @@ export default function LessonFormModal({
                             </div>
                             <span className="text-[10px] font-bold uppercase tracking-wider text-purple-600 shrink-0">Question {qIndex + 1}</span>
                             {collapsedQuestions.has(q.id) && q.question && (
-                              <span className="text-xs text-slate-800 font-bold truncate max-w-[200px] md:max-w-[350px] border-l border-slate-200 pl-2 ml-1">
+                              <span className="text-xs text-slate-200 font-bold truncate max-w-[200px] md:max-w-[350px] border-l border-slate-600 pl-2 ml-1">
                                 {q.question}
                               </span>
                             )}
                             <ChevronDown 
                               size={14} 
-                              className={`text-slate-400 transition-transform duration-200 shrink-0 ml-1 ${!collapsedQuestions.has(q.id) ? 'rotate-180' : ''}`} 
+                              className={`text-slate-500 transition-transform duration-200 shrink-0 ml-1 ${!collapsedQuestions.has(q.id) ? 'rotate-180' : ''}`} 
                             />
                           </div>
                           <div className="flex items-center gap-1">
                             <button 
                               type="button" onClick={() => moveQuestion(qIndex, 'up')}
                               disabled={qIndex === 0}
-                              className="p-1 hover:bg-slate-100 text-slate-400 hover:text-slate-700 rounded disabled:opacity-30 cursor-pointer"
+                              className="p-1 hover:bg-slate-700 text-slate-400 hover:text-slate-200 rounded disabled:opacity-30 cursor-pointer"
                               title="Move Up"
                             >
                               <ArrowUp size={12} />
@@ -1479,14 +1479,14 @@ export default function LessonFormModal({
                             <button 
                               type="button" onClick={() => moveQuestion(qIndex, 'down')}
                               disabled={qIndex === questions.length - 1}
-                              className="p-1 hover:bg-slate-100 text-slate-400 hover:text-slate-700 rounded disabled:opacity-30 cursor-pointer"
+                              className="p-1 hover:bg-slate-700 text-slate-400 hover:text-slate-200 rounded disabled:opacity-30 cursor-pointer"
                               title="Move Down"
                             >
                               <ArrowDown size={12} />
                             </button>
                             <button 
                               type="button" onClick={() => removeQuestion(qIndex)}
-                              className="text-slate-400 hover:text-rose-650 p-1 rounded-lg transition-colors cursor-pointer"
+                              className="text-slate-400 hover:text-rose-400 p-1 rounded-lg transition-colors cursor-pointer"
                               title="Delete Question"
                             >
                               <Trash2 size={14} />
@@ -1497,69 +1497,69 @@ export default function LessonFormModal({
                         {!collapsedQuestions.has(q.id) && (
                           <>
                             <div className="space-y-2">
-                              <label className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Question Prompt</label>
-                              <textarea 
-                                required
-                                value={q.question}
-                                placeholder="Type question prompt..."
-                                onChange={(e) => updateQuestionText(qIndex, e.target.value)}
-                                ref={(el) => {
-                                  if (el) {
-                                    el.style.height = 'auto';
-                                    el.style.height = `${el.scrollHeight}px`;
-                                  }
-                                }}
-                                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-black outline-none focus:border-blue-500 transition-colors min-h-[60px] resize-none overflow-hidden"
-                              />
-                            </div>
+                               <label className="text-[9px] font-bold uppercase tracking-widest text-slate-500">Question Prompt</label>
+                               <textarea 
+                                 required
+                                 value={q.question}
+                                 placeholder="Type question prompt..."
+                                 onChange={(e) => updateQuestionText(qIndex, e.target.value)}
+                                 ref={(el) => {
+                                   if (el) {
+                                     el.style.height = 'auto';
+                                     el.style.height = `${el.scrollHeight}px`;
+                                   }
+                                 }}
+                                 className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-xl text-sm font-semibold text-white outline-none focus:border-blue-500 transition-colors min-h-[60px] resize-none overflow-hidden placeholder:text-slate-500"
+                               />
+                             </div>
 
-                            <div className="space-y-3">
-                              <label className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Options (Select radio for Correct Answer)</label>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                {q.options.map((opt, optIndex) => {
-                                  const letter = ['A', 'B', 'C', 'D'][optIndex];
-                                  return (
-                                    <div key={optIndex} className="flex items-center gap-2 bg-slate-50 border border-slate-200/60 rounded-xl px-3 py-2">
-                                      <input 
-                                        type="radio" 
-                                        name={`correct-${q.id}`}
-                                        checked={q.correctIndex === optIndex}
-                                        onChange={() => updateCorrectIndex(qIndex, optIndex)}
-                                        className="w-4 h-4 text-purple-600 focus:ring-purple-500/20 border-slate-300 cursor-pointer"
-                                      />
-                                      <span className="text-xs font-black text-slate-800 mr-1">{letter}</span>
-                                      <input 
-                                        required
-                                        type="text" 
-                                        value={opt}
-                                        placeholder={`Option ${letter}`}
-                                        onChange={(e) => updateOptionText(qIndex, optIndex, e.target.value)}
-                                        className="flex-1 bg-transparent text-xs font-semibold text-black outline-none"
-                                      />
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
+                             <div className="space-y-3">
+                               <label className="text-[9px] font-bold uppercase tracking-widest text-slate-500">Options (Select radio for Correct Answer)</label>
+                               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                 {q.options.map((opt, optIndex) => {
+                                   const letter = ['A', 'B', 'C', 'D'][optIndex];
+                                   return (
+                                     <div key={optIndex} className="flex items-center gap-2 bg-slate-900 border border-slate-600 rounded-xl px-3 py-2">
+                                       <input 
+                                         type="radio" 
+                                         name={`correct-${q.id}`}
+                                         checked={q.correctIndex === optIndex}
+                                         onChange={() => updateCorrectIndex(qIndex, optIndex)}
+                                         className="w-4 h-4 text-purple-600 focus:ring-purple-500/20 border-slate-600 cursor-pointer"
+                                       />
+                                       <span className="text-xs font-black text-slate-300 mr-1">{letter}</span>
+                                       <input 
+                                         required
+                                         type="text" 
+                                         value={opt}
+                                         placeholder={`Option ${letter}`}
+                                         onChange={(e) => updateOptionText(qIndex, optIndex, e.target.value)}
+                                         className="flex-1 bg-transparent text-xs font-semibold text-white outline-none placeholder:text-slate-500"
+                                       />
+                                     </div>
+                                   );
+                                 })}
+                               </div>
+                             </div>
 
-                            <div className="space-y-2">
-                              <label className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Answer Explanation (Optional)</label>
-                              <input 
-                                type="text" 
-                                value={q.explanation}
-                                placeholder="Why is this the correct answer? Explain..."
-                                onChange={(e) => updateExplanation(qIndex, e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-black outline-none focus:border-blue-500 transition-colors"
-                              />
-                            </div>
+                             <div className="space-y-2">
+                               <label className="text-[9px] font-bold uppercase tracking-widest text-slate-500">Answer Explanation (Optional)</label>
+                               <input 
+                                 type="text" 
+                                 value={q.explanation}
+                                 placeholder="Why is this the correct answer? Explain..."
+                                 onChange={(e) => updateExplanation(qIndex, e.target.value)}
+                                 className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-xl text-xs font-medium text-white outline-none focus:border-blue-500 transition-colors placeholder:text-slate-500"
+                               />
+                             </div>
                           </>
                         )}
                       </div>
                     ))}
 
                     {questions.length === 0 && (
-                      <div className="py-12 text-center border border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
-                        <p className="text-xs font-semibold text-slate-400">No questions added yet. Click "+ Add Question" above to start building the quiz.</p>
+                      <div className="py-12 text-center border border-dashed border-slate-700 rounded-2xl bg-slate-800/30">
+                        <p className="text-xs font-semibold text-slate-500">No questions added yet. Click "+ Add Question" above to start building the quiz.</p>
                       </div>
                     )}
                   </div>
@@ -1582,13 +1582,13 @@ export default function LessonFormModal({
               <button 
                 type="button"
                 onClick={onClose}
-                className="flex-1 py-4 bg-slate-100 hover:bg-slate-200 text-slate-650 font-bold uppercase tracking-wider rounded-2xl transition-all cursor-pointer text-xs"
+                className="flex-1 py-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold uppercase tracking-wider rounded-2xl transition-all cursor-pointer text-xs"
               >
                 Cancel
               </button>
               <button 
                 disabled={isSubmitting}
-                className="flex-[2] py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold uppercase tracking-wider rounded-2xl transition-all shadow-xl shadow-blue-100 flex items-center justify-center gap-2 cursor-pointer text-xs"
+                className="flex-[2] py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold uppercase tracking-wider rounded-2xl transition-all shadow-xl shadow-blue-900/40 flex items-center justify-center gap-2 cursor-pointer text-xs"
               >
                 {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : (
                   lesson.type === 'assignment' 
@@ -1609,41 +1609,41 @@ export default function LessonFormModal({
 
       {/* Import Quiz Modal */}
       {isImportModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[200] flex items-center justify-center p-4 animate-in fade-in duration-300">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden p-6 space-y-4 always-light">
-            <div className="flex items-center justify-between border-b pb-3">
-              <h3 className="text-sm font-bold text-black">Bulk Import Quiz Questions</h3>
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-[200] flex items-center justify-center p-4 animate-in fade-in duration-300">
+          <div className="bg-slate-900 rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-sm font-bold text-white">Bulk Import Quiz Questions</h3>
               <button 
                 type="button" 
                 onClick={() => {
                   setIsImportModalOpen(false);
                   setImportText("");
                 }}
-                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-black cursor-pointer"
+                className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white cursor-pointer"
               >
                 <X size={16} />
               </button>
             </div>
             
             <div className="space-y-2">
-              <p className="text-[11px] text-slate-500 font-semibold leading-relaxed">
+              <p className="text-[11px] text-slate-400 font-semibold leading-relaxed">
                 Apne quiz questions ko niche diye gaye format mein paste karein. Har question ke sath 4 options (A, B, C, D) hone chahiye:
               </p>
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/80 text-[10px] font-mono text-slate-600 space-y-1">
+              <div className="bg-slate-800 p-3 rounded-xl border border-slate-700 text-[10px] font-mono text-slate-400 space-y-1">
                 <p>Q1. Computer kya hai?</p>
                 <p>A. Ek electronic machine (Correct)</p>
                 <p>B. Ek mobile phone</p>
                 <p>C. Ek TV</p>
                 <p>D. Ek printer</p>
-                <p className="text-purple-600 font-bold mt-1">// Tip: Correct answer ke aage (Correct) likh sakte hain ya niche Answer: A likhein.</p>
+                <p className="text-purple-400 font-bold mt-1">// Tip: Correct answer ke aage (Correct) likh sakte hain ya niche Answer: A likhein.</p>
               </div>
             </div>
 
             <textarea
               value={importText}
               onChange={(e) => setImportText(e.target.value)}
-              placeholder="Paste questions here...&#10;&#10;Q1. Computer kya hai?&#10;A. Ek electronic machine&#10;B. Ek mobile phone&#10;C. Ek TV&#10;D. Ek printer&#10;Answer: A"
-              className="w-full h-64 p-4 border border-slate-200 rounded-xl outline-none focus:border-blue-500 text-xs font-semibold text-black resize-none"
+              placeholder={"Paste questions here...&#10;&#10;Q1. Computer kya hai?&#10;A. Ek electronic machine&#10;B. Ek mobile phone&#10;C. Ek TV&#10;D. Ek printer&#10;Answer: A"}
+              className="w-full h-64 p-4 border border-slate-700 bg-slate-800 rounded-xl outline-none focus:border-blue-500 text-xs font-semibold text-white resize-none placeholder:text-slate-500"
             />
 
             <div className="flex gap-3 pt-2">
@@ -1653,7 +1653,7 @@ export default function LessonFormModal({
                   setIsImportModalOpen(false);
                   setImportText("");
                 }}
-                className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-750 font-bold uppercase tracking-wider rounded-xl text-[10px] cursor-pointer"
+                className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold uppercase tracking-wider rounded-xl text-[10px] cursor-pointer"
               >
                 Cancel
               </button>
@@ -1664,7 +1664,7 @@ export default function LessonFormModal({
                   setIsImportModalOpen(false);
                   setImportText("");
                 }}
-                className="flex-1 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold uppercase tracking-wider rounded-xl text-[10px] cursor-pointer shadow-lg shadow-purple-100"
+                className="flex-1 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold uppercase tracking-wider rounded-xl text-[10px] cursor-pointer shadow-lg shadow-purple-900/40"
               >
                 Parse & Import
               </button>

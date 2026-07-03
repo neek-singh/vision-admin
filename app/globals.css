@@ -84,6 +84,29 @@ body {
   color: #000000 !important; /* pure black */
 }
 
+/* Dark modal editor — force all text white */
+.dark-modal .rich-content,
+.dark-modal .rich-content * {
+  color: #cbd5e1 !important;
+}
+.dark-modal .rich-content h1,
+.dark-modal .rich-content h2,
+.dark-modal .rich-content h3 {
+  color: #f1f5f9 !important;
+}
+.dark-modal .rich-content strong {
+  color: #ffffff !important;
+}
+.dark-modal .rich-content p {
+  color: #cbd5e1 !important;
+}
+.dark-modal .rich-content li {
+  color: #cbd5e1 !important;
+}
+.dark-modal .rich-content a {
+  color: #93c5fd !important;
+}
+
 .dark .rich-content:not(.always-light *) {
   color: #cbd5e1; /* slate-300 */
 }
