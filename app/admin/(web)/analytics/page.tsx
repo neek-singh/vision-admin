@@ -184,7 +184,7 @@ export default function WebAnalyticsPage() {
             <FunnelStep label="Actual Registrations" value="84" percentage={0.76} color="bg-emerald-500" />
           </div>
 
-          <div className="p-3 bg-slate-50 dark:bg-slate-955 rounded-2xl text-[10px] text-slate-500 dark:text-slate-400 font-bold leading-relaxed border border-slate-100 dark:border-slate-800/40 text-center">
+          <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-2xl text-[10px] text-slate-500 dark:text-slate-400 font-bold leading-relaxed border border-slate-100 dark:border-slate-800/40 text-center">
             Overall Web Conversion rate: <span className="text-emerald-500 font-black">0.76%</span> from visit to admission.
           </div>
         </div>

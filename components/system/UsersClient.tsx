@@ -161,7 +161,7 @@ export default function UsersClient({ initialUsers }: { initialUsers: any[] }) {
           </div>
 
           {/* Tab filters */}
-          <div className="flex items-center gap-1 bg-white dark:bg-slate-955/60 p-1 border border-slate-200 dark:border-slate-800 rounded-xl">
+          <div className="flex items-center gap-1 bg-white dark:bg-slate-950/60 p-1 border border-slate-200 dark:border-slate-800 rounded-xl">
             {[
               { id: "all", label: "All Users" },
               { id: "admin", label: "Admins" },
@@ -307,7 +307,7 @@ export default function UsersClient({ initialUsers }: { initialUsers: any[] }) {
                     </span>
                   </div>
 
-                  <div className="bg-slate-50/50 dark:bg-slate-955/20 p-4 rounded-2xl border border-slate-100 dark:border-slate-850 space-y-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  <div className="bg-slate-50/50 dark:bg-slate-950/20 p-4 rounded-2xl border border-slate-100 dark:border-slate-850 space-y-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
                     <div className="flex items-center justify-between">
                       <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Email Address</span>
                       <p className="text-slate-700 dark:text-slate-200">{user.email}</p>

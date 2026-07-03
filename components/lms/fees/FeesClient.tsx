@@ -615,7 +615,7 @@ export default function FeesClient({
                       <label className="text-[10px] font-bold text-slate-400 dark:text-slate-550 uppercase tracking-widest">Select Student</label>
                       <select 
                         required 
-                        className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 outline-none font-bold text-sm text-slate-900 dark:text-slate-100 focus:border-blue-500" 
+                        className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 outline-none font-bold text-sm text-slate-900 dark:text-slate-100 focus:border-blue-500" 
                         value={setupData.student_id} 
                         onChange={(e) => setSetupData({...setupData, student_id: e.target.value})}
                       >
@@ -627,7 +627,7 @@ export default function FeesClient({
                       <label className="text-[10px] font-bold text-slate-400 dark:text-slate-550 uppercase tracking-widest">Select Course</label>
                       <select 
                         required 
-                        className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 outline-none font-bold text-sm text-slate-900 dark:text-slate-100 focus:border-blue-500" 
+                        className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 outline-none font-bold text-sm text-slate-900 dark:text-slate-100 focus:border-blue-500" 
                         value={setupData.course_id} 
                         onChange={(e) => {
                           const courseId = e.target.value;
@@ -649,7 +649,7 @@ export default function FeesClient({
                       <input 
                         required 
                         type="number" 
-                        className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 outline-none font-bold text-sm text-slate-900 dark:text-slate-100 focus:border-blue-500" 
+                        className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 outline-none font-bold text-sm text-slate-900 dark:text-slate-100 focus:border-blue-500" 
                         value={setupData.total_fee || ""} 
                         onChange={(e) => setSetupData({...setupData, total_fee: Number(e.target.value)})}
                       />
@@ -658,7 +658,7 @@ export default function FeesClient({
                       <label className="text-[10px] font-bold text-slate-400 dark:text-slate-550 uppercase tracking-widest">Discount Deduction (₹)</label>
                       <input 
                         type="number" 
-                        className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 outline-none font-bold text-sm text-slate-900 dark:text-slate-100 focus:border-blue-500" 
+                        className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 outline-none font-bold text-sm text-slate-900 dark:text-slate-100 focus:border-blue-500" 
                         value={setupData.discount || ""} 
                         onChange={(e) => setSetupData({...setupData, discount: Number(e.target.value)})}
                       />
@@ -666,7 +666,7 @@ export default function FeesClient({
                 </div>
 
                 <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-                  <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-955 p-4 rounded-2xl border border-slate-150 dark:border-slate-800/80">
+                  <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-150 dark:border-slate-800/80">
                     <div>
                       <h4 className="text-sm font-bold text-slate-900 dark:text-white">Final billing fee: <span className="text-blue-600 dark:text-blue-400">₹{finalFeeAmount.toLocaleString()}</span></h4>
                       <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mt-0.5">Calculated as: Fee - Discount</p>
@@ -691,7 +691,7 @@ export default function FeesClient({
                 </div>
 
                 {enableInstallments && (
-                  <div className="space-y-4 animate-in fade-in duration-300 bg-slate-50/50 dark:bg-slate-955/20 border border-dashed border-slate-200 dark:border-slate-800 p-6 rounded-2xl">
+                  <div className="space-y-4 animate-in fade-in duration-300 bg-slate-50/50 dark:bg-slate-950/20 border border-dashed border-slate-200 dark:border-slate-800 p-6 rounded-2xl">
                      {/* Admission & Monthly Auto-Split controls */}
                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-4 border-b border-slate-200/60 dark:border-slate-850">
                        <div className="space-y-1">
@@ -749,7 +749,7 @@ export default function FeesClient({
                                   value={inst.amount || ""}
                                   disabled={splitMode !== "custom"}
                                   onChange={(e) => updateInstallmentField(idx, 'amount', Number(e.target.value))}
-                                  className="w-full px-3 py-2 text-xs font-bold bg-white disabled:bg-slate-50/80 dark:bg-slate-900 dark:disabled:bg-slate-955/40 border border-slate-200 dark:border-slate-800 rounded-lg outline-none focus:border-blue-500 text-slate-900 dark:text-slate-100 disabled:text-slate-500"
+                                  className="w-full px-3 py-2 text-xs font-bold bg-white disabled:bg-slate-50/80 dark:bg-slate-900 dark:disabled:bg-slate-950/40 border border-slate-200 dark:border-slate-800 rounded-lg outline-none focus:border-blue-500 text-slate-900 dark:text-slate-100 disabled:text-slate-500"
                                 />
                               </div>
                               <div className="flex-[3] space-y-1">
@@ -759,7 +759,7 @@ export default function FeesClient({
                                   value={inst.due_date}
                                   disabled={splitMode !== "custom"}
                                   onChange={(e) => updateInstallmentField(idx, 'due_date', e.target.value)}
-                                  className="w-full px-3 py-2 text-xs font-semibold bg-white disabled:bg-slate-50/80 dark:bg-slate-900 dark:disabled:bg-slate-955/40 border border-slate-200 dark:border-slate-800 rounded-lg outline-none focus:border-blue-500 text-slate-900 dark:text-slate-100 disabled:text-slate-500"
+                                  className="w-full px-3 py-2 text-xs font-semibold bg-white disabled:bg-slate-50/80 dark:bg-slate-900 dark:disabled:bg-slate-950/40 border border-slate-200 dark:border-slate-800 rounded-lg outline-none focus:border-blue-500 text-slate-900 dark:text-slate-100 disabled:text-slate-500"
                                 />
                               </div>
                               <button 
@@ -867,7 +867,7 @@ export default function FeesClient({
                    <label className="text-[10px] font-bold text-slate-400 dark:text-slate-550 uppercase tracking-widest">Transaction / Reference ID (Optional)</label>
                    <input 
                      type="text" 
-                     className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 outline-none font-bold text-sm text-slate-900 dark:text-slate-100 focus:border-blue-500" 
+                     className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 outline-none font-bold text-sm text-slate-900 dark:text-slate-100 focus:border-blue-500" 
                      placeholder="e.g. TXN987654321"
                      value={paymentData.transaction_id}
                      onChange={(e) => setPaymentData({...paymentData, transaction_id: e.target.value})}
@@ -955,7 +955,7 @@ export default function FeesClient({
                                 ? 'bg-emerald-50/20 border-emerald-100 dark:border-emerald-950/20' 
                                 : isOverdue 
                                   ? 'bg-rose-50/30 border-rose-200 dark:border-rose-950/30' 
-                                  : 'bg-white dark:bg-slate-955 border-slate-200 dark:border-slate-800'
+                                  : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800'
                             }`}>
                                <div className="flex items-center justify-between gap-4">
                                   <div>
@@ -997,7 +997,7 @@ export default function FeesClient({
                    </h5>
                    <div className="space-y-3">
                       {(!showHistory.payments || showHistory.payments.length === 0) ? (
-                        <div className="py-12 text-center text-slate-350 dark:text-slate-550 text-xs font-bold bg-slate-50/50 dark:bg-slate-955/20 rounded-2xl border border-dashed border-slate-200 dark:border-slate-850 flex flex-col items-center justify-center gap-2">
+                        <div className="py-12 text-center text-slate-350 dark:text-slate-550 text-xs font-bold bg-slate-50/50 dark:bg-slate-950/20 rounded-2xl border border-dashed border-slate-200 dark:border-slate-850 flex flex-col items-center justify-center gap-2">
                            <History className="opacity-30" size={24} />
                            No payment transactions recorded.
                         </div>

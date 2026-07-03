@@ -363,7 +363,7 @@ export default function LMSChatsPage() {
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               placeholder="Type student support reply..."
-              className="flex-1 px-4 py-2.5 bg-slate-100 dark:bg-slate-955 border border-transparent focus:border-blue-500/50 focus:bg-white dark:focus:bg-slate-900 text-slate-900 dark:text-slate-100 text-xs rounded-xl outline-none transition-all"
+              className="flex-1 px-4 py-2.5 bg-slate-100 dark:bg-slate-950 border border-transparent focus:border-blue-500/50 focus:bg-white dark:focus:bg-slate-900 text-slate-900 dark:text-slate-100 text-xs rounded-xl outline-none transition-all"
             />
             <button 
               type="submit"
@@ -375,7 +375,7 @@ export default function LMSChatsPage() {
           </form>
         </div>
       ) : (
-        <div className="flex-1 flex flex-col justify-center items-center p-8 bg-slate-50/10 dark:bg-slate-955/5">
+        <div className="flex-1 flex flex-col justify-center items-center p-8 bg-slate-50/10 dark:bg-slate-950/5">
           <MessageSquare size={48} className="text-slate-300 dark:text-slate-700 animate-bounce mb-3" />
           <h3 className="font-bold text-slate-850 dark:text-slate-100 text-sm">No Student Selected</h3>
           <p className="text-xs text-slate-400 mt-1">Select a student from the support registry to start chatting.</p>
