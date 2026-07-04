@@ -210,8 +210,8 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         ${isCollapsed ? "lg:w-[84px]" : "lg:w-[270px]"} w-[270px] flex flex-col`}
       >
         {/* Sidebar Header */}
-        <div className={`h-16 flex items-center border-b border-slate-800 dark:border-slate-900/60 ${isCollapsed ? "justify-center" : "justify-between px-5"}`}>
-          {!isCollapsed ? (
+        <div className={`h-16 flex items-center border-b border-slate-800 dark:border-slate-900/60 justify-between px-5 ${isCollapsed ? "lg:justify-center lg:px-0" : ""}`}>
+          <div className={`flex items-center gap-2 ${isCollapsed ? "lg:hidden" : ""}`}>
             <Link href="/admin" className="font-bold text-lg text-white tracking-tight flex items-center gap-2">
               <div className="w-9 h-9 bg-white rounded-xl relative flex items-center justify-center p-1 shadow-md transition-transform hover:scale-105 duration-200">
                 <Image 
@@ -225,8 +225,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
               </div>
               <span className="bg-gradient-to-r from-white via-slate-100 to-slate-300 bg-clip-text text-transparent font-black tracking-wide">Vision Admin</span>
             </Link>
-          ) : (
-            <div className="w-9 h-9 bg-white rounded-xl relative flex items-center justify-center p-1 shadow-md">
+          </div>
+          {isCollapsed && (
+            <div className="hidden lg:flex w-9 h-9 bg-white rounded-xl relative items-center justify-center p-1 shadow-md">
               <Image 
                 src="https://res.cloudinary.com/ddiooxxks/image/upload/f_auto,q_auto/logo_unnut8.png" 
                 alt="Vision IT Logo" 
@@ -237,13 +238,22 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
               />
             </div>
           )}
-          <button 
-            onClick={toggleSidebar}
-            className={`p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 dark:hover:bg-slate-900/80 rounded-lg transition-all ${isCollapsed ? "hidden lg:block" : ""}`}
-            title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-          >
-            {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
-          </button>
+          <div className="flex items-center">
+            <button 
+              onClick={toggleSidebar}
+              className={`hidden lg:block p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 dark:hover:bg-slate-900/80 rounded-lg transition-all`}
+              title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+            >
+              {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+            </button>
+            <button 
+              onClick={() => setIsMobileOpen(false)}
+              className="lg:hidden p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 dark:hover:bg-slate-900/80 rounded-lg transition-all"
+              title="Close Menu"
+            >
+              <X size={20} />
+            </button>
+          </div>
         </div>
 
         {/* Sidebar Nav */}
@@ -269,11 +279,11 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                       : "hover:bg-slate-800/60 dark:hover:bg-slate-900/40 hover:text-white"}`}
                   >
                     <item.icon size={20} className={`${isActive ? "text-white" : "text-slate-400 group-hover:text-blue-400"} transition-colors`} />
-                    {!isCollapsed && (
-                      <span className="font-semibold text-sm whitespace-nowrap">{item.label}</span>
-                    )}
+                    <span className={`font-semibold text-sm whitespace-nowrap lg:block ${isCollapsed ? "lg:hidden" : ""}`}>
+                      {item.label}
+                    </span>
                     {isCollapsed && (
-                      <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-slate-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 whitespace-nowrap z-50 border border-slate-700 shadow-md">
+                      <div className="hidden lg:block absolute left-full ml-3 px-2.5 py-1.5 bg-slate-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 whitespace-nowrap z-50 border border-slate-700 shadow-md">
                         {item.label}
                       </div>
                     )}
@@ -291,9 +301,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             className="w-full flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all group relative"
           >
             <LogOut size={20} className="group-hover:text-red-400" />
-            {!isCollapsed && <span className="font-semibold text-sm">Logout</span>}
+            <span className={`font-semibold text-sm lg:block ${isCollapsed ? "lg:hidden" : ""}`}>Logout</span>
             {isCollapsed && (
-              <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-slate-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 whitespace-nowrap z-50 border border-slate-700 shadow-md">
+              <div className="hidden lg:block absolute left-full ml-3 px-2.5 py-1.5 bg-slate-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 whitespace-nowrap z-50 border border-slate-700 shadow-md">
                 Logout
               </div>
             )}
@@ -319,11 +329,11 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             </button>
             
             {/* Nav Mode Slider (Web / Learn) */}
-            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-900 p-1 rounded-xl relative border border-slate-200/50 dark:border-slate-800/50 shadow-inner">
+            <div className="flex items-center gap-0.5 sm:gap-1 bg-slate-100 dark:bg-slate-900 p-0.5 sm:p-1 rounded-xl relative border border-slate-200/50 dark:border-slate-800/50 shadow-inner">
               <Link 
                 href="/admin" 
                 onClick={() => setAdminMode("web")}
-                className={`px-4 py-1.5 rounded-lg text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all duration-200 whitespace-nowrap z-10 ${
+                className={`px-3 py-1 sm:px-4 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all duration-200 whitespace-nowrap z-10 ${
                   adminMode === "web"
                     ? "bg-white dark:bg-slate-850 text-orange-600 dark:text-orange-400 shadow-sm font-extrabold scale-105"
                     : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
@@ -334,7 +344,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
               <Link 
                 href="/admin/lms" 
                 onClick={() => setAdminMode("lms")}
-                className={`px-4 py-1.5 rounded-lg text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all duration-200 whitespace-nowrap z-10 ${
+                className={`px-3 py-1 sm:px-4 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all duration-200 whitespace-nowrap z-10 ${
                   adminMode === "lms"
                     ? "bg-white dark:bg-slate-850 text-blue-600 dark:text-blue-400 shadow-sm font-extrabold scale-105"
                     : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
@@ -345,7 +355,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 lg:gap-4">
+          <div className="flex items-center gap-1 sm:gap-2 lg:gap-4">
             {/* Search Bar */}
             <div className="hidden sm:flex items-center relative group">
               <Search className="absolute left-3.5 text-slate-400 dark:text-slate-500 group-focus-within:text-blue-500 transition-colors" size={16} />

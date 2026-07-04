@@ -29,7 +29,7 @@ export default async function CurriculumAdminPage() {
   }));
 
   return (
-    <div className="p-6">
+    <div className="p-3 sm:p-6">
       <CurriculumClient initialCourses={courses || []} availableBatches={enrichedBatches} mode="global" />
     </div>
   );

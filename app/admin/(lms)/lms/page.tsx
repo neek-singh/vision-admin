@@ -97,7 +97,7 @@ function LMSAnalytics() {
         </div>
         
         {/* SVG Bar Chart */}
-        <div className="h-60 w-full flex items-end justify-between gap-3 pt-6 border-b border-slate-100 dark:border-slate-800/60 pb-1">
+        <div className="h-60 w-full flex items-end justify-between gap-1.5 sm:gap-3 pt-6 border-b border-slate-100 dark:border-slate-800/60 pb-1">
           <div className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
             <div className="w-full bg-blue-600/10 dark:bg-blue-500/5 rounded-t-2xl h-[45%] relative group hover:bg-blue-600/20 transition-all cursor-pointer">
               <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] font-bold px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 shadow-sm">12 std</div>
@@ -428,19 +428,19 @@ export default async function LMSDashboard() {
 // 🔹 Custom StatCard Helper
 function StatCard({ icon: Icon, label, value, color, subText, progress }: any) {
   return (
-    <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200 dark:border-slate-800/80 shadow-sm flex justify-between items-start group hover:shadow-md dark:hover:shadow-slate-900/50 transition-all duration-200">
-      <div className="space-y-1.5 flex-1 pr-2">
-        <p className="text-gray-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest leading-none">{label}</p>
-        <p className="text-3xl font-black text-slate-800 dark:text-white leading-none pt-0.5">{value}</p>
-        {subText && <p className="text-[9.5px] text-slate-400 dark:text-slate-500 font-extrabold">{subText}</p>}
+    <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-3xl border border-slate-200 dark:border-slate-800/80 shadow-sm flex justify-between items-start group hover:shadow-md dark:hover:shadow-slate-900/50 transition-all duration-200">
+      <div className="space-y-1.5 flex-1 pr-2 min-w-0">
+        <p className="text-gray-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest leading-none truncate">{label}</p>
+        <p className="text-2xl sm:text-3xl font-black text-slate-800 dark:text-white leading-none pt-0.5">{value}</p>
+        {subText && <p className="text-[9.5px] text-slate-400 dark:text-slate-500 font-extrabold truncate">{subText}</p>}
         {progress !== undefined && (
           <div className="w-full h-1 bg-slate-100 dark:bg-slate-800 rounded-full mt-2 overflow-hidden">
              <div className="h-full bg-emerald-500" style={{ width: `${progress}%` }} />
           </div>
         )}
       </div>
-      <div className={`p-2.5 rounded-xl ${color} text-white bg-opacity-95 shadow-sm`}>
-        <Icon size={18} />
+      <div className={`p-2 sm:p-2.5 rounded-xl ${color} text-white bg-opacity-95 shadow-sm shrink-0`}>
+        <Icon size={16} className="sm:w-[18px] sm:h-[18px]" />
       </div>
     </div>
   );

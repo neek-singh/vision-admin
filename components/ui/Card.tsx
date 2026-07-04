@@ -6,8 +6,8 @@ const Card = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
     <div
       ref={ref}
       className={cn(
-        "group relative bg-white rounded-3xl border border-slate-200/80 shadow-sm",
-        "hover:shadow-xl hover:-translate-y-1 hover:border-slate-300/80",
+        "group relative bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm",
+        "hover:shadow-xl hover:-translate-y-1 hover:border-slate-300/80 dark:hover:border-slate-700/80",
         "transition-all duration-300 ease-out overflow-hidden",
         className
       )}
@@ -21,7 +21,7 @@ const CardHeader = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn("flex flex-col space-y-1.5 px-6 py-5 border-b border-slate-100 bg-slate-50/50", className)}
+      className={cn("flex flex-col space-y-1.5 px-6 py-5 border-b border-slate-100 dark:border-slate-800/60 bg-slate-50/50 dark:bg-slate-900/50", className)}
       {...props}
     />
   )
@@ -33,8 +33,8 @@ const CardTitle = forwardRef<HTMLHeadingElement, HTMLAttributes<HTMLHeadingEleme
     <h3
       ref={ref}
       className={cn(
-        "text-xl font-semibold leading-none tracking-tight text-slate-900",
-        "group-hover:text-blue-600 transition-colors duration-300",
+        "text-xl font-semibold leading-none tracking-tight text-slate-900 dark:text-white",
+        "group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300",
         className
       )}
       {...props}
@@ -47,7 +47,7 @@ const CardDescription = forwardRef<HTMLParagraphElement, HTMLAttributes<HTMLPara
   ({ className, ...props }, ref) => (
     <p
       ref={ref}
-      className={cn("text-sm text-slate-500", className)}
+      className={cn("text-sm text-slate-500 dark:text-slate-400", className)}
       {...props}
     />
   )
@@ -56,7 +56,7 @@ CardDescription.displayName = "CardDescription";
 
 const CardContent = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn("p-6 text-slate-700", className)} {...props} />
+    <div ref={ref} className={cn("p-6 text-slate-700 dark:text-slate-300", className)} {...props} />
   )
 );
 CardContent.displayName = "CardContent";
@@ -65,7 +65,7 @@ const CardFooter = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn("flex items-center p-6 pt-0", className)}
+      className={cn("flex items-center p-6 pt-0 text-slate-700 dark:text-slate-300", className)}
       {...props}
     />
   )

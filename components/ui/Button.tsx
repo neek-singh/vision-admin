@@ -21,11 +21,11 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       primary:
         "bg-blue-600 text-white shadow-sm hover:bg-blue-500 hover:shadow-md border border-transparent",
       secondary:
-        "bg-slate-100 text-slate-900 shadow-sm hover:bg-slate-200 border border-transparent",
+        "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 shadow-sm hover:bg-slate-200 dark:hover:bg-slate-700 border border-transparent",
       outline:
-        "border border-slate-200 bg-white text-slate-900 shadow-sm hover:bg-slate-100 hover:border-slate-300",
+        "border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 shadow-sm hover:bg-slate-100 dark:hover:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700",
       ghost:
-        "text-slate-700 hover:bg-slate-100 hover:text-slate-900",
+        "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100",
     };
 
     // 3. Adjusted sizing to standard modern UI heights

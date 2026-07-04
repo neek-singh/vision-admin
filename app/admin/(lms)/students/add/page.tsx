@@ -62,8 +62,7 @@ export default function AddStudentPage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-50 dark:bg-[#0f172a] py-6 sm:py-10 px-4 sm:px-8 text-slate-800 dark:text-slate-100 transition-colors duration-200">
-      <div className="max-w-5xl mx-auto space-y-6">
+    <div className="space-y-6 text-slate-800 dark:text-slate-100 transition-colors duration-200">
         
         {/* Back navigation */}
         <div>
@@ -247,7 +246,6 @@ export default function AddStudentPage() {
           </div>
         </div>
 
-      </div>
-    </main>
+    </div>
   );
 }

@@ -430,34 +430,31 @@ export default async function AdminPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 dark:bg-[#090f1f] px-4 sm:px-6 py-6 sm:py-10 transition-colors duration-300">
-      <div className="max-w-7xl mx-auto space-y-8">
-
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-3xl sm:text-4xl font-black text-blue-950 dark:text-white tracking-tight">
-              Website Dashboard Overview 🌐
-            </h1>
-            <p className="text-gray-500 dark:text-slate-400 mt-1 font-medium text-sm sm:text-base">
-              Manage your main website pages, blogs, batches, and enquiries.
-            </p>
-          </div>
-          <div className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
-             <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-             <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">System Online</span>
-          </div>
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-3xl sm:text-4xl font-black text-blue-950 dark:text-white tracking-tight">
+            Website Dashboard Overview 🌐
+          </h1>
+          <p className="text-gray-500 dark:text-slate-400 mt-1 font-medium text-sm sm:text-base">
+            Manage your main website pages, blogs, batches, and enquiries.
+          </p>
         </div>
-
-        <Suspense fallback={<DashboardSkeleton />}>
-          <div className="space-y-8">
-            <StatsSection supabase={supabase} />
-            <WebAnalytics />
-            <DashboardDetails supabase={supabase} />
-          </div>
-        </Suspense>
+        <div className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
+           <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+           <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">System Online</span>
+        </div>
       </div>
-    </main>
+
+      <Suspense fallback={<DashboardSkeleton />}>
+        <div className="space-y-8">
+          <StatsSection supabase={supabase} />
+          <WebAnalytics />
+          <DashboardDetails supabase={supabase} />
+        </div>
+      </Suspense>
+    </div>
   );
 }
 
@@ -481,14 +478,14 @@ function DashboardSkeleton() {
 // 🔹 UI Components
 function Card({ label, value, subText, color = "bg-blue-600", icon: Icon }: any) {
   return (
-    <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800/80 group hover:shadow-md dark:hover:shadow-slate-900/50 transition-all duration-200 flex justify-between items-start">
-      <div className="space-y-1.5">
-        <p className="text-gray-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest leading-none">{label}</p>
-        <p className="text-3.5xl font-black text-blue-950 dark:text-white leading-none pt-0.5">{value}</p>
-        {subText && <p className="text-[9.5px] text-slate-400 dark:text-slate-500 font-extrabold whitespace-nowrap">{subText}</p>}
+    <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800/80 group hover:shadow-md dark:hover:shadow-slate-900/50 transition-all duration-200 flex justify-between items-start">
+      <div className="space-y-1.5 min-w-0">
+        <p className="text-gray-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest leading-none truncate">{label}</p>
+        <p className="text-2xl sm:text-3.5xl font-black text-blue-950 dark:text-white leading-none pt-0.5">{value}</p>
+        {subText && <p className="text-[9.5px] text-slate-400 dark:text-slate-500 font-extrabold">{subText}</p>}
       </div>
-      <div className={`p-2.5 rounded-xl ${color} text-white bg-opacity-95 shadow-sm`}>
-        <Icon size={18} />
+      <div className={`p-2 sm:p-2.5 rounded-xl ${color} text-white bg-opacity-95 shadow-sm shrink-0`}>
+        <Icon size={16} className="sm:w-[18px] sm:h-[18px]" />
       </div>
     </div>
   );

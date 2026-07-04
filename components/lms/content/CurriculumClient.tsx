@@ -67,6 +67,7 @@ export default function CourseContentManagement({
   const [draggedItem, setDraggedItem] = useState<{ id: string, type: 'module' | 'chapter' | 'lesson', parentId?: string } | null>(null);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [previewLesson, setPreviewLesson] = useState<any>(null);
+  const [showRoadmapMobile, setShowRoadmapMobile] = useState(false);
 
   // Advanced Search & Filter States
   const [searchQuery, setSearchQuery] = useState("");
@@ -921,12 +922,12 @@ export default function CourseContentManagement({
       </div>
 
       {/* Curriculum Summary Dashboard */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
 
         {/* Modules Stat */}
         <div
           onClick={collapseAll}
-          className="group relative bg-white dark:bg-slate-900/80 rounded-2xl border border-slate-100 dark:border-slate-800 p-5 shadow-sm hover:shadow-md hover:border-blue-100 dark:hover:border-blue-900/40 hover:-translate-y-0.5 transition-all cursor-pointer overflow-hidden"
+          className="group relative bg-white dark:bg-slate-900/80 rounded-2xl border border-slate-100 dark:border-slate-800 p-5 shadow-sm hover:shadow-md hover:border-blue-100 dark:hover:border-blue-900/40 hover:-translate-y-0.5 transition-all cursor-pointer overflow-hidden col-span-1"
           title="Click to collapse all modules"
         >
           <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl group-hover:bg-blue-500/10 transition-colors" />
@@ -944,7 +945,7 @@ export default function CourseContentManagement({
         {/* Chapters Stat */}
         <div
           onClick={expandAll}
-          className="group relative bg-white dark:bg-slate-900/80 rounded-2xl border border-slate-100 dark:border-slate-800 p-5 shadow-sm hover:shadow-md hover:border-indigo-100 dark:hover:border-indigo-900/40 hover:-translate-y-0.5 transition-all cursor-pointer overflow-hidden"
+          className="group relative bg-white dark:bg-slate-900/80 rounded-2xl border border-slate-100 dark:border-slate-800 p-5 shadow-sm hover:shadow-md hover:border-indigo-100 dark:hover:border-indigo-900/40 hover:-translate-y-0.5 transition-all cursor-pointer overflow-hidden col-span-1"
           title="Click to expand all modules"
         >
           <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 rounded-full blur-2xl group-hover:bg-indigo-500/10 transition-colors" />
@@ -962,7 +963,7 @@ export default function CourseContentManagement({
         {/* Total Classes Stat */}
         <div
           onClick={() => setContentTypeFilter('all')}
-          className={`group relative bg-white dark:bg-slate-900/80 rounded-2xl border p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer overflow-hidden ${contentTypeFilter === 'all'
+          className={`group relative bg-white dark:bg-slate-900/80 rounded-2xl border p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer overflow-hidden col-span-2 sm:col-span-1 ${contentTypeFilter === 'all'
             ? 'border-purple-200 dark:border-purple-900/60 ring-2 ring-purple-500/20'
             : 'border-slate-100 dark:border-slate-800 hover:border-purple-100 dark:hover:border-purple-900/40'
             }`}
@@ -981,7 +982,7 @@ export default function CourseContentManagement({
         </div>
 
         {/* Content Type Filter Stat */}
-        <div className="group relative bg-white dark:bg-slate-900/80 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col justify-center gap-2">
+        <div className="col-span-2 sm:col-span-3 lg:col-span-1 group relative bg-white dark:bg-slate-900/80 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col justify-center gap-2">
           <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-550 px-1">Filter by Type</p>
           <div className="flex flex-wrap gap-1.5">
             <button
@@ -1121,11 +1122,21 @@ export default function CourseContentManagement({
         {!isFullScreen && (
           <div className="lg:col-span-3 space-y-4">
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden sticky top-24">
-              <div className="p-4 border-b border-slate-100/60 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-between">
-                <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Module Roadmap</h3>
+              <div 
+                className="p-4 border-b border-slate-100/60 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-between cursor-pointer lg:cursor-default select-none"
+                onClick={() => {
+                  if (window.innerWidth < 1024) {
+                    setShowRoadmapMobile(!showRoadmapMobile);
+                  }
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Module Roadmap</h3>
+                  <ChevronDown size={14} className={`text-slate-400 transition-transform lg:hidden ${showRoadmapMobile ? 'rotate-180' : ''}`} />
+                </div>
                 <span className="px-2.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-[11px] font-bold text-slate-655 dark:text-slate-450 rounded-full">{filteredModules.length}</span>
               </div>
-              <div className="p-3 max-h-[60vh] overflow-y-auto custom-scrollbar relative space-y-1">
+              <div className={`p-3 max-h-[60vh] overflow-y-auto custom-scrollbar relative space-y-1 lg:block ${showRoadmapMobile ? 'block' : 'hidden'}`}>
                 {/* Visual Timeline line */}
                 <div className="absolute left-7 top-6 bottom-6 w-[2px] bg-slate-100 dark:bg-slate-800 pointer-events-none" />
 
@@ -1141,7 +1152,7 @@ export default function CourseContentManagement({
                     <div className="flex-1 min-w-0 mt-0.5">
                       <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors line-clamp-1">{module.title}</p>
                       <div className="flex items-center gap-2 mt-0.5">
-                        <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
+                        <p className="text-[10px] text-slate-400 dark:text-slate-550 font-medium">
                           {(module.lms_chapters?.length || 0)} chapters • {getClassCount(module.lessons) + (module.lms_chapters?.reduce((sum: number, c: any) => sum + getClassCount(c.lessons), 0) || 0)} classes
                         </p>
                       </div>
@@ -1152,7 +1163,7 @@ export default function CourseContentManagement({
               <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/20 dark:bg-slate-900/20">
                 <button
                   onClick={() => setModuleModal({ show: true, isEditing: false })}
-                  className="w-full py-2.5 border border-dashed border-slate-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-800 hover:bg-blue-50/30 dark:hover:bg-blue-950/20 hover:text-blue-600 dark:hover:text-blue-400 transition-all rounded-xl text-xs font-semibold text-slate-400 dark:text-slate-550 flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full py-2.5 border border-dashed border-slate-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-800 hover:bg-blue-50/30 dark:hover:bg-blue-950/20 hover:text-blue-600 dark:hover:text-blue-400 transition-all rounded-xl text-xs font-semibold text-slate-400 dark:text-slate-555 flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Plus size={14} /> Add New Module
                 </button>
@@ -1314,11 +1325,32 @@ export default function CourseContentManagement({
                                     <p className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold uppercase tracking-wider">{getClassCount(chapter.lessons)} Classes</p>
                                   </div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                  <div className={`p-1.5 rounded-lg transition-all ${isChapterExpanded(chapter.id) ? 'rotate-180 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400' : 'text-slate-350 dark:text-slate-655'}`}>
+                                <div className="flex items-center gap-1 sm:gap-2">
+                                  <div className={`p-1 sm:p-1.5 rounded-lg transition-all ${isChapterExpanded(chapter.id) ? 'rotate-180 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400' : 'text-slate-350 dark:text-slate-655'}`}>
                                     <ChevronDown size={14} />
                                   </div>
-                                  <div className="h-4 w-[1px] bg-slate-100 dark:bg-slate-800 mx-1" />
+                                  <div className="h-4 w-[1px] bg-slate-100 dark:bg-slate-800 mx-0.5 sm:mx-1" />
+                                  
+                                  {/* Mobile-friendly Add Class button */}
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setLessonModal({
+                                        show: true,
+                                        moduleId: module.id,
+                                        chapterId: chapter.id,
+                                        isEditing: false,
+                                        initialData: {}, // type selected in modal dropdown
+                                        currentLessonsCount: (chapter.lessons?.length || 0)
+                                      });
+                                    }}
+                                    className="md:hidden p-1.5 bg-blue-50 hover:bg-blue-105 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400 rounded-lg transition-all flex items-center justify-center shrink-0"
+                                    title="Add Class / Lesson"
+                                  >
+                                    <Plus size={14} />
+                                  </button>
+
+                                  {/* Desktop-only individual add buttons */}
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
@@ -1331,7 +1363,7 @@ export default function CourseContentManagement({
                                         currentLessonsCount: (chapter.lessons?.length || 0)
                                       });
                                     }}
-                                    className="p-1.5 hover:bg-blue-50 dark:hover:bg-blue-950/40 text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-all rounded-lg cursor-pointer"
+                                    className="hidden md:flex p-1.5 hover:bg-blue-50 dark:hover:bg-blue-950/40 text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-all rounded-lg cursor-pointer"
                                     title="Add Video Class"
                                   >
                                     <Video size={14} />
@@ -1348,7 +1380,7 @@ export default function CourseContentManagement({
                                         currentLessonsCount: (chapter.lessons?.length || 0)
                                       });
                                     }}
-                                    className="p-1.5 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all rounded-lg cursor-pointer"
+                                    className="hidden md:flex p-1.5 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all rounded-lg cursor-pointer"
                                     title="Add Theory Lesson"
                                   >
                                     <BookOpen size={14} />
@@ -1365,7 +1397,7 @@ export default function CourseContentManagement({
                                         currentLessonsCount: (chapter.lessons?.length || 0)
                                       });
                                     }}
-                                    className="p-1.5 hover:bg-amber-50 dark:hover:bg-amber-950/40 text-slate-500 hover:text-amber-600 dark:hover:text-amber-400 transition-all rounded-lg cursor-pointer"
+                                    className="hidden md:flex p-1.5 hover:bg-amber-50 dark:hover:bg-amber-950/40 text-slate-500 hover:text-amber-605 dark:hover:text-amber-405 transition-all rounded-lg cursor-pointer"
                                     title="Add Assignment"
                                   >
                                     <Award size={14} />
@@ -1382,7 +1414,7 @@ export default function CourseContentManagement({
                                         currentLessonsCount: (chapter.lessons?.length || 0)
                                       });
                                     }}
-                                    className="p-1.5 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all rounded-lg cursor-pointer"
+                                    className="hidden md:flex p-1.5 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all rounded-lg cursor-pointer"
                                     title="Add Project"
                                   >
                                     <FolderCode size={14} />
@@ -1399,14 +1431,14 @@ export default function CourseContentManagement({
                                         currentLessonsCount: (chapter.lessons?.length || 0)
                                       });
                                     }}
-                                    className="p-1.5 hover:bg-purple-50 dark:hover:bg-purple-950/40 text-slate-500 hover:text-purple-600 dark:hover:text-purple-400 transition-all rounded-lg cursor-pointer"
+                                    className="hidden md:flex p-1.5 hover:bg-purple-50 dark:hover:bg-purple-950/40 text-slate-500 hover:text-purple-600 dark:hover:text-purple-400 transition-all rounded-lg cursor-pointer"
                                     title="Add Quiz"
                                   >
                                     <HelpCircle size={14} />
                                   </button>
                                   <button
                                     onClick={(e) => { e.stopPropagation(); setChapterModal({ show: true, moduleId: module.id, isEditing: true, chapterId: chapter.id, initialData: chapter, currentChaptersCount: module.lms_chapters.length }); }}
-                                    className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all rounded-lg cursor-pointer"
+                                    className="p-1 sm:p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all rounded-lg cursor-pointer"
                                     title="Edit Chapter"
                                   >
                                     <Edit2 size={14} />
@@ -1418,7 +1450,7 @@ export default function CourseContentManagement({
                                       title={chapter.title}
                                       onSuccess={handleRefresh}
                                       showText={false}
-                                      className="p-1.5 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-rose-500 hover:text-rose-600 border border-transparent hover:border-rose-200 dark:hover:border-rose-900/40 rounded-lg transition-all cursor-pointer flex items-center justify-center"
+                                      className="p-1 sm:p-1.5 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-rose-500 hover:text-rose-600 border border-transparent hover:border-rose-200 dark:hover:border-rose-900/40 rounded-lg transition-all cursor-pointer flex items-center justify-center"
                                     />
                                   </div>
                                 </div>
@@ -1470,27 +1502,36 @@ export default function CourseContentManagement({
                                         return (
                                           <div
                                             key={lesson.id}
-                                            className="group/lesson flex items-center gap-4 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all border border-transparent hover:border-slate-100 dark:hover:border-slate-800 shadow-sm bg-white dark:bg-slate-900"
+                                            className="group/lesson flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all border border-transparent hover:border-slate-100 dark:hover:border-slate-800 shadow-sm bg-white dark:bg-slate-900"
                                             draggable={reorderEnabled}
                                             onDragStart={(e) => { e.stopPropagation(); reorderEnabled && onDragStart(e, lesson.id, 'lesson', chapter.id); }}
                                             onDragEnd={(e) => { e.stopPropagation(); onDragEnd(e); }}
                                             onDragOver={(e) => e.preventDefault()}
                                             onDragEnter={(e) => { e.stopPropagation(); reorderEnabled && handleDragEnter(e, lesson.id, 'lesson', chapter.id); }}
                                           >
-                                            {reorderEnabled ? (
-                                              <GripVertical size={14} className="text-slate-200 dark:text-slate-700 group-hover/lesson:text-slate-455 cursor-grab shrink-0" />
-                                            ) : (
-                                              <div className="text-slate-200 dark:text-slate-800/80 p-0.5 shrink-0" title="Reordering disabled during filtering">
-                                                <Lock size={10} className="opacity-60" />
+                                            <div className="flex items-center gap-3 w-full sm:w-auto">
+                                              {reorderEnabled ? (
+                                                <GripVertical size={14} className="text-slate-200 dark:text-slate-700 group-hover/lesson:text-slate-455 cursor-grab shrink-0" />
+                                              ) : (
+                                                <div className="text-slate-200 dark:text-slate-800/80 p-0.5 shrink-0" title="Reordering disabled during filtering">
+                                                  <Lock size={10} className="opacity-60" />
+                                                </div>
+                                              )}
+                                              <div className={`p-1.5 rounded-lg ${typeColor} shrink-0`}>
+                                                <TypeIcon size={14} />
                                               </div>
-                                            )}
-                                            <div className={`p-1.5 rounded-lg ${typeColor} shrink-0`}>
-                                              <TypeIcon size={14} />
+                                              <div className="px-2 h-6 shrink-0 rounded bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-[10px] font-bold text-slate-500 dark:text-slate-455 border border-slate-100/50 dark:border-slate-800">
+                                                {lesson.classIndex ? `Class ${lesson.classIndex}` : lessonType === 'assignment' ? 'Assignment' : lessonType === 'project' ? 'Project' : 'Quiz'}
+                                              </div>
+                                              
+                                              {/* Mobile Title - wraps inside the top row on mobile */}
+                                              <div className="flex-1 min-w-0 sm:hidden">
+                                                <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{lesson.title}</h4>
+                                              </div>
                                             </div>
-                                            <div className="px-2 h-6 shrink-0 rounded bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-[10px] font-bold text-slate-500 dark:text-slate-455 border border-slate-100/50 dark:border-slate-800">
-                                              {lesson.classIndex ? `Class ${lesson.classIndex}` : lessonType === 'assignment' ? 'Assignment' : lessonType === 'project' ? 'Project' : 'Quiz'}
-                                            </div>
-                                            <div className="flex-1 min-w-0">
+
+                                            {/* Desktop Title & Badges */}
+                                            <div className="hidden sm:block flex-1 min-w-0">
                                               <div className="flex flex-wrap items-center gap-2">
                                                 <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{lesson.title}</h4>
                                                 <span className={`text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md ${typeColor}`}>
@@ -1512,44 +1553,70 @@ export default function CourseContentManagement({
                                               </div>
                                             </div>
 
-                                            {/* Access Toggles */}
-                                            <div className="flex items-center gap-1.5 shrink-0 select-none">
-                                              <button
-                                                onClick={(e) => { e.stopPropagation(); toggleLessonField(lesson.id, 'is_free', lesson.is_free); }}
-                                                className={`px-1.5 py-0.5 rounded-md border text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer hover:scale-[1.03] active:scale-[0.97] ${lesson.is_free
-                                                  ? 'bg-emerald-50 hover:bg-emerald-105 border-emerald-200 text-emerald-705 dark:bg-emerald-950/30 dark:border-emerald-900/50 dark:text-emerald-400'
-                                                  : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-455'
-                                                  }`}
-                                                title={lesson.is_free ? "Toggle to Paid only" : "Toggle to Free Preview"}
-                                              >
-                                                {lesson.is_free ? <Eye size={10} className="text-emerald-600 dark:text-emerald-400" /> : <EyeOff size={10} className="text-slate-400 dark:text-slate-555" />}
-                                                {lesson.is_free ? "Free" : "Paid"}
-                                              </button>
-
-                                              <button
-                                                onClick={(e) => { e.stopPropagation(); toggleLessonField(lesson.id, 'is_locked', lesson.is_locked); }}
-                                                className={`px-1.5 py-0.5 rounded-md border text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer hover:scale-[1.03] active:scale-[0.97] ${lesson.is_locked
-                                                  ? 'bg-rose-50 hover:bg-rose-100 border-rose-200 text-rose-700 dark:bg-rose-950/30 dark:border-rose-900/50 dark:text-rose-455'
-                                                  : 'bg-blue-50 hover:bg-blue-105 border-blue-200 text-blue-700 dark:bg-blue-950/30 dark:border-blue-900/50 dark:text-blue-400'
-                                                  }`}
-                                                title={lesson.is_locked ? "Click to unlock class" : "Click to lock class"}
-                                              >
-                                                {lesson.is_locked ? <Lock size={10} className="text-rose-600 dark:text-rose-455" /> : <Unlock size={10} className="text-blue-600 dark:text-blue-400" />}
-                                                {lesson.is_locked ? "Locked" : "Unlocked"}
-                                              </button>
+                                            {/* Mobile Title Badges (stacked below the top row on mobile) */}
+                                            <div className="sm:hidden px-9 space-y-1">
+                                              <div className="flex flex-wrap items-center gap-1.5">
+                                                <span className={`text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md ${typeColor}`}>
+                                                  {typeLabel}
+                                                </span>
+                                                {lesson.batches && lesson.batches.length > 0 && (
+                                                  <div className="flex flex-wrap gap-1">
+                                                    {lesson.batches.map((bid: string) => {
+                                                      const b = availableBatches.find(x => x.id === bid);
+                                                      if (!b) return null;
+                                                      return (
+                                                        <span key={bid} className="text-[8px] font-bold text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40 dark:text-indigo-405 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                                                          {b.type}
+                                                        </span>
+                                                      );
+                                                    })}
+                                                  </div>
+                                                )}
+                                              </div>
                                             </div>
 
-                                            <div className="flex items-center gap-1 opacity-0 group-hover/lesson:opacity-100 transition-opacity">
-                                              <button onClick={() => setPreviewLesson(lesson)} className="w-7 h-7 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-555 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all shadow-sm cursor-pointer" title="Preview Class"><Eye size={12} /></button>
-                                              <button onClick={() => setLessonModal({ show: true, moduleId: module.id, chapterId: chapter.id, isEditing: true, lessonId: lesson.id, initialData: lesson })} className="w-7 h-7 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-555 hover:text-blue-600 dark:hover:text-blue-400 transition-all shadow-sm cursor-pointer" title="Edit Class"><Edit2 size={12} /></button>
-                                              <DeleteButton
-                                                id={lesson.id}
-                                                table="lessons"
-                                                title={lesson.title}
-                                                onSuccess={handleRefresh}
-                                                showText={false}
-                                                className="w-7 h-7 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-555 hover:text-rose-600 hover:border-rose-100 hover:bg-rose-50 dark:hover:text-rose-455 dark:hover:border-rose-900/40 dark:hover:bg-rose-950/30 transition-all shadow-sm cursor-pointer"
-                                              />
+                                            {/* Action & Access Bar - stacked on mobile, row on desktop */}
+                                            <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto shrink-0 mt-2 sm:mt-0 border-t border-slate-100/50 dark:border-slate-800/40 sm:border-none pt-2.5 sm:pt-0 pl-9 sm:pl-0">
+                                              {/* Access Toggles */}
+                                              <div className="flex items-center gap-1.5 select-none">
+                                                <button
+                                                  onClick={(e) => { e.stopPropagation(); toggleLessonField(lesson.id, 'is_free', lesson.is_free); }}
+                                                  className={`px-1.5 py-0.5 rounded-md border text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer hover:scale-[1.03] active:scale-[0.97] ${lesson.is_free
+                                                    ? 'bg-emerald-50 hover:bg-emerald-105 border-emerald-200 text-emerald-705 dark:bg-emerald-950/30 dark:border-emerald-900/50 dark:text-emerald-400'
+                                                    : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-455'
+                                                    }`}
+                                                  title={lesson.is_free ? "Toggle to Paid only" : "Toggle to Free Preview"}
+                                                >
+                                                  {lesson.is_free ? <Eye size={10} className="text-emerald-600 dark:text-emerald-400" /> : <EyeOff size={10} className="text-slate-400 dark:text-slate-555" />}
+                                                  {lesson.is_free ? "Free" : "Paid"}
+                                                </button>
+
+                                                <button
+                                                  onClick={(e) => { e.stopPropagation(); toggleLessonField(lesson.id, 'is_locked', lesson.is_locked); }}
+                                                  className={`px-1.5 py-0.5 rounded-md border text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer hover:scale-[1.03] active:scale-[0.97] ${lesson.is_locked
+                                                    ? 'bg-rose-50 hover:bg-rose-100 border-rose-200 text-rose-700 dark:bg-rose-950/30 dark:border-rose-900/50 dark:text-rose-455'
+                                                    : 'bg-blue-50 hover:bg-blue-105 border-blue-200 text-blue-707 dark:bg-blue-950/30 dark:border-blue-900/50 dark:text-blue-400'
+                                                    }`}
+                                                  title={lesson.is_locked ? "Click to unlock class" : "Click to lock class"}
+                                                >
+                                                  {lesson.is_locked ? <Lock size={10} className="text-rose-600 dark:text-rose-455" /> : <Unlock size={10} className="text-blue-600 dark:text-blue-400" />}
+                                                  {lesson.is_locked ? "Locked" : "Unlocked"}
+                                                </button>
+                                              </div>
+
+                                              {/* Actions (Preview, Edit, Delete) - always visible on mobile, hover-only on desktop */}
+                                              <div className="flex items-center gap-1 sm:opacity-0 sm:group-hover/lesson:opacity-100 transition-opacity">
+                                                <button onClick={() => setPreviewLesson(lesson)} className="w-7 h-7 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-555 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all shadow-sm cursor-pointer" title="Preview Class"><Eye size={12} /></button>
+                                                <button onClick={() => setLessonModal({ show: true, moduleId: module.id, chapterId: chapter.id, isEditing: true, lessonId: lesson.id, initialData: lesson })} className="w-7 h-7 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-555 hover:text-blue-600 dark:hover:text-blue-400 transition-all shadow-sm cursor-pointer" title="Edit Class"><Edit2 size={12} /></button>
+                                                <DeleteButton
+                                                  id={lesson.id}
+                                                  table="lessons"
+                                                  title={lesson.title}
+                                                  onSuccess={handleRefresh}
+                                                  showText={false}
+                                                  className="w-7 h-7 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-555 hover:text-rose-600 hover:border-rose-100 hover:bg-rose-50 dark:hover:text-rose-455 dark:hover:border-rose-900/40 dark:hover:bg-rose-950/30 transition-all shadow-sm cursor-pointer"
+                                                />
+                                              </div>
                                             </div>
                                           </div>
                                         );
@@ -1599,27 +1666,36 @@ export default function CourseContentManagement({
                               return (
                                 <div
                                   key={lesson.id}
-                                  className="group/lesson flex items-center gap-4 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all border border-transparent hover:border-slate-100 dark:hover:border-slate-800 shadow-sm bg-white dark:bg-slate-900"
+                                  className="group/lesson flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all border border-transparent hover:border-slate-100 dark:hover:border-slate-800 shadow-sm bg-white dark:bg-slate-900"
                                   draggable={reorderEnabled}
                                   onDragStart={(e) => { e.stopPropagation(); reorderEnabled && onDragStart(e, lesson.id, 'lesson', module.id); }}
                                   onDragEnd={(e) => { e.stopPropagation(); onDragEnd(e); }}
                                   onDragOver={(e) => e.preventDefault()}
                                   onDragEnter={(e) => { e.stopPropagation(); reorderEnabled && handleDragEnter(e, lesson.id, 'lesson', module.id); }}
                                 >
-                                  {reorderEnabled ? (
-                                    <GripVertical size={14} className="text-slate-200 dark:text-slate-700 group-hover/lesson:text-slate-455 cursor-grab shrink-0" />
-                                  ) : (
-                                    <div className="text-slate-200 dark:text-slate-800/80 p-0.5 shrink-0" title="Reordering disabled during filtering">
-                                      <Lock size={10} className="opacity-60" />
+                                  <div className="flex items-center gap-3 w-full sm:w-auto">
+                                    {reorderEnabled ? (
+                                      <GripVertical size={14} className="text-slate-200 dark:text-slate-700 group-hover/lesson:text-slate-455 cursor-grab shrink-0" />
+                                    ) : (
+                                      <div className="text-slate-200 dark:text-slate-800/80 p-0.5 shrink-0" title="Reordering disabled during filtering">
+                                        <Lock size={10} className="opacity-60" />
+                                      </div>
+                                    )}
+                                    <div className={`p-1.5 rounded-lg ${typeColor} shrink-0`}>
+                                      <TypeIcon size={14} />
                                     </div>
-                                  )}
-                                  <div className={`p-1.5 rounded-lg ${typeColor} shrink-0`}>
-                                    <TypeIcon size={14} />
+                                    <div className="px-2 h-6 shrink-0 rounded bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-[10px] font-bold text-slate-500 dark:text-slate-455 border border-slate-100/50 dark:border-slate-800">
+                                      Class {lIndex + 1}
+                                    </div>
+                                    
+                                    {/* Mobile Title - wraps inside the top row on mobile */}
+                                    <div className="flex-1 min-w-0 sm:hidden">
+                                      <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{lesson.title}</h4>
+                                    </div>
                                   </div>
-                                  <div className="px-2 h-6 shrink-0 rounded bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-[10px] font-bold text-slate-500 dark:text-slate-455 border border-slate-100/50 dark:border-slate-800">
-                                    Class {lIndex + 1}
-                                  </div>
-                                  <div className="flex-1 min-w-0">
+
+                                  {/* Desktop Title & Badges */}
+                                  <div className="hidden sm:block flex-1 min-w-0">
                                     <div className="flex flex-wrap items-center gap-2">
                                       <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{lesson.title}</h4>
                                       <span className={`text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md ${typeColor}`}>
@@ -1641,44 +1717,70 @@ export default function CourseContentManagement({
                                     </div>
                                   </div>
 
-                                  {/* Access Toggles */}
-                                  <div className="flex items-center gap-1.5 shrink-0 select-none">
-                                    <button
-                                      onClick={(e) => { e.stopPropagation(); toggleLessonField(lesson.id, 'is_free', lesson.is_free); }}
-                                      className={`px-1.5 py-0.5 rounded-md border text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer hover:scale-[1.03] active:scale-[0.97] ${lesson.is_free
-                                        ? 'bg-emerald-50 hover:bg-emerald-105 border-emerald-200 text-emerald-705 dark:bg-emerald-950/30 dark:border-emerald-900/50 dark:text-emerald-400'
-                                        : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-455'
-                                        }`}
-                                      title={lesson.is_free ? "Toggle to Paid only" : "Toggle to Free Preview"}
-                                    >
-                                      {lesson.is_free ? <Eye size={10} className="text-emerald-600 dark:text-emerald-400" /> : <EyeOff size={10} className="text-slate-400 dark:text-slate-555" />}
-                                      {lesson.is_free ? "Free" : "Paid"}
-                                    </button>
-
-                                    <button
-                                      onClick={(e) => { e.stopPropagation(); toggleLessonField(lesson.id, 'is_locked', lesson.is_locked); }}
-                                      className={`px-1.5 py-0.5 rounded-md border text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer hover:scale-[1.03] active:scale-[0.97] ${lesson.is_locked
-                                        ? 'bg-rose-50 hover:bg-rose-100 border-rose-200 text-rose-700 dark:bg-rose-950/30 dark:border-rose-900/50 dark:text-rose-455'
-                                        : 'bg-blue-50 hover:bg-blue-105 border-blue-200 text-blue-700 dark:bg-blue-950/30 dark:border-blue-900/50 dark:text-blue-400'
-                                        }`}
-                                      title={lesson.is_locked ? "Click to unlock class" : "Click to lock class"}
-                                    >
-                                      {lesson.is_locked ? <Lock size={10} className="text-rose-600 dark:text-rose-455" /> : <Unlock size={10} className="text-blue-600 dark:text-blue-400" />}
-                                      {lesson.is_locked ? "Locked" : "Unlocked"}
-                                    </button>
+                                  {/* Mobile Title Badges (stacked below the top row on mobile) */}
+                                  <div className="sm:hidden px-9 space-y-1">
+                                    <div className="flex flex-wrap items-center gap-1.5">
+                                      <span className={`text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md ${typeColor}`}>
+                                        {typeLabel}
+                                      </span>
+                                      {lesson.batches && lesson.batches.length > 0 && (
+                                        <div className="flex flex-wrap gap-1">
+                                          {lesson.batches.map((bid: string) => {
+                                            const b = availableBatches.find(x => x.id === bid);
+                                            if (!b) return null;
+                                            return (
+                                              <span key={bid} className="text-[8px] font-bold text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40 dark:text-indigo-400 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                                                {b.type}
+                                              </span>
+                                            );
+                                          })}
+                                        </div>
+                                      )}
+                                    </div>
                                   </div>
 
-                                  <div className="flex items-center gap-1 opacity-0 group-hover/lesson:opacity-100 transition-opacity">
-                                    <button onClick={() => setPreviewLesson(lesson)} className="w-7 h-7 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-555 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all shadow-sm cursor-pointer" title="Preview Class"><Eye size={12} /></button>
-                                    <button onClick={() => setLessonModal({ show: true, moduleId: module.id, isEditing: true, lessonId: lesson.id, initialData: lesson })} className="w-7 h-7 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-555 hover:text-blue-600 dark:hover:text-blue-400 transition-all shadow-sm cursor-pointer" title="Edit Class"><Edit2 size={12} /></button>
-                                    <DeleteButton
-                                      id={lesson.id}
-                                      table="lessons"
-                                      title={lesson.title}
-                                      onSuccess={handleRefresh}
-                                      showText={false}
-                                      className="w-7 h-7 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-555 hover:text-rose-600 hover:border-rose-100 hover:bg-rose-50 dark:hover:text-rose-455 dark:hover:border-rose-900/40 dark:hover:bg-rose-950/30 transition-all shadow-sm cursor-pointer"
-                                    />
+                                  {/* Action & Access Bar - stacked on mobile, row on desktop */}
+                                  <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto shrink-0 mt-2 sm:mt-0 border-t border-slate-100/50 dark:border-slate-800/40 sm:border-none pt-2.5 sm:pt-0 pl-9 sm:pl-0">
+                                    {/* Access Toggles */}
+                                    <div className="flex items-center gap-1.5 select-none">
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); toggleLessonField(lesson.id, 'is_free', lesson.is_free); }}
+                                        className={`px-1.5 py-0.5 rounded-md border text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer hover:scale-[1.03] active:scale-[0.97] ${lesson.is_free
+                                          ? 'bg-emerald-50 hover:bg-emerald-105 border-emerald-200 text-emerald-705 dark:bg-emerald-950/30 dark:border-emerald-900/50 dark:text-emerald-400'
+                                          : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-455'
+                                          }`}
+                                        title={lesson.is_free ? "Toggle to Paid only" : "Toggle to Free Preview"}
+                                      >
+                                        {lesson.is_free ? <Eye size={10} className="text-emerald-600 dark:text-emerald-400" /> : <EyeOff size={10} className="text-slate-400 dark:text-slate-555" />}
+                                        {lesson.is_free ? "Free" : "Paid"}
+                                      </button>
+
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); toggleLessonField(lesson.id, 'is_locked', lesson.is_locked); }}
+                                        className={`px-1.5 py-0.5 rounded-md border text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer hover:scale-[1.03] active:scale-[0.97] ${lesson.is_locked
+                                          ? 'bg-rose-50 hover:bg-rose-100 border-rose-200 text-rose-700 dark:bg-rose-950/30 dark:border-rose-900/50 dark:text-rose-455'
+                                          : 'bg-blue-50 hover:bg-blue-105 border-blue-200 text-blue-700 dark:bg-blue-950/30 dark:border-blue-900/50 dark:text-blue-400'
+                                          }`}
+                                        title={lesson.is_locked ? "Click to unlock class" : "Click to lock class"}
+                                      >
+                                        {lesson.is_locked ? <Lock size={10} className="text-rose-600 dark:text-rose-455" /> : <Unlock size={10} className="text-blue-600 dark:text-blue-400" />}
+                                        {lesson.is_locked ? "Locked" : "Unlocked"}
+                                      </button>
+                                    </div>
+
+                                    {/* Actions (Preview, Edit, Delete) - always visible on mobile, hover-only on desktop */}
+                                    <div className="flex items-center gap-1 sm:opacity-0 sm:group-hover/lesson:opacity-100 transition-opacity">
+                                      <button onClick={() => setPreviewLesson(lesson)} className="w-7 h-7 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-555 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all shadow-sm cursor-pointer" title="Preview Class"><Eye size={12} /></button>
+                                      <button onClick={() => setLessonModal({ show: true, moduleId: module.id, isEditing: true, lessonId: lesson.id, initialData: lesson })} className="w-7 h-7 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-555 hover:text-blue-600 dark:hover:text-blue-400 transition-all shadow-sm cursor-pointer" title="Edit Class"><Edit2 size={12} /></button>
+                                      <DeleteButton
+                                        id={lesson.id}
+                                        table="lessons"
+                                        title={lesson.title}
+                                        onSuccess={handleRefresh}
+                                        showText={false}
+                                        className="w-7 h-7 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-555 hover:text-rose-600 hover:border-rose-100 hover:bg-rose-50 dark:hover:text-rose-455 dark:hover:border-rose-900/40 dark:hover:bg-rose-950/30 transition-all shadow-sm cursor-pointer"
+                                      />
+                                    </div>
                                   </div>
                                 </div>
                               );
