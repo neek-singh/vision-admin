@@ -55,6 +55,7 @@ const navGroups = [
       { href: "/admin/lms/assignments", label: "Assignments", icon: PenTool },
       { href: "/admin/lms/attendance", label: "Daily Attendance", icon: CheckCircle2 },
       { href: "/admin/schedule", label: "Academic Schedule", icon: Calendar },
+      { href: "/admin/lms/calendar", label: "Calendar & Events", icon: Calendar },
       { href: "/admin/notifications", label: "Notifications", icon: Bell },
       { href: "/admin/fees", label: "Fees Management", icon: Wallet },
       { href: "/admin/lms/chats", label: "LMS Chats", icon: MessageSquare },

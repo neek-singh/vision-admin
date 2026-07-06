@@ -374,6 +374,9 @@ export default async function LMSDashboard() {
               <Link href="/admin/schedule" className="w-full flex items-center gap-2.5 p-3 rounded-2xl bg-sky-50 dark:bg-sky-950/20 text-sky-700 dark:text-sky-400 hover:bg-sky-100/70 dark:hover:bg-sky-950/40 transition-all font-bold text-xs hover:scale-[1.01]">
                 <Calendar size={16} /> Manage Class Schedule
               </Link>
+              <Link href="/admin/lms/calendar" className="w-full flex items-center gap-2.5 p-3 rounded-2xl bg-teal-50 dark:bg-teal-950/20 text-teal-700 dark:text-teal-400 hover:bg-teal-100/70 dark:hover:bg-teal-950/40 transition-all font-bold text-xs hover:scale-[1.01]">
+                <Calendar size={16} /> Calendar & Events
+              </Link>
             </div>
           </div>
 

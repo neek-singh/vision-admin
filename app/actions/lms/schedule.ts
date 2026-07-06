@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 export async function createSchedule(data: {
   course_id: string;
   batch?: string;
-  type: 'class' | 'test' | 'assignment' | 'project' | 'quiz';
+  type: 'class' | 'test' | 'assignment' | 'project' | 'quiz' | 'holiday' | 'event';
   title: string;
   description?: string;
   date: string;
@@ -15,8 +15,26 @@ export async function createSchedule(data: {
 }) {
   const supabase = await createServerSupabaseClient();
 
+  if (data.type === 'holiday' || data.type === 'event') {
+    const { error } = await supabase.from("events").insert({
+      course_id: data.course_id || null,
+      type: data.type,
+      title: data.title,
+      description: data.description,
+      event_date: data.date,
+      start_time: data.start_time,
+      end_time: data.end_time,
+      location: 'Online'
+    });
+
+    if (error) return { error: error.message };
+
+    revalidatePath("/admin/schedule");
+    return { success: true };
+  }
+
   const { error } = await supabase.from("schedules").insert({
-    course_id: data.course_id,
+    course_id: data.course_id || null,
     batch: data.batch,
     type: data.type,
     title: data.title,
@@ -34,8 +52,11 @@ export async function createSchedule(data: {
 
 export async function deleteSchedule(id: string) {
   const supabase = await createServerSupabaseClient();
-  const { error } = await supabase.from("schedules").delete().eq("id", id);
-  if (error) return { error: error.message };
+  const [res1, res2] = await Promise.all([
+    supabase.from("schedules").delete().eq("id", id),
+    supabase.from("events").delete().eq("id", id)
+  ]);
+  if (res1.error && res2.error) return { error: res1.error.message || res2.error.message };
   revalidatePath("/admin/schedule");
   return { success: true };
 }

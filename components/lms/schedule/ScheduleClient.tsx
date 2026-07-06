@@ -23,7 +23,8 @@ import {
   ChevronDown,
   PenTool,
   FolderPlus,
-  HelpCircle
+  HelpCircle,
+  Flag
 } from "lucide-react";
 import { createSchedule, deleteSchedule, getCurriculumTopics } from "@/app/actions/lms/schedule";
 
@@ -67,6 +68,22 @@ const TYPE_CFG: Record<string, { bg: string, text: string, border: string, icon:
     accent: "bg-emerald-600 dark:bg-emerald-500",
     icon: <HelpCircle size={14} className="shrink-0" />, 
     label: "Quiz" 
+  },
+  holiday: { 
+    bg: "bg-rose-50/60 dark:bg-rose-950/20", 
+    text: "text-rose-700 dark:text-rose-400", 
+    border: "border-rose-100/50 dark:border-rose-900/30", 
+    accent: "bg-rose-600 dark:bg-rose-500",
+    icon: <Flag size={14} className="shrink-0" />, 
+    label: "Holiday" 
+  },
+  event: { 
+    bg: "bg-purple-50/60 dark:bg-purple-950/20", 
+    text: "text-purple-700 dark:text-purple-400", 
+    border: "border-purple-100/50 dark:border-purple-900/30", 
+    accent: "bg-purple-600 dark:bg-purple-500",
+    icon: <Sparkles size={14} className="shrink-0" />, 
+    label: "Event" 
   },
 };
 
@@ -141,7 +158,7 @@ export default function ScheduleClient({
   const [showAddModal, setShowAddModal] = useState(false);
   const [formData, setFormData] = useState({
     course_id: "",
-    type: "class" as any,
+    type: "holiday" as any,
     title: "",
     description: "",
     date: fmt(today),
@@ -206,8 +223,12 @@ export default function ScheduleClient({
   // Filter schedules
   const filteredSchedules = useMemo(() => {
     let s = initialSchedules;
-    if (selectedCourseId) s = s.filter(x => x.course_id === selectedCourseId);
-    if (selectedBatch !== "All Batches") s = s.filter(x => x.batch === selectedBatch);
+    if (selectedCourseId) {
+      s = s.filter(x => x.course_id === selectedCourseId || !x.course_id);
+    }
+    if (selectedBatch !== "All Batches") {
+      s = s.filter(x => x.batch === selectedBatch || x.type === 'holiday' || x.type === 'event' || !x.course_id);
+    }
     return s;
   }, [initialSchedules, selectedCourseId, selectedBatch]);
 
@@ -409,11 +430,10 @@ export default function ScheduleClient({
                   Clear Selection
                 </button>
              </div>
-             <button 
-              onClick={() => {
-                setFormData({...formData, title: "", description: "", type: "class"});
-                setShowAddModal(true);
-              }}
+             <button               onClick={() => {
+                 setFormData({...formData, title: "", description: "", type: "holiday", course_id: selectedCourseId});
+                 setShowAddModal(true);
+               }}
               className="px-4 py-2 bg-slate-950 dark:bg-slate-900 hover:bg-blue-600 dark:hover:bg-blue-700 text-white rounded-lg font-medium text-[11px] uppercase tracking-wider transition-all flex items-center gap-2 shadow-lg cursor-pointer"
              >
                 <Plus size={14} /> New Entry
@@ -888,7 +908,9 @@ export default function ScheduleClient({
                    <div className="grid grid-cols-7 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/20">
                       {dayNames.map((d, i) => (
                          <div key={i} className="p-1 text-center border-r border-slate-100 dark:border-slate-800 last:border-r-0">
-                            <p className="text-[7px] font-medium uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">{d}</p>
+                            <p className={`text-[7px] font-medium uppercase tracking-[0.2em] ${
+                              i === 0 ? 'text-rose-500 dark:text-rose-400 font-black' : 'text-slate-400 dark:text-slate-500'
+                            }`}>{d}</p>
                          </div>
                       ))}
                    </div>
@@ -897,6 +919,7 @@ export default function ScheduleClient({
                       {days.map((d, i) => {
                          const dateStr = d.dateStr;
                          const isToday = dateStr === fmt(today);
+                         const isSunday = i % 7 === 0;
                          const dayEvents = dateStr ? filteredSchedules.filter(s => s.date === dateStr).sort((a: any, b: any) => (a.start_time || '').localeCompare(b.start_time || '')) : [];
                          
                          return (
@@ -912,7 +935,8 @@ export default function ScheduleClient({
                                     date: dateStr,
                                     title: "",
                                     description: "",
-                                    type: "class"
+                                    type: "holiday",
+                                    course_id: selectedCourseId
                                   });
                                   setShowAddModal(true);
                                 }
@@ -924,11 +948,19 @@ export default function ScheduleClient({
                                     ? 'bg-blue-50/20 dark:bg-blue-955/10 border-2 border-blue-500/30' 
                                     : placementItem 
                                       ? 'bg-blue-50/10 dark:bg-blue-955/5 hover:bg-blue-100/30 dark:hover:bg-blue-900/20 border border-dashed border-blue-300 dark:border-blue-800/80 animate-pulse' 
-                                      : 'hover:bg-slate-50/30 dark:hover:bg-slate-900/10'
+                                      : isSunday
+                                        ? 'bg-rose-50/20 dark:bg-rose-950/10 hover:bg-rose-100/30 dark:hover:bg-rose-900/20'
+                                        : 'hover:bg-slate-50/30 dark:hover:bg-slate-900/10'
                               }`}
                             >
                                <div className="flex justify-between items-center mb-0.5">
-                                  <span className={`text-[8px] font-medium ${isToday ? 'bg-blue-600 text-white w-4 h-4 flex items-center justify-center rounded-full font-mono' : 'text-slate-400 dark:text-slate-500'}`}>
+                                  <span className={`text-[8px] font-medium ${
+                                    isToday 
+                                      ? 'bg-blue-600 text-white w-4 h-4 flex items-center justify-center rounded-full font-mono' 
+                                      : isSunday && d.currentMonth
+                                        ? 'text-rose-500 dark:text-rose-400 font-bold'
+                                        : 'text-slate-400 dark:text-slate-500'
+                                  }`}>
                                      {d.day}
                                   </span>
                                </div>
@@ -994,9 +1026,11 @@ export default function ScheduleClient({
                                      </span>
                                    </div>
                                    <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400">
-                                     <div className="flex items-center gap-1 text-[9px] font-normal">
-                                       <Clock size={10} className="text-slate-400 dark:text-slate-555 shrink-0" /> {ev.start_time?.slice(0, 5)} - {ev.end_time?.slice(0, 5)}
-                                     </div>
+                                     {ev.type !== 'holiday' && ev.type !== 'event' && (
+                                       <div className="flex items-center gap-1 text-[9px] font-normal">
+                                         <Clock size={10} className="text-slate-400 dark:text-slate-555 shrink-0" /> {ev.start_time?.slice(0, 5)} - {ev.end_time?.slice(0, 5)}
+                                       </div>
+                                     )}
                                      <div className="flex items-center gap-1 text-[9px] font-normal">
                                        <Users size={10} className="text-slate-400 dark:text-slate-555 shrink-0" /> {ev.batch === "All Batches" ? "Global" : ev.batch}
                                      </div>
@@ -1041,10 +1075,10 @@ export default function ScheduleClient({
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 
-                <div className="col-span-2 space-y-1.5">
+                 <div className="col-span-2 space-y-1.5">
                    <label className="text-[9px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-0.5">Event Type</label>
                     <div className="flex bg-slate-50 dark:bg-slate-900 p-1 rounded-xl border border-slate-100 dark:border-slate-800 gap-1">
-                       {(['class', 'test', 'assignment', 'project', 'quiz'] as const).map(type => {
+                       {(['holiday', 'event'] as const).map(type => {
                          const c = cfg(type);
                          const isSelected = formData.type === type;
                          return (
@@ -1125,32 +1159,6 @@ export default function ScheduleClient({
                         <option key={i} value={b.title} className="dark:bg-slate-900">{b.title}</option>
                       ))}
                    </select>
-                </div>
-
-                <div className="space-y-1.5">
-                   <label className="text-[9px] font-medium text-slate-500 dark:text-slate-405 uppercase tracking-wider ml-0.5">Start Time</label>
-                   <div className="relative">
-                      <Clock size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-700 shrink-0" />
-                      <input 
-                        type="time" 
-                        value={formData.start_time}
-                        onChange={(e) => setFormData({...formData, start_time: e.target.value})}
-                        className="w-full pl-9 pr-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-lg font-normal text-slate-800 dark:text-slate-100 outline-none focus:border-blue-400 transition-all text-xs cursor-pointer"
-                      />
-                   </div>
-                </div>
-
-                <div className="space-y-1.5">
-                   <label className="text-[9px] font-medium text-slate-500 dark:text-slate-405 uppercase tracking-wider ml-0.5">End Time</label>
-                   <div className="relative">
-                      <Clock size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-700 shrink-0" />
-                      <input 
-                        type="time" 
-                        value={formData.end_time}
-                        onChange={(e) => setFormData({...formData, end_time: e.target.value})}
-                        className="w-full pl-9 pr-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-lg font-normal text-slate-800 dark:text-slate-100 outline-none focus:border-blue-400 transition-all text-xs cursor-pointer"
-                      />
-                   </div>
                 </div>
               </div>
 

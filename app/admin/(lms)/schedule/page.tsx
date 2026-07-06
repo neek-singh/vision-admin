@@ -6,15 +6,35 @@ export const revalidate = 0;
 export default async function AdminSchedulePage() {
   const supabase = await createServerSupabaseClient();
 
-  // 1. Fetch current schedules
-  const { data: schedules } = await supabase
-    .from("schedules")
-    .select(`
-      *,
-      courses (id, title)
-    `)
-    .order("date", { ascending: true })
-    .order("start_time", { ascending: true });
+  // 1. Fetch current schedules and events in parallel
+  const [schedulesRes, eventsRes] = await Promise.all([
+    supabase
+      .from("schedules")
+      .select(`
+        *,
+        courses (id, title)
+      `)
+      .order("date", { ascending: true }),
+    supabase
+      .from("events")
+      .select(`
+        *,
+        courses (id, title)
+      `)
+      .order("event_date", { ascending: true })
+  ]);
+
+  const rawSchedules = schedulesRes.data || [];
+  const rawEvents = eventsRes.data || [];
+
+  // Normalize events to match schedules schema (use date instead of event_date, default batch to All Batches)
+  const normalizedEvents = rawEvents.map(e => ({
+    ...e,
+    date: e.event_date,
+    batch: "All Batches"
+  }));
+
+  const combinedSchedules = [...rawSchedules, ...normalizedEvents];
 
   // 2. Fetch courses for the selection dropdown
   const { data: courses } = await supabase
@@ -37,7 +57,7 @@ export default async function AdminSchedulePage() {
   return (
     <div className="container mx-auto px-4 py-6">
       <ScheduleClient 
-        initialSchedules={schedules || []} 
+        initialSchedules={combinedSchedules} 
         courses={courses || []} 
         batches={allBatches}
         batchesList={batchesList}

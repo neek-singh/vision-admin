@@ -13,7 +13,7 @@ export default async function AttendancePage() {
   // Fetch Batches
   const { data: batches } = await supabase
     .from("batches")
-    .select("id, title")
+    .select("id, title, course_id")
     .order("title");
 
   return (

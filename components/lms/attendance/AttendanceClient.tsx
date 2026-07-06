@@ -25,6 +25,7 @@ import {
   ChevronDown,
   Wifi,
   WifiOff,
+  Trash2,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { initializeDailyAttendance } from "@/app/actions/lms/attendance";
@@ -93,6 +94,7 @@ export default function AttendanceClient({
   const [initializing, setInitializing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [clearing, setClearing] = useState(false);
 
   // History tab
   const [historyRecords, setHistoryRecords] = useState<AttendanceRecord[]>([]);
@@ -322,6 +324,44 @@ export default function AttendanceClient({
     }
   };
 
+  const clearAttendance = async () => {
+    if (!confirm("Are you sure you want to delete ALL attendance records for this course and date? This action cannot be undone.")) return;
+    setClearing(true);
+    try {
+      const { error } = await supabase
+        .from("attendance")
+        .delete()
+        .eq("course_id", selectedCourse)
+        .eq("date", selectedDate);
+      
+      if (error) throw error;
+      
+      const resetAttend: Record<string, AttendanceStatus> = {};
+      students.forEach((s) => {
+        resetAttend[s.id] = "absent";
+      });
+      setAttendance(resetAttend);
+      alert("All attendance records for this date and course have been cleared.");
+    } catch (err: any) {
+      console.error("Clear Attendance Error:", err.message || err);
+      alert(`Failed to clear: ${err.message || "Check connection"}`);
+    } finally {
+      setClearing(false);
+    }
+  };
+
+  const deleteHistoryRecord = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this attendance record?")) return;
+    try {
+      const { error } = await supabase.from("attendance").delete().eq("id", id);
+      if (error) throw error;
+      setHistoryRecords((prev) => prev.filter((r) => r.id !== id));
+    } catch (err: any) {
+      console.error("Delete Attendance Record Error:", err.message || err);
+      alert(`Failed to delete record: ${err.message || "Check connection"}`);
+    }
+  };
+
 
 
   function exportCSV() {
@@ -391,7 +431,10 @@ export default function AttendanceClient({
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Course</label>
                   <select
                     value={selectedCourse}
-                    onChange={(e) => setSelectedCourse(e.target.value)}
+                    onChange={(e) => {
+                      setSelectedCourse(e.target.value);
+                      setSelectedBatch("");
+                    }}
                     className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-600/20 transition-all"
                   >
                     {initialCourses.map((c) => (
@@ -407,9 +450,11 @@ export default function AttendanceClient({
                     className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-600/20 transition-all"
                   >
                     <option value="">All Batches</option>
-                    {initialBatches.map((b) => (
-                      <option key={b.id} value={b.title}>{b.title}</option>
-                    ))}
+                    {initialBatches
+                      .filter((b) => b.course_id === selectedCourse)
+                      .map((b) => (
+                        <option key={b.id} value={b.title}>{b.title}</option>
+                      ))}
                   </select>
                 </div>
                 <div className="flex-1 space-y-1.5">
@@ -575,7 +620,15 @@ export default function AttendanceClient({
             </div>
           </div>
 
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-4">
+            <button
+              disabled={loading || clearing || students.length === 0}
+              onClick={clearAttendance}
+              className="px-6 py-4 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-2xl font-black text-sm uppercase tracking-widest transition-all flex items-center gap-2"
+            >
+              {clearing ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18} />}
+              Clear Attendance
+            </button>
             <button
               disabled={saving || students.length === 0}
               onClick={saveAttendance}
@@ -661,19 +714,20 @@ export default function AttendanceClient({
                     <th className="px-8 py-5">Date</th>
                     <th className="px-8 py-5">Check-in Time</th>
                     <th className="px-8 py-5 text-center">Status</th>
+                    <th className="px-8 py-5 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   {historyLoading ? (
                     <tr>
-                      <td colSpan={5} className="px-8 py-20 text-center">
+                      <td colSpan={6} className="px-8 py-20 text-center">
                         <Loader2 className="animate-spin text-indigo-600 mx-auto mb-3" size={28} />
                         <p className="text-sm font-bold text-slate-400">Loading records...</p>
                       </td>
                     </tr>
                   ) : historyRecords.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-8 py-20 text-center">
+                      <td colSpan={6} className="px-8 py-20 text-center">
                         <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-300 mx-auto mb-3">
                           <History size={28} />
                         </div>
@@ -720,6 +774,15 @@ export default function AttendanceClient({
                           >
                             {record.status}
                           </span>
+                        </td>
+                        <td className="px-8 py-4 text-right">
+                          <button
+                            onClick={() => deleteHistoryRecord(record.id)}
+                            className="p-2 text-slate-350 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all cursor-pointer"
+                            title="Delete Record"
+                          >
+                            <Trash2 size={16} />
+                          </button>
                         </td>
                       </tr>
                     ))
