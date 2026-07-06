@@ -33,6 +33,8 @@ export default function AssignmentsClient({ courses, initialAssignments, availab
     due_date: "",
     is_published: true
   });
+  const [gradingState, setGradingState] = useState<Record<string, { score: string, feedback: string }>>({});
+  const [savingGradeId, setSavingGradeId] = useState<string | null>(null);
 
   const fetchSubmissions = async (assignmentId: string) => {
     setIsLoadingSubmissions(true);
@@ -48,6 +50,16 @@ export default function AssignmentsClient({ courses, initialAssignments, availab
 
       if (error) throw error;
       setSubmissions(data || []);
+
+      // Initialize grading state
+      const initialGrading: Record<string, { score: string, feedback: string }> = {};
+      (data || []).forEach(sub => {
+        initialGrading[sub.id] = {
+          score: sub.score || "",
+          feedback: sub.feedback || ""
+        };
+      });
+      setGradingState(initialGrading);
     } catch (err) {
       console.error("Error fetching submissions:", err);
     } finally {
@@ -58,6 +70,45 @@ export default function AssignmentsClient({ courses, initialAssignments, availab
   const handleViewSubmissions = (id: string) => {
     setViewingSubmissions(id);
     fetchSubmissions(id);
+  };
+
+  const handleSaveGrade = async (submissionId: string) => {
+    const state = gradingState[submissionId];
+    if (!state) return;
+
+    setSavingGradeId(submissionId);
+    try {
+      const numericMarks = parseInt(state.score) || null;
+
+      const { error } = await supabase
+        .from("submissions")
+        .update({
+          score: state.score,
+          marks: numericMarks,
+          feedback: state.feedback,
+          graded_at: new Date().toISOString(),
+          status: "graded"
+        })
+        .eq("id", submissionId);
+
+      if (error) throw error;
+
+      setSubmissions(prev => prev.map(s => s.id === submissionId ? {
+        ...s,
+        score: state.score,
+        marks: numericMarks,
+        feedback: state.feedback,
+        graded_at: new Date().toISOString(),
+        status: "graded"
+      } : s));
+
+      alert("Grade saved successfully!");
+    } catch (err) {
+      console.error("Error saving grade:", err);
+      alert("Failed to save grade");
+    } finally {
+      setSavingGradeId(null);
+    }
   };
 
   const handleEdit = (assignment: any) => {
@@ -331,39 +382,87 @@ export default function AssignmentsClient({ courses, initialAssignments, availab
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-slate-50 text-slate-400 text-[9px] uppercase font-black tracking-[0.2em] border-b border-slate-100">
-                        <th className="px-6 py-4">Student</th>
-                        <th className="px-6 py-4">Submitted At</th>
-                        <th className="px-6 py-4 text-right">Action</th>
+                        <th className="px-6 py-4 w-1/4">Student</th>
+                        <th className="px-6 py-4 w-1/5">Work / Date</th>
+                        <th className="px-6 py-4 w-1/6">Score / Grade</th>
+                        <th className="px-6 py-4 w-1/4">Feedback</th>
+                        <th className="px-6 py-4 text-right w-1/6">Action</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">
-                      {submissions.map((sub) => (
-                        <tr key={sub.id} className="hover:bg-slate-50/50 transition-colors">
-                          <td className="px-6 py-4">
-                            <div>
-                              <p className="font-black text-slate-900 text-sm">{(sub.students as any)?.name}</p>
-                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{(sub.students as any)?.student_id}</p>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-2 text-slate-500">
-                               <ClockIcon size={12} className="text-indigo-400" />
-                               <span className="text-[10px] font-bold">{new Date(sub.submitted_at).toLocaleString()}</span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 text-right">
-                            <a 
-                              href={sub.content_url} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-[10px] font-black rounded-xl hover:bg-indigo-700 transition-all shadow-md shadow-indigo-100"
-                            >
-                              <ExternalLink size={12} />
-                              Open Work
-                            </a>
-                          </td>
-                        </tr>
-                      ))}
+                      {submissions.map((sub) => {
+                        const state = gradingState[sub.id] || { score: "", feedback: "" };
+                        return (
+                          <tr key={sub.id} className="hover:bg-slate-50/50 transition-colors align-top">
+                            <td className="px-6 py-4">
+                              <div>
+                                <p className="font-black text-slate-900 text-sm">{(sub.students as any)?.name}</p>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{(sub.students as any)?.student_id}</p>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="space-y-2">
+                                <a 
+                                  href={sub.content_url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1.5 text-indigo-600 hover:text-indigo-800 text-[11px] font-bold underline break-all"
+                                >
+                                  <ExternalLink size={12} className="shrink-0" />
+                                  Open Work
+                                </a>
+                                <div className="flex items-center gap-1.5 text-slate-400">
+                                   <ClockIcon size={10} className="text-slate-400 shrink-0" />
+                                   <span className="text-[9px] font-bold">{new Date(sub.submitted_at).toLocaleDateString()} {new Date(sub.submitted_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <input
+                                type="text"
+                                placeholder="e.g. A+, 90/100"
+                                value={state.score}
+                                onChange={(e) => setGradingState({
+                                  ...gradingState,
+                                  [sub.id]: { ...state, score: e.target.value }
+                                })}
+                                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 transition-all text-xs font-bold text-black"
+                              />
+                              {sub.graded_at && (
+                                <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest mt-1 block">
+                                  Graded
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-6 py-4">
+                              <textarea
+                                rows={2}
+                                placeholder="Feedback for student..."
+                                value={state.feedback}
+                                onChange={(e) => setGradingState({
+                                  ...gradingState,
+                                  [sub.id]: { ...state, feedback: e.target.value }
+                                })}
+                                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 transition-all text-xs font-bold text-black resize-none"
+                              />
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <button
+                                disabled={savingGradeId === sub.id}
+                                onClick={() => handleSaveGrade(sub.id)}
+                                className="inline-flex items-center gap-1 px-4 py-2 bg-slate-900 text-white text-[10px] font-black rounded-xl hover:bg-indigo-600 transition-all shadow-md shadow-indigo-100 disabled:opacity-50"
+                              >
+                                {savingGradeId === sub.id ? (
+                                  <Loader2 size={12} className="animate-spin shrink-0" />
+                                ) : (
+                                  <CheckCircle2 size={12} className="shrink-0" />
+                                )}
+                                Save Grade
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
