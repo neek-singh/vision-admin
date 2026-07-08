@@ -268,36 +268,52 @@ export default function FeesClient({
             box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
           }
           .header {
-            text-align: center;
+            display: flex;
+            align-items: center;
             border-bottom: 2px dashed #e2e8f0;
             padding-bottom: 24px;
             margin-bottom: 24px;
+            gap: 20px;
           }
           .logo-img {
-            width: 72px;
-            height: 72px;
+            width: 70px;
+            height: 70px;
             object-fit: contain;
-            margin-bottom: 12px;
+          }
+          .header-text {
+            flex: 1;
+            text-align: center;
+            margin-right: 70px;
           }
           .logo {
             font-size: 20px;
             font-weight: 900;
             color: #059669;
             letter-spacing: -0.02em;
-            margin-bottom: 4px;
+            margin: 0;
+            line-height: 1.2;
+          }
+          .address {
+            font-size: 11px;
+            font-weight: 600;
+            color: #475569;
+            margin-top: 4px;
+            line-height: 1.4;
           }
           .subtitle {
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 700;
-            color: #64748b;
+            color: #94a3b8;
             text-transform: uppercase;
             letter-spacing: 0.1em;
+            margin-top: 6px;
           }
-          .title {
-            font-size: 18px;
+          .receipt-title {
+            text-align: center;
+            font-size: 16px;
             font-weight: 800;
             color: #0f172a;
-            margin-top: 16px;
+            margin-bottom: 24px;
             text-transform: uppercase;
             letter-spacing: 0.05em;
           }
@@ -379,10 +395,13 @@ export default function FeesClient({
         <div class="receipt-container">
           <div class="header">
             <img src="${window.location.origin}/logo.png" alt="Logo" class="logo-img" />
-            <div class="logo">VISION IT COMPUTER INSTITUTE</div>
-            <div class="subtitle">Center for Excellence & Learning</div>
-            <div class="title">Payment Receipt</div>
+            <div class="header-text">
+              <div class="logo">VISION IT COMPUTER INSTITUTE</div>
+              <div class="address">Kadampara Chowk, Pratappur, Surajpur (C.G.) - 497223</div>
+              <div class="subtitle">Center for Excellence & Learning</div>
+            </div>
           </div>
+          <div class="receipt-title">Payment Receipt</div>
           
           <div class="meta-grid">
             <div class="meta-item">
