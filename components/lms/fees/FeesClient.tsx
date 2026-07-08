@@ -273,11 +273,17 @@ export default function FeesClient({
             padding-bottom: 24px;
             margin-bottom: 24px;
           }
+          .logo-img {
+            width: 72px;
+            height: 72px;
+            object-fit: contain;
+            margin-bottom: 12px;
+          }
           .logo {
-            font-size: 24px;
+            font-size: 20px;
             font-weight: 900;
             color: #059669;
-            letter-spacing: -0.05em;
+            letter-spacing: -0.02em;
             margin-bottom: 4px;
           }
           .subtitle {
@@ -372,7 +378,8 @@ export default function FeesClient({
       <body>
         <div class="receipt-container">
           <div class="header">
-            <div class="logo">VISION IT</div>
+            <img src="${window.location.origin}/logo.png" alt="Logo" class="logo-img" />
+            <div class="logo">VISION IT COMPUTER INSTITUTE</div>
             <div class="subtitle">Center for Excellence & Learning</div>
             <div class="title">Payment Receipt</div>
           </div>
