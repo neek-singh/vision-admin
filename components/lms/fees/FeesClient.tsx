@@ -236,6 +236,227 @@ export default function FeesClient({
     setLoading(false);
   };
 
+  const handleDownloadReceipt = (pay: any, student: any, course: any) => {
+    const printWindow = window.open("", "_blank", "width=800,height=700");
+    if (!printWindow) {
+      alert("Please allow popups to download/print receipts.");
+      return;
+    }
+
+    const receiptHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Receipt_${pay.transaction_id || pay.id || 'payment'}</title>
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
+          body {
+            font-family: 'Inter', sans-serif;
+            color: #1e293b;
+            margin: 0;
+            padding: 40px;
+            background-color: #ffffff;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          .receipt-container {
+            max-width: 600px;
+            margin: 0 auto;
+            border: 1px solid #e2e8f0;
+            padding: 40px;
+            border-radius: 24px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+          }
+          .header {
+            text-align: center;
+            border-bottom: 2px dashed #e2e8f0;
+            padding-bottom: 24px;
+            margin-bottom: 24px;
+          }
+          .logo {
+            font-size: 24px;
+            font-weight: 900;
+            color: #059669;
+            letter-spacing: -0.05em;
+            margin-bottom: 4px;
+          }
+          .subtitle {
+            font-size: 11px;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+          }
+          .title {
+            font-size: 18px;
+            font-weight: 800;
+            color: #0f172a;
+            margin-top: 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+          }
+          .meta-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 24px;
+            font-size: 13px;
+          }
+          .meta-item {
+            display: flex;
+            flex-direction: column;
+          }
+          .meta-label {
+            font-size: 10px;
+            font-weight: 700;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 2px;
+          }
+          .meta-value {
+            font-weight: 600;
+            color: #334155;
+          }
+          .section-title {
+            font-size: 11px;
+            font-weight: 800;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid #f1f5f9;
+            padding-bottom: 6px;
+            margin-bottom: 12px;
+            margin-top: 24px;
+          }
+          .details-list {
+            margin-bottom: 24px;
+          }
+          .details-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            padding: 8px 0;
+            border-bottom: 1px solid #f8fafc;
+          }
+          .details-row.total {
+            border-top: 2px solid #e2e8f0;
+            border-bottom: 2px solid #e2e8f0;
+            font-weight: 800;
+            font-size: 16px;
+            padding: 12px 0;
+            color: #0f172a;
+            margin-top: 12px;
+          }
+          .footer {
+            text-align: center;
+            margin-top: 40px;
+            font-size: 10px;
+            color: #94a3b8;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+          }
+          @media print {
+            body {
+              padding: 20px;
+            }
+            .receipt-container {
+              border: none;
+              box-shadow: none;
+              padding: 0;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="receipt-container">
+          <div class="header">
+            <div class="logo">VISION IT</div>
+            <div class="subtitle">Center for Excellence & Learning</div>
+            <div class="title">Payment Receipt</div>
+          </div>
+          
+          <div class="meta-grid">
+            <div class="meta-item">
+              <span class="meta-label">Student Name</span>
+              <span class="meta-value">${student?.name || 'N/A'}</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Student ID</span>
+              <span class="meta-value">${student?.student_id || 'N/A'}</span>
+            </div>
+            <div class="meta-item" style="grid-column: span 2;">
+              <span class="meta-label">Course Enrolled</span>
+              <span class="meta-value">${course?.title || 'N/A'}</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Payment Date</span>
+              <span class="meta-value">${pay.payment_date ? new Date(pay.payment_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' }) : 'N/A'}</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Payment Mode</span>
+              <span class="meta-value" style="text-transform: uppercase;">${pay.payment_mode || 'N/A'}</span>
+            </div>
+            ${pay.transaction_id ? `
+            <div class="meta-item" style="grid-column: span 2;">
+              <span class="meta-label">Transaction ID / Reference</span>
+              <span class="meta-value" style="font-family: monospace;">${pay.transaction_id}</span>
+            </div>` : ''}
+          </div>
+          
+          <div class="section-title">Fee Breakdown</div>
+          <div class="details-list">
+            ${Number(pay.registration_fee) > 0 ? `
+            <div class="details-row">
+              <span>Registration Fee (One-Time)</span>
+              <span>₹${Number(pay.registration_fee).toLocaleString('en-IN')}</span>
+            </div>` : ''}
+            ${Number(pay.course_fee) > 0 ? `
+            <div class="details-row">
+              <span>Course Fee</span>
+              <span>₹${Number(pay.course_fee).toLocaleString('en-IN')}</span>
+            </div>` : ''}
+            ${Number(pay.exam_fee) > 0 ? `
+            <div class="details-row">
+              <span>Examination Fee (One-Time)</span>
+              <span>₹${Number(pay.exam_fee).toLocaleString('en-IN')}</span>
+            </div>` : ''}
+            
+            <!-- Fallback if breakdown not populated -->
+            ${(!pay.registration_fee && !pay.course_fee && !pay.exam_fee) ? `
+            <div class="details-row">
+              <span>Fee Payment</span>
+              <span>₹${Number(pay.amount).toLocaleString('en-IN')}</span>
+            </div>` : ''}
+
+            <div class="details-row total">
+              <span>Total Amount Paid</span>
+              <span>₹${Number(pay.amount).toLocaleString('en-IN')}</span>
+            </div>
+          </div>
+          
+          <div class="footer">
+            Thank you for your payment!<br>
+            This is a computer generated receipt, no signature required.
+          </div>
+        </div>
+        <script>
+          window.onload = function() {
+            window.print();
+            setTimeout(function() {
+              window.close();
+            }, 500);
+          }
+        </script>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(receiptHtml);
+    printWindow.document.close();
+  };
+
   // Installment helpers
   const addInstallmentField = () => {
     setSetupData(prev => {
@@ -1092,9 +1313,9 @@ export default function FeesClient({
                                 )}
                              </div>
                              <button 
-                               onClick={() => window.print()} 
+                               onClick={() => handleDownloadReceipt(pay, showHistory.students, showHistory.courses)} 
                                className="p-2 text-slate-400 hover:text-blue-600 hover:bg-white dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
-                               title="Print Receipt"
+                               title="Download / Print Receipt"
                              >
                                <Download size={14}/>
                              </button>
