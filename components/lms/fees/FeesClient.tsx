@@ -288,7 +288,7 @@ export default function FeesClient({
           .logo {
             font-size: 20px;
             font-weight: 900;
-            color: #059669;
+            color: #000000;
             letter-spacing: -0.02em;
             margin: 0;
             line-height: 1.2;
@@ -467,6 +467,287 @@ export default function FeesClient({
             This is a computer generated receipt, no signature required.
           </div>
         </div>
+        <script>
+          window.onload = function() {
+            window.print();
+            setTimeout(function() {
+              window.close();
+            }, 500);
+          }
+        </script>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(receiptHtml);
+    printWindow.document.close();
+  };
+
+  const handleDownloadAllCourseReceipts = (courseId: string) => {
+    const courseFees = initialFees.filter(fee => fee.course_id === courseId);
+    const allPaymentsToPrint: any[] = [];
+    
+    courseFees.forEach(fee => {
+      if (fee.payments && fee.payments.length > 0) {
+        fee.payments.forEach((pay: any) => {
+          allPaymentsToPrint.push({
+            id: pay.id,
+            amount: Number(pay.amount),
+            paymentDate: pay.payment_date ? new Date(pay.payment_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' }) : 'N/A',
+            paymentMode: pay.payment_mode || 'N/A',
+            transactionId: pay.transaction_id,
+            registrationFee: Number(pay.registration_fee || 0),
+            courseFee: Number(pay.course_fee || 0),
+            examFee: Number(pay.exam_fee || 0),
+            studentName: fee.students?.name || 'N/A',
+            studentId: fee.students?.student_id || 'N/A',
+            courseTitle: fee.courses?.title || 'N/A'
+          });
+        });
+      }
+    });
+
+    if (allPaymentsToPrint.length === 0) {
+      alert("No payment transactions recorded for students in this course.");
+      return;
+    }
+
+    const printWindow = window.open("", "_blank", "width=800,height=700");
+    if (!printWindow) {
+      alert("Please allow popups to download/print receipts.");
+      return;
+    }
+
+    const selectedCourseTitle = courses.find(c => c.id === courseId)?.title || 'course';
+
+    const receiptHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Receipts_${selectedCourseTitle.replace(/\s+/g, '_')}</title>
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
+          body {
+            font-family: 'Inter', sans-serif;
+            color: #1e293b;
+            margin: 0;
+            padding: 20px;
+            background-color: #ffffff;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          .receipt-container {
+            max-width: 600px;
+            margin: 0 auto;
+            border: 1px solid #e2e8f0;
+            padding: 16px 24px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
+          .header {
+            display: flex;
+            align-items: center;
+            border-bottom: 2px dashed #e2e8f0;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+            gap: 16px;
+          }
+          .logo-img {
+            width: 48px;
+            height: 48px;
+            object-fit: contain;
+          }
+          .header-text {
+            flex: 1;
+            text-align: center;
+            margin-right: 48px;
+          }
+          .logo {
+            font-size: 15px;
+            font-weight: 900;
+            color: #000000;
+            letter-spacing: -0.02em;
+            margin: 0;
+            line-height: 1.2;
+          }
+          .address {
+            font-size: 9px;
+            font-weight: 600;
+            color: #475569;
+            margin-top: 2px;
+            line-height: 1.3;
+          }
+          .subtitle {
+            font-size: 8px;
+            font-weight: 700;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-top: 3px;
+          }
+          .receipt-title {
+            text-align: center;
+            font-size: 12px;
+            font-weight: 800;
+            color: #0f172a;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+          }
+          .meta-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 12px;
+            font-size: 11px;
+          }
+          .meta-item {
+            display: flex;
+            flex-direction: column;
+          }
+          .meta-label {
+            font-size: 9px;
+            font-weight: 700;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 1px;
+          }
+          .meta-value {
+            font-weight: 600;
+            color: #334155;
+          }
+          .section-title {
+            font-size: 9px;
+            font-weight: 800;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid #f1f5f9;
+            padding-bottom: 4px;
+            margin-bottom: 8px;
+            margin-top: 12px;
+          }
+          .details-list {
+            margin-bottom: 12px;
+          }
+          .details-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            padding: 5px 0;
+            border-bottom: 1px solid #f8fafc;
+          }
+          .details-row.total {
+            border-top: 2px solid #e2e8f0;
+            border-bottom: 2px solid #e2e8f0;
+            font-weight: 800;
+            font-size: 13px;
+            padding: 8px 0;
+            color: #0f172a;
+            margin-top: 8px;
+          }
+          .footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 9px;
+            color: #94a3b8;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+          }
+          @media print {
+            body {
+              padding: 0;
+            }
+            .receipt-container {
+              border: none;
+              box-shadow: none;
+              padding: 10px 0;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        ${allPaymentsToPrint.map((item, idx) => `
+          <div class="receipt-container" style="${(idx > 0 && idx % 3 === 0) ? 'page-break-before: always;' : (idx > 0 ? 'margin-top: 20px;' : '')}">
+            <div class="header">
+              <img src="${window.location.origin}/logo.png" alt="Logo" class="logo-img" />
+              <div class="header-text">
+                <div class="logo">VISION IT COMPUTER INSTITUTE</div>
+                <div class="address">Kadampara Chowk, Pratappur, Surajpur (C.G.) - 497223</div>
+                <div class="subtitle">Center for Excellence & Learning</div>
+              </div>
+            </div>
+            <div class="receipt-title">Payment Receipt</div>
+            
+            <div class="meta-grid">
+              <div class="meta-item">
+                <span class="meta-label">Student Name</span>
+                <span class="meta-value">${item.studentName}</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">Student ID</span>
+                <span class="meta-value">${item.studentId}</span>
+              </div>
+              <div class="meta-item" style="grid-column: span 2;">
+                <span class="meta-label">Course Enrolled</span>
+                <span class="meta-value">${item.courseTitle}</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">Payment Date</span>
+                <span class="meta-value">${item.paymentDate}</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">Payment Mode</span>
+                <span class="meta-value" style="text-transform: uppercase;">${item.paymentMode}</span>
+              </div>
+              ${item.transactionId ? `
+              <div class="meta-item" style="grid-column: span 2;">
+                <span class="meta-label">Transaction ID / Reference</span>
+                <span class="meta-value" style="font-family: monospace;">${item.transactionId}</span>
+              </div>` : ''}
+            </div>
+            
+            <div class="section-title">Fee Breakdown</div>
+            <div class="details-list">
+              ${item.registrationFee > 0 ? `
+              <div class="details-row">
+                <span>Registration Fee (One-Time)</span>
+                <span>₹${item.registrationFee.toLocaleString('en-IN')}</span>
+              </div>` : ''}
+              ${item.courseFee > 0 ? `
+              <div class="details-row">
+                <span>Course Fee</span>
+                <span>₹${item.courseFee.toLocaleString('en-IN')}</span>
+              </div>` : ''}
+              ${item.examFee > 0 ? `
+              <div class="details-row">
+                <span>Examination Fee (One-Time)</span>
+                <span>₹${item.examFee.toLocaleString('en-IN')}</span>
+              </div>` : ''}
+              
+              <!-- Fallback if breakdown not populated -->
+              ${(!item.registrationFee && !item.courseFee && !item.examFee) ? `
+              <div class="details-row">
+                <span>Fee Payment</span>
+                <span>₹${item.amount.toLocaleString('en-IN')}</span>
+              </div>` : ''}
+
+              <div class="details-row total">
+                <span>Total Amount Paid</span>
+                <span>₹${item.amount.toLocaleString('en-IN')}</span>
+              </div>
+            </div>
+            
+            <div class="footer">
+              Thank you for your payment!<br>
+              This is a computer generated receipt, no signature required.
+            </div>
+          </div>
+        `).join('')}
         <script>
           window.onload = function() {
             window.print();
@@ -669,6 +950,17 @@ export default function FeesClient({
                  {courses.map(c => <option key={c.id} value={c.id} className="dark:bg-slate-900">{c.title}</option>)}
                </select>
              </div>
+
+             {courseFilter !== "all" && (
+               <button
+                 type="button"
+                 onClick={() => handleDownloadAllCourseReceipts(courseFilter)}
+                 className="px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 rounded-xl text-[10px] font-black uppercase flex items-center gap-1.5 cursor-pointer transition-all border border-emerald-100 dark:border-emerald-900/20 active:scale-95 shrink-0"
+                 title="Download All Receipts for Selected Course"
+               >
+                 <Download size={12} className="stroke-[3]" /> Bulk Receipts
+               </button>
+             )}
 
              {/* Status Badge filter tabs */}
              <div className="flex items-center gap-1 bg-white dark:bg-slate-950/60 p-1 border border-slate-200 dark:border-slate-800 rounded-xl">
