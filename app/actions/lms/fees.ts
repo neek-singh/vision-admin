@@ -52,6 +52,10 @@ export async function recordPayment(data: {
   amount: number;
   payment_mode: string;
   transaction_id?: string;
+  payment_date?: string;
+  registration_fee?: number;
+  course_fee?: number;
+  exam_fee?: number;
 }) {
   const supabase = await createServerSupabaseClient();
 
@@ -62,7 +66,10 @@ export async function recordPayment(data: {
     amount: data.amount,
     payment_mode: data.payment_mode,
     transaction_id: data.transaction_id,
-    payment_date: new Date().toISOString().split('T')[0]
+    payment_date: data.payment_date || new Date().toISOString().split('T')[0],
+    registration_fee: data.registration_fee || 0,
+    course_fee: data.course_fee || 0,
+    exam_fee: data.exam_fee || 0
   });
 
   if (payError) return { error: payError.message };

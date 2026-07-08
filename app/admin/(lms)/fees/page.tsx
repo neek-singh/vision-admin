@@ -13,7 +13,7 @@ export default async function AdminFeesPage() {
       *,
       students (id, name, student_id),
       courses (id, title),
-      payments (amount)
+      payments (id, amount, payment_date, payment_mode, transaction_id, registration_fee, course_fee, exam_fee)
     `)
     .order("created_at", { ascending: false });
 

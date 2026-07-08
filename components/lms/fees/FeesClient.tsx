@@ -132,7 +132,9 @@ export default function FeesClient({
   const [paymentData, setPaymentData] = useState({
     amount: 0,
     payment_mode: "cash",
-    transaction_id: ""
+    transaction_id: "",
+    payment_date: "",
+    fee_type: "course" // "course", "registration", "exam"
   });
 
   // Memoized Filtered Fees
@@ -194,14 +196,27 @@ export default function FeesClient({
   const handlePayment = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    const registration_fee = paymentData.fee_type === 'registration' ? paymentData.amount : 0;
+    const course_fee = paymentData.fee_type === 'course' ? paymentData.amount : 0;
+    const exam_fee = paymentData.fee_type === 'exam' ? paymentData.amount : 0;
+
     const result = await recordPayment({
       fee_id: showPayment.id,
       student_id: showPayment.student_id,
-      ...paymentData
+      ...paymentData,
+      registration_fee,
+      course_fee,
+      exam_fee
     });
     if (result.success) {
       setShowPayment(null);
-      setPaymentData({ amount: 0, payment_mode: "cash", transaction_id: "" });
+      setPaymentData({ 
+        amount: 0, 
+        payment_mode: "cash", 
+        transaction_id: "",
+        payment_date: "",
+        fee_type: "course"
+      });
       alert("Payment recorded!");
     } else {
       alert("Error: " + result.error);
@@ -290,32 +305,29 @@ export default function FeesClient({
         <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-3 gap-6">
           <StatCard 
             title="Total Collection" 
-            amount={stats.totalCollection} 
+            value={stats.totalCollection} 
             icon={<Wallet className="text-emerald-600 dark:text-emerald-400" size={24} />} 
-            color="border-emerald-100/50 bg-gradient-to-br from-emerald-50/40 via-white to-white dark:from-emerald-950/20 dark:to-slate-900" 
             sub="Overall received fees" 
             accentColor="emerald"
           />
           <StatCard 
             title="Total Outstanding" 
-            amount={stats.totalPending} 
-            icon={<AlertCircle className="text-rose-600 dark:text-rose-455" size={24} />} 
-            color="border-rose-100/50 bg-gradient-to-br from-rose-50/40 via-white to-white dark:from-rose-950/20 dark:to-slate-900" 
+            value={stats.totalPending} 
+            icon={<AlertCircle className="text-rose-600 dark:text-rose-400" size={24} />} 
             sub="Remaining balance due" 
             accentColor="rose"
           />
           <StatCard 
             title="Today Income" 
-            amount={stats.todayCollection} 
+            value={stats.todayCollection} 
             icon={<TrendingUp className="text-blue-600 dark:text-blue-400" size={24} />} 
-            color="border-blue-100/50 bg-gradient-to-br from-blue-50/40 via-white to-white dark:from-blue-950/20 dark:to-slate-900" 
             sub="Collected today" 
             accentColor="blue"
           />
         </div>
 
         {/* Right Column - Premium SVG Progress Ring */}
-        <div className="lg:col-span-4 bg-white dark:bg-slate-900/80 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 p-6 flex items-center justify-between shadow-sm hover:shadow-md transition-all">
+        <div className="lg:col-span-4 bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-all duration-300">
           <div className="space-y-1.5 flex-1 pr-4">
              <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
                <Sparkles size={12} className="text-amber-500" />
@@ -360,7 +372,7 @@ export default function FeesClient({
       </div>
 
       {/* Main Actions, Search, & Table Grid */}
-      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
         
         {/* Table Header Section */}
         <div className="p-6 sm:p-8 border-b border-slate-50 dark:border-slate-800 flex flex-col md:flex-row justify-between items-stretch md:items-center gap-6">
@@ -479,7 +491,15 @@ export default function FeesClient({
                            <button 
                             onClick={() => {
                               setShowPayment(fee);
-                              setPaymentData({ amount: balance, payment_mode: "cash", transaction_id: "" });
+                              const today = new Date();
+                              const formatDateStr = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                              setPaymentData({ 
+                                amount: balance, 
+                                payment_mode: "cash", 
+                                transaction_id: "",
+                                payment_date: formatDateStr(today),
+                                fee_type: "course"
+                              });
                             }}
                             disabled={fee.status === 'paid'}
                             className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-xl transition-all disabled:opacity-30 cursor-pointer"
@@ -558,7 +578,15 @@ export default function FeesClient({
                      <button 
                         onClick={() => {
                           setShowPayment(fee);
-                          setPaymentData({ amount: balance, payment_mode: "cash", transaction_id: "" });
+                          const today = new Date();
+                          const formatDateStr = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                          setPaymentData({ 
+                            amount: balance, 
+                            payment_mode: "cash", 
+                            transaction_id: "",
+                            payment_date: formatDateStr(today),
+                            fee_type: "course"
+                          });
                         }}
                         disabled={fee.status === 'paid'}
                         className="flex-1 py-3 bg-blue-50 hover:bg-blue-100/50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 disabled:opacity-30 cursor-pointer"
@@ -591,7 +619,7 @@ export default function FeesClient({
       {/* Setup Modal */}
       {showSetup && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
-          <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-300 max-h-[90vh] flex flex-col">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-300 max-h-[90vh] flex flex-col">
              <div className="px-8 py-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50 shrink-0">
                <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
                  <CalendarCheck size={20} className="text-blue-600" /> Create Fee Billing Record
@@ -817,15 +845,15 @@ export default function FeesClient({
       {/* Payment Modal */}
       {showPayment && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
-          <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-300">
-             <div className="px-8 py-6 border-b border-slate-150 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-300 max-h-[90vh] flex flex-col">
+             <div className="px-8 py-6 border-b border-slate-150 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50 shrink-0">
                <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
                  <CreditCard className="text-emerald-600" size={18} /> Record Student Payment
                </h3>
                <button onClick={() => setShowPayment(null)} className="p-2 hover:bg-slate-105 rounded-lg cursor-pointer"><X size={18}/></button>
              </div>
              
-             <form onSubmit={handlePayment} className="p-8 space-y-6">
+             <form onSubmit={handlePayment} className="p-8 space-y-6 overflow-y-auto flex-1 custom-scrollbar">
                 <div className="space-y-2">
                    <div className="text-xs font-bold text-slate-400 dark:text-slate-550 uppercase tracking-widest">Recording for:</div>
                    <h4 className="text-lg font-black text-slate-900 dark:text-white">{(showPayment.students as any)?.name}</h4>
@@ -833,15 +861,40 @@ export default function FeesClient({
                 </div>
 
                 <div className="space-y-2">
-                   <label className="text-[10px] font-bold text-slate-400 dark:text-slate-550 uppercase tracking-widest">Amount Paid (₹)</label>
-                   <input 
-                     required 
-                     type="number" 
-                     className="w-full px-5 py-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 outline-none font-black text-xl text-slate-900 dark:text-slate-100 focus:border-blue-500" 
-                     value={paymentData.amount || ""} 
-                     onChange={(e) => setPaymentData({...paymentData, amount: Number(e.target.value)})}
-                   />
-                </div>
+                    <label className="text-[10px] font-bold text-slate-400 dark:text-slate-550 uppercase tracking-widest">Payment Date</label>
+                    <input 
+                      required 
+                      type="date" 
+                      className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 outline-none font-bold text-sm text-slate-900 dark:text-slate-100 focus:border-blue-500" 
+                      value={paymentData.payment_date} 
+                      onChange={(e) => setPaymentData({...paymentData, payment_date: e.target.value})}
+                    />
+                 </div>
+
+                 <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-slate-400 dark:text-slate-550 uppercase tracking-widest">Fee Component / Type</label>
+                    <select 
+                      required 
+                      className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 outline-none font-bold text-sm text-slate-900 dark:text-slate-100 focus:border-blue-500 cursor-pointer"
+                      value={paymentData.fee_type} 
+                      onChange={(e) => setPaymentData({...paymentData, fee_type: e.target.value})}
+                    >
+                      <option value="course" className="dark:bg-slate-900">Course Fee</option>
+                      <option value="registration" className="dark:bg-slate-900">Registration Fee (One Time)</option>
+                      <option value="exam" className="dark:bg-slate-900">Exam Fee (One Time)</option>
+                    </select>
+                 </div>
+
+                 <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-slate-400 dark:text-slate-550 uppercase tracking-widest">Amount Paid (₹)</label>
+                    <input 
+                      required 
+                      type="number" 
+                      className="w-full px-5 py-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 outline-none font-black text-xl text-slate-900 dark:text-slate-100 focus:border-blue-500" 
+                      value={paymentData.amount || ""} 
+                      onChange={(e) => setPaymentData({...paymentData, amount: Number(e.target.value)})}
+                    />
+                 </div>
 
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold text-slate-400 dark:text-slate-550 uppercase tracking-widest mb-1.5 block">Payment Mode</label>
@@ -897,7 +950,7 @@ export default function FeesClient({
       {/* History Modal */}
       {showHistory && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
-          <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-2xl w-full max-w-3xl overflow-hidden animate-in zoom-in-95 duration-300 max-h-[90vh] flex flex-col">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-2xl w-full max-w-3xl overflow-hidden animate-in zoom-in-95 duration-300 max-h-[90vh] flex flex-col">
              
              {/* Header */}
              <div className="px-8 py-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50 shrink-0">
@@ -922,7 +975,15 @@ export default function FeesClient({
                       const bal = Number(history.final_fee) - totalPaid;
                       setShowHistory(null);
                       setShowPayment(history);
-                      setPaymentData({ amount: bal, payment_mode: "cash", transaction_id: "" });
+                      const today = new Date();
+                      const formatDateStr = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                      setPaymentData({ 
+                        amount: bal, 
+                        payment_mode: "cash", 
+                        transaction_id: "",
+                        payment_date: formatDateStr(today),
+                        fee_type: "course"
+                      });
                     }}
                     disabled={showHistory.status === 'paid'}
                     className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-30 text-white rounded-xl text-[10px] font-semibold uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-blue-500/10 cursor-pointer"
@@ -973,7 +1034,15 @@ export default function FeesClient({
                                         const hist = showHistory;
                                         setShowHistory(null);
                                         setShowPayment(hist);
-                                        setPaymentData({ amount: Number(inst.amount), payment_mode: "cash", transaction_id: "" });
+                                        const today = new Date();
+                                        const formatDateStr = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                                        setPaymentData({ 
+                                          amount: Number(inst.amount), 
+                                          payment_mode: "cash", 
+                                          transaction_id: "",
+                                          payment_date: formatDateStr(today),
+                                          fee_type: "course"
+                                        });
                                       }}
                                       className="px-3 py-1.5 bg-white dark:bg-slate-900 text-blue-600 border border-slate-200 dark:border-slate-800 rounded-lg text-[10px] font-black uppercase hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all shadow-sm cursor-pointer"
                                     >
@@ -1007,8 +1076,17 @@ export default function FeesClient({
                              <div>
                                 <p className="text-sm font-black text-slate-900 dark:text-white">₹{pay.amount.toLocaleString()}</p>
                                 <p className="text-[10px] font-bold text-slate-450 dark:text-slate-500 mt-0.5">
-                                  {new Date(pay.payment_date).toLocaleDateString()} • <span className="uppercase">{pay.payment_mode}</span>
+                                  {pay.payment_date ? new Date(pay.payment_date).toLocaleDateString() : ""} • <span className="uppercase">{pay.payment_mode}</span>
                                 </p>
+                                {(Number(pay.registration_fee) > 0 || Number(pay.course_fee) > 0 || Number(pay.exam_fee) > 0) && (
+                                   <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-[9px] font-bold text-slate-400 dark:text-slate-550 mt-1 bg-slate-100/50 dark:bg-slate-900/50 px-2 py-0.5 rounded-md max-w-fit border border-slate-150/40 dark:border-slate-800/30">
+                                     {Number(pay.registration_fee) > 0 && <span>Reg: ₹{Number(pay.registration_fee).toLocaleString()}</span>}
+                                     {Number(pay.registration_fee) > 0 && (Number(pay.course_fee) > 0 || Number(pay.exam_fee) > 0) && <span>•</span>}
+                                     {Number(pay.course_fee) > 0 && <span>Course: ₹{Number(pay.course_fee).toLocaleString()}</span>}
+                                     {Number(pay.exam_fee) > 0 && (Number(pay.course_fee) > 0 || Number(pay.registration_fee) > 0) && <span>•</span>}
+                                     {Number(pay.exam_fee) > 0 && <span>Exam: ₹{Number(pay.exam_fee).toLocaleString()}</span>}
+                                   </div>
+                                )}
                                 {pay.transaction_id && (
                                   <p className="text-[9px] font-mono text-slate-400 mt-1">Ref: {pay.transaction_id}</p>
                                 )}
@@ -1044,22 +1122,27 @@ export default function FeesClient({
   );
 }
 
-function StatCard({ title, amount, icon, color, sub, accentColor }: any) {
-  const accentStyles: Record<string, string> = {
-    emerald: "group-hover:bg-emerald-500 group-hover:text-white",
-    rose: "group-hover:bg-rose-500 group-hover:text-white",
-    blue: "group-hover:bg-blue-600 group-hover:text-white"
+function StatCard({ title, value, icon, sub, accentColor }: any) {
+  const iconBgStyles: Record<string, string> = {
+    emerald: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-100/30 dark:border-emerald-900/20",
+    rose: "bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-450 border border-rose-100/30 dark:border-rose-900/20",
+    blue: "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-100/30 dark:border-blue-900/20",
+    purple: "bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 border border-purple-100/30 dark:border-purple-900/20",
   };
 
+  const formattedValue = typeof value === 'number' ? `₹${value.toLocaleString()}` : value;
+
   return (
-    <div className={`p-6 rounded-[2rem] border transition-all duration-300 relative overflow-hidden group hover:-translate-y-0.5 ${color}`}>
-      <div className={`absolute top-4 right-4 p-2 rounded-xl transition-all duration-300 ${accentStyles[accentColor]}`}>
-        {icon}
+    <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex justify-between items-start group hover:shadow-md dark:hover:shadow-slate-950/50 transition-all duration-300">
+      <div className="space-y-1.5 min-w-0">
+        <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-none truncate">{title}</p>
+        <h3 className="text-2xl sm:text-3.5xl font-black text-slate-900 dark:text-white leading-none pt-0.5">
+          {formattedValue}
+        </h3>
+        {sub && <p className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold">{sub}</p>}
       </div>
-      <div className="relative z-10 space-y-1.5">
-        <p className="text-[10px] font-bold text-slate-450 dark:text-slate-500 uppercase tracking-widest">{title}</p>
-        <h3 className="text-3xl font-black text-slate-950 dark:text-white tracking-tight">₹{amount.toLocaleString()}</h3>
-        <p className="text-[10px] font-semibold text-slate-450 dark:text-slate-500 opacity-80">{sub}</p>
+      <div className={`p-2.5 rounded-xl shrink-0 ${iconBgStyles[accentColor] || "bg-slate-50 dark:bg-slate-900"}`}>
+        {icon}
       </div>
     </div>
   );

@@ -104,7 +104,6 @@ export default function UsersClient({ initialUsers }: { initialUsers: any[] }) {
           title="Total Users" 
           value={totalCount} 
           icon={<Users size={22} />} 
-          color="border-blue-100/50 bg-gradient-to-br from-blue-50/40 via-white to-white dark:from-blue-950/20 dark:to-slate-900" 
           sub="Registered accounts"
           accentColor="blue"
         />
@@ -112,7 +111,6 @@ export default function UsersClient({ initialUsers }: { initialUsers: any[] }) {
           title="Administrators" 
           value={adminCount} 
           icon={<ShieldCheck size={22} />} 
-          color="border-purple-100/50 bg-gradient-to-br from-purple-50/40 via-white to-white dark:from-purple-950/20 dark:to-slate-900" 
           sub="Full system control"
           accentColor="purple"
         />
@@ -120,14 +118,13 @@ export default function UsersClient({ initialUsers }: { initialUsers: any[] }) {
           title="Learners / Students" 
           value={studentCount} 
           icon={<GraduationCap size={22} />} 
-          color="border-emerald-100/50 bg-gradient-to-br from-emerald-50/40 via-white to-white dark:from-emerald-950/20 dark:to-slate-900" 
           sub="Active student profiles"
           accentColor="emerald"
         />
       </div>
 
       {/* Filter and Control Center */}
-      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
         
         {/* Table Controls Header */}
         <div className="p-6 sm:p-8 border-b border-slate-50 dark:border-slate-800 flex flex-col md:flex-row justify-between items-stretch md:items-center gap-6">
@@ -350,22 +347,27 @@ export default function UsersClient({ initialUsers }: { initialUsers: any[] }) {
   );
 }
 
-function StatCard({ title, value, icon, color, sub, accentColor }: any) {
-  const accentStyles: Record<string, string> = {
-    purple: "group-hover:bg-purple-500 group-hover:text-white",
-    emerald: "group-hover:bg-emerald-500 group-hover:text-white",
-    blue: "group-hover:bg-blue-600 group-hover:text-white"
+function StatCard({ title, value, icon, sub, accentColor }: any) {
+  const iconBgStyles: Record<string, string> = {
+    emerald: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-100/30 dark:border-emerald-900/20",
+    rose: "bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-450 border border-rose-100/30 dark:border-rose-900/20",
+    blue: "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-100/30 dark:border-blue-900/20",
+    purple: "bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 border border-purple-100/30 dark:border-purple-900/20",
   };
 
+  const formattedValue = typeof value === 'number' ? value.toLocaleString() : value;
+
   return (
-    <div className={`p-6 rounded-[2rem] border transition-all duration-300 relative overflow-hidden group hover:-translate-y-0.5 ${color}`}>
-      <div className={`absolute top-4 right-4 p-2.5 rounded-xl transition-all duration-300 bg-white dark:bg-slate-950 shadow-sm border border-slate-100/50 dark:border-slate-850/80 ${accentStyles[accentColor]}`}>
-        {icon}
+    <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex justify-between items-start group hover:shadow-md dark:hover:shadow-slate-950/50 transition-all duration-300">
+      <div className="space-y-1.5 min-w-0">
+        <p className="text-[10px] font-bold text-slate-400 dark:text-slate-550 uppercase tracking-widest leading-none truncate">{title}</p>
+        <h3 className="text-2xl sm:text-3.5xl font-black text-slate-900 dark:text-white leading-none pt-0.5">
+          {formattedValue}
+        </h3>
+        {sub && <p className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold">{sub}</p>}
       </div>
-      <div className="relative z-10 space-y-1.5">
-        <p className="text-[10px] font-bold text-slate-450 dark:text-slate-500 uppercase tracking-widest">{title}</p>
-        <h3 className="text-3xl font-black text-slate-950 dark:text-white tracking-tight">{value.toLocaleString()}</h3>
-        <p className="text-[10px] font-semibold text-slate-450 dark:text-slate-500 opacity-80">{sub}</p>
+      <div className={`p-2.5 rounded-xl shrink-0 ${iconBgStyles[accentColor] || "bg-slate-50 dark:bg-slate-900"}`}>
+        {icon}
       </div>
     </div>
   );
