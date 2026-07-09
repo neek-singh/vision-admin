@@ -172,7 +172,7 @@ export default function AddStudentPage() {
                     >
                       <option value="">Select Primary Course</option>
                       {availableCourses.map((course) => (
-                        <option key={course.id} value={course.title}>
+                        <option key={course.id} value={course.id}>
                           {course.title}
                         </option>
                       ))}

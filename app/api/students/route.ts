@@ -35,13 +35,47 @@ export async function POST(request: Request) {
     let courseData = null;
     if (course) {
       // Find matching course if provided
-      const { data } = await supabase
-        .from("courses")
-        .select("id, course_code")
-        .or(`course_code.ilike.%${course}%,title.ilike.%${course}%`)
-        .limit(1)
-        .single();
-      courseData = data;
+      const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(course);
+      if (isUuid) {
+        const { data } = await supabase
+          .from("courses")
+          .select("id, course_code, title")
+          .eq("id", course)
+          .limit(1)
+          .maybeSingle();
+        courseData = data;
+      } else {
+        // Fallback for non-UUID matching (try exact match first, then fuzzy)
+        const { data: exactCode } = await supabase
+          .from("courses")
+          .select("id, course_code, title")
+          .ilike("course_code", course)
+          .limit(1)
+          .maybeSingle();
+
+        if (exactCode) {
+          courseData = exactCode;
+        } else {
+          const { data: exactTitle } = await supabase
+            .from("courses")
+            .select("id, course_code, title")
+            .ilike("title", course)
+            .limit(1)
+            .maybeSingle();
+
+          if (exactTitle) {
+            courseData = exactTitle;
+          } else {
+            const { data: fuzzy } = await supabase
+              .from("courses")
+              .select("id, course_code, title")
+              .or(`course_code.ilike.%${course}%,title.ilike.%${course}%`)
+              .limit(1)
+              .maybeSingle();
+            courseData = fuzzy;
+          }
+        }
+      }
     }
 
     const year = new Date().getFullYear();
@@ -77,7 +111,7 @@ export async function POST(request: Request) {
           name,
           email,
           phone,
-          course: course || null,
+          course: courseData ? courseData.title : (course || null),
           password: placeholderHash,  // unguessable — credentials generated separately
           status: "active",
         },
