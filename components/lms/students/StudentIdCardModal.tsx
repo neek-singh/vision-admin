@@ -26,6 +26,8 @@ import {
 interface StudentIdCardModalProps {
   student: any;
   onClose: () => void;
+  bulkStudents?: any[];
+  courseTitle?: string;
 }
 
 type TemplateType = "excellence" | "visionary" | "curator" | "scholarly" | "cyber" | "modern" | "custom";
@@ -127,15 +129,28 @@ const presets = {
   }
 };
 
-export default function StudentIdCardModal({ student, onClose }: StudentIdCardModalProps) {
+const getShortCourse = (cName: string) => {
+  if (!cName) return "";
+  const uName = cName.trim().toUpperCase();
+  if (uName.includes("POST GRADUATE DIPLOMA IN COMPUTER APPLICATIONS") || uName.includes("POST GRADUATE DIPLOMA IN COMPUTER APPLICATION")) return "PGDCA";
+  if (uName.includes("ADVANCED DIPLOMA IN COMPUTER APPLICATIONS") || uName.includes("ADVANCED DIPLOMA IN COMPUTER APPLICATION")) return "ADCA";
+  if (uName.includes("DIPLOMA IN COMPUTER APPLICATIONS") || uName.includes("DIPLOMA IN COMPUTER APPLICATION") || uName === "DIPLOMA IN COMPUTER") return "DCA";
+  if (uName.includes("BASIC COMPUTER COURSE")) return "BCC";
+  return cName;
+};
+
+export default function StudentIdCardModal({ student, onClose, bulkStudents = [], courseTitle = "" }: StudentIdCardModalProps) {
+  const isBulkMode = bulkStudents && bulkStudents.length > 0;
+  const primaryStudent = student || bulkStudents[0] || {};
+
   // Navigation & General state
   const [template, setTemplate] = useState<TemplateType>("excellence");
-  const [orientation, setOrientation] = useState<OrientationType>("portrait");
+  const [stateOrientation, setOrientation] = useState<OrientationType>("portrait");
   const [pattern, setPattern] = useState<PatternType>("waves");
   const [barcodeType, setBarcodeType] = useState<BarcodeType>("qr");
   const [activeTab, setActiveTab] = useState<"design" | "front" | "back">("design");
   const [isFlipped, setIsFlipped] = useState<boolean>(false);
-  const [bgImage, setBgImage] = useState<string | null>("/idcard/idcard_1.png");
+  const [stateBgImage, setBgImage] = useState<string | null>("/idcard/idcard_1.png");
 
   // Custom colors
   const [customPrimary, setCustomPrimary] = useState<string>("#2563eb");
@@ -148,28 +163,45 @@ export default function StudentIdCardModal({ student, onClose }: StudentIdCardMo
   const [processedSignatureUrl, setProcessedSignatureUrl] = useState<string | null>(null);
 
   // Overridable details
-  const [nameText, setNameText] = useState<string>(student.name || "");
-  const [idText, setIdText] = useState<string>(student.student_id || "");
-  const [courseText, setCourseText] = useState<string>(student.course || "General Student");
-  const [bloodGroup, setBloodGroup] = useState<string>("O+");
+  const [stateNameText, setNameText] = useState<string>(primaryStudent.name || "");
+  const [stateIdText, setIdText] = useState<string>(primaryStudent.student_id || "");
+  const [stateCourseText, setCourseText] = useState<string>(getShortCourse(primaryStudent.course || "General Student"));
+  const [stateBloodGroup, setBloodGroup] = useState<string>("O+");
   const [validTill, setValidTill] = useState<string>(() => {
     const d = new Date();
     d.setFullYear(d.getFullYear() + 1);
     return d.toISOString().split("T")[0];
   });
-  const [phoneText, setPhoneText] = useState<string>(student.phone || "");
-  const [emailText, setEmailText] = useState<string>(student.email || "");
-  const [addressText, setAddressText] = useState<string>(student.address || "");
-  const [fatherName, setFatherName] = useState<string>(student.father_name || "");
-  const [motherName, setMotherName] = useState<string>(student.mother_name || "");
-  const [dobText, setDobText] = useState<string>(student.dob ? new Date(student.dob).toISOString().split("T")[0] : "");
-  const [aadharText, setAadharText] = useState<string>(student.aadhar_no || "");
-  const [admissionText, setAdmissionText] = useState<string>(student.admission_date ? new Date(student.admission_date).toISOString().split("T")[0] : "");
+  const [statePhoneText, setPhoneText] = useState<string>(primaryStudent.phone || "");
+  const [stateEmailText, setEmailText] = useState<string>(primaryStudent.email || "");
+  const [stateAddressText, setAddressText] = useState<string>(primaryStudent.address || "");
+  const [stateFatherName, setFatherName] = useState<string>(primaryStudent.father_name || "");
+  const [stateMotherName, setMotherName] = useState<string>(primaryStudent.mother_name || "");
+  const [stateDobText, setDobText] = useState<string>(primaryStudent.dob ? new Date(primaryStudent.dob).toISOString().split("T")[0] : "");
+  const [stateAadharText, setAadharText] = useState<string>(primaryStudent.aadhar_no || "");
+  const [stateAdmissionText, setAdmissionText] = useState<string>(primaryStudent.admission_date ? new Date(primaryStudent.admission_date).toISOString().split("T")[0] : "");
 
   const [instituteName, setInstituteName] = useState<string>("VISION IT COMPUTER INSTITUTE");
   const [signatureText, setSignatureText] = useState<string>("Auth Signatory");
   const [websiteText, setWebsiteText] = useState<string>("www.visionlearn.org");
-  const [barcodeText, setBarcodeText] = useState<string>(student.student_id || "");
+  const [stateBarcodeText, setBarcodeText] = useState<string>(primaryStudent.student_id || "");
+
+  // Shadow variables mapping
+  const nameText = stateNameText;
+  const idText = stateIdText;
+  const courseText = stateCourseText;
+  const bloodGroup = stateBloodGroup;
+  const phoneText = statePhoneText;
+  const emailText = stateEmailText;
+  const addressText = stateAddressText;
+  const fatherName = stateFatherName;
+  const motherName = stateMotherName;
+  const dobText = stateDobText;
+  const aadharText = stateAadharText;
+  const admissionText = stateAdmissionText;
+  const barcodeText = stateBarcodeText;
+  const bgImage = stateBgImage;
+  const orientation = stateOrientation;
 
   // Toggles
   const [showBloodGroup, setShowBloodGroup] = useState<boolean>(true);
@@ -186,6 +218,7 @@ export default function StudentIdCardModal({ student, onClose }: StudentIdCardMo
   const [printBackUrl, setPrintBackUrl] = useState<string>("");
   const [triggerPrint, setTriggerPrint] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState(0);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -432,11 +465,36 @@ export default function StudentIdCardModal({ student, onClose }: StudentIdCardMo
   };
 
   // High-Resolution Card Drawer
-  const drawToCanvas = async (side: "front" | "back"): Promise<string | null> => {
+  const drawToCanvas = async (
+    side: "front" | "back", 
+    studentOverride?: any, 
+    bgImageOverride?: string | null, 
+    orientationOverride?: OrientationType
+  ): Promise<string | null> => {
     const canvas = canvasRef.current;
     if (!canvas) return null;
     const ctx = canvas.getContext("2d");
     if (!ctx) return null;
+
+    const activeStudent = studentOverride || primaryStudent;
+    
+    // Local shadowed details variables for bulk generation support
+    const nameText = studentOverride ? (activeStudent.name || "") : stateNameText;
+    const idText = studentOverride ? (activeStudent.student_id || "") : stateIdText;
+    const courseText = studentOverride ? getShortCourse(activeStudent.course || "General Student") : stateCourseText;
+    const bloodGroup = studentOverride ? (activeStudent.blood_group || "O+") : stateBloodGroup;
+    const phoneText = studentOverride ? (activeStudent.phone || "") : statePhoneText;
+    const emailText = studentOverride ? (activeStudent.email || "") : stateEmailText;
+    const addressText = studentOverride ? (activeStudent.address || "") : stateAddressText;
+    const fatherName = studentOverride ? (activeStudent.father_name || "") : stateFatherName;
+    const motherName = studentOverride ? (activeStudent.mother_name || "") : stateMotherName;
+    const dobText = studentOverride ? (activeStudent.dob ? new Date(activeStudent.dob).toISOString().split("T")[0] : "") : stateDobText;
+    const aadharText = studentOverride ? (activeStudent.aadhar_no || "") : stateAadharText;
+    const admissionText = studentOverride ? (activeStudent.admission_date ? new Date(activeStudent.admission_date).toISOString().split("T")[0] : "") : stateAdmissionText;
+    const barcodeText = studentOverride ? (activeStudent.student_id || "") : stateBarcodeText;
+    
+    const bgImage = bgImageOverride !== undefined ? bgImageOverride : stateBgImage;
+    const orientation = orientationOverride !== undefined ? orientationOverride : stateOrientation;
 
     // Helper to draw image like CSS object-fit: cover
     const drawImageCover = (
@@ -497,22 +555,232 @@ export default function StudentIdCardModal({ student, onClose }: StudentIdCardMo
       return lines.length;
     };
 
+    // Helper to draw left-aligned wrapped text on canvas
+    const drawLeftWrappedText = (
+      c: CanvasRenderingContext2D,
+      txt: string,
+      lx: number,
+      cy: number,
+      maxW: number,
+      lineHeight: number
+    ) => {
+      const words = txt.split(" ");
+      let line = "";
+      const lines = [];
+      for (let n = 0; n < words.length; n++) {
+        const testLine = line + words[n] + " ";
+        const metrics = c.measureText(testLine);
+        if (metrics.width > maxW && n > 0) {
+          lines.push(line.trim());
+          line = words[n] + " ";
+        } else {
+          line = testLine;
+        }
+      }
+      lines.push(line.trim());
+      lines.forEach((l, idx) => {
+        c.fillText(l, lx, cy + (idx * lineHeight));
+      });
+      return lines.length;
+    };
+
+    const drawVectorIcon = (c: CanvasRenderingContext2D, type: string, cx: number, cy: number, size: number, color: string) => {
+      c.save();
+      c.strokeStyle = color;
+      c.fillStyle = color;
+      c.lineWidth = 2.5;
+      c.lineCap = "round";
+      c.lineJoin = "round";
+      
+      if (type === "phone") {
+        const w = size * 0.65;
+        const h = size;
+        c.beginPath();
+        c.roundRect ? c.roundRect(cx - w/2, cy - h/2, w, h, 3) : c.rect(cx - w/2, cy - h/2, w, h);
+        c.stroke();
+        c.beginPath();
+        c.arc(cx, cy + h/2 - 3, 1.5, 0, Math.PI * 2);
+        c.fill();
+        c.beginPath();
+        c.moveTo(cx - 3, cy - h/2 + 3);
+        c.lineTo(cx + 3, cy - h/2 + 3);
+        c.stroke();
+      } else if (type === "email") {
+        const w = size;
+        const h = size * 0.75;
+        const rx = cx - w/2;
+        const ry = cy - h/2;
+        c.beginPath();
+        c.rect(rx, ry, w, h);
+        c.stroke();
+        c.beginPath();
+        c.moveTo(rx, ry);
+        c.lineTo(cx, cy + 1);
+        c.lineTo(rx + w, ry);
+        c.stroke();
+      } else if (type === "website") {
+        const r = size / 2;
+        c.beginPath();
+        c.arc(cx, cy, r, 0, Math.PI * 2);
+        c.stroke();
+        c.beginPath();
+        c.ellipse ? c.ellipse(cx, cy, r * 0.45, r, 0, 0, Math.PI * 2) : c.arc(cx, cy, r * 0.5, 0, Math.PI * 2);
+        c.stroke();
+        c.beginPath();
+        c.moveTo(cx - r, cy);
+        c.lineTo(cx + r, cy);
+        c.stroke();
+      }
+      c.restore();
+    };
+
     // Portrait is 638x1012. Landscape is 1012x638
     const width = orientation === "portrait" ? 638 : 1012;
     const height = orientation === "portrait" ? 1012 : 638;
     canvas.width = width;
     canvas.height = height;
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
 
     // Clear background
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, width, height);
 
-    if (bgImage) {
+    if (bgImage && bgImage !== "theme_4") {
       try {
         const bgImg = await loadImgSecurely(bgImage);
         ctx.drawImage(bgImg, 0, 0, width, height);
       } catch (err) {
         console.error("Failed to load background template image", err);
+      }
+    } else if (bgImage === "theme_4") {
+      // Draw a beautiful custom black/orange theme for Theme 4 on the canvas (Same to Same)
+      if (orientation === "portrait") {
+        // 1. Triple-rippling top-left wave (3 bends/waves path)
+        const getWavePoints = () => {
+          const startX = width;
+          const startY = 0;
+          const endX = 0;
+          const endY = height * 0.62;
+          const points = [];
+          const steps = 100;
+          
+          const dx = endX - startX;
+          const dy = endY - startY;
+          const len = Math.sqrt(dx*dx + dy*dy);
+          const nx = -dy / len;
+          const ny = dx / len;
+          
+          for (let i = 0; i <= steps; i++) {
+            const t = i / steps;
+            const lx = startX + (endX - startX) * t;
+            const ly = startY + (endY - startY) * t;
+            
+            // Amplitude curves to 0 at edges. Sine frequency of 5 gives 3 visible crests.
+            const amp = 30 * Math.sin(t * Math.PI);
+            const waveOffset = amp * Math.sin(t * Math.PI * 5);
+            
+            const px = lx + nx * waveOffset;
+            const py = ly + ny * waveOffset;
+            points.push({ x: px, y: py });
+          }
+          return points;
+        };
+
+        // Draw main filled wave
+        ctx.fillStyle = "#ffeada";
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(width, 0);
+        const fillPoints = getWavePoints();
+        fillPoints.forEach(p => ctx.lineTo(p.x, p.y));
+        ctx.lineTo(0, height * 0.62);
+        ctx.lineTo(0, 0);
+        ctx.closePath();
+        ctx.fill();
+
+
+
+        // 3. Top-right large circle (changed to soft blue for theme coordination)
+        ctx.fillStyle = "#e0f2fe";
+        ctx.beginPath();
+        ctx.arc(width * 0.95, height * 0.08, 140, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 4. Top-right small blue circle
+        ctx.fillStyle = "#3b82f6";
+        ctx.beginPath();
+        ctx.arc(width * 0.96, height * 0.23, 45, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 5. Bottom-right semicircles on the right edge (around y = height * 0.7)
+        const semiY = height * 0.7;
+
+        // Dotted semicircle outline
+        ctx.save();
+        ctx.strokeStyle = "#f55a12ff";
+        ctx.lineWidth = 2.5;
+        ctx.setLineDash([6, 6]);
+        ctx.beginPath();
+        ctx.arc(width, semiY, 115, Math.PI * 0.5, Math.PI * 1.5);
+        ctx.stroke();
+        ctx.restore();
+
+        // Solid orange semicircle 1
+        ctx.fillStyle = "#fdbb9b";
+        ctx.beginPath();
+        ctx.arc(width, semiY, 85, Math.PI * 0.5, Math.PI * 1.5);
+        ctx.fill();
+
+        // Solid orange semicircle 2
+        ctx.fillStyle = "#f97316";
+        ctx.beginPath();
+        ctx.arc(width, semiY, 45, Math.PI * 0.5, Math.PI * 1.5);
+        ctx.fill();
+      } else {
+        // Landscape orange waves
+        ctx.fillStyle = "#ffeada";
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(width * 0.45, 0);
+        ctx.bezierCurveTo(width * 0.38, height * 0.4, width * 0.3, height * 0.5, 0, height * 0.72);
+        ctx.closePath();
+        ctx.fill();
+
+
+
+        // Top-right large circle (changed to soft orange for text legibility)
+        ctx.fillStyle = "#ffeada";
+        ctx.beginPath();
+        ctx.arc(width * 0.95, height * 0.1, 100, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Top-right small orange circle
+        ctx.fillStyle = "#f97316";
+        ctx.beginPath();
+        ctx.arc(width * 0.96, height * 0.3, 30, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Bottom-right semicircles
+        const semiY = height * 0.75;
+        ctx.save();
+        ctx.strokeStyle = "#1e1e24";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.arc(width, semiY, 80, Math.PI * 0.5, Math.PI * 1.5);
+        ctx.stroke();
+        ctx.restore();
+
+        ctx.fillStyle = "#fdbb9b";
+        ctx.beginPath();
+        ctx.arc(width, semiY, 60, Math.PI * 0.5, Math.PI * 1.5);
+        ctx.fill();
+
+        ctx.fillStyle = "#f97316";
+        ctx.beginPath();
+        ctx.arc(width, semiY, 32, Math.PI * 0.5, Math.PI * 1.5);
+        ctx.fill();
       }
     }
 
@@ -728,12 +996,14 @@ export default function StudentIdCardModal({ student, onClose }: StudentIdCardMo
       }
 
       // Slot
-      ctx.fillStyle = "#e2e8f0";
-      ctx.beginPath();
-      const slotX = (width - 100) / 2;
-      const slotY = 18;
-      ctx.roundRect ? ctx.roundRect(slotX, slotY, 100, 15, 7.5) : ctx.rect(slotX, slotY, 100, 15);
-      ctx.fill();
+      if (bgImage !== "theme_4") {
+        ctx.fillStyle = "#e2e8f0";
+        ctx.beginPath();
+        const slotX = (width - 100) / 2;
+        const slotY = 18;
+        ctx.roundRect ? ctx.roundRect(slotX, slotY, 100, 15, 7.5) : ctx.rect(slotX, slotY, 100, 15);
+        ctx.fill();
+      }
 
       // Top logo area (Centered)
       const drawDefaultLogo = (c: CanvasRenderingContext2D, lx: number, ly: number, lsz: number) => {
@@ -754,9 +1024,9 @@ export default function StudentIdCardModal({ student, onClose }: StudentIdCardMo
       const lastName = instituteName.split(" ").slice(-1)[0];
 
       if (orientation === "portrait") {
-        const logoSize = 110;
-        const logoX = (width - logoSize) / 2;
-        const logoY = 30;
+        const logoSize = bgImage === "theme_4" ? 140 : 110;
+        const logoX = bgImage === "theme_4" ? 45 : (width - logoSize) / 2;
+        const logoY = bgImage === "theme_4" ? 20 : 30;
 
         if (logoUrl) {
           try {
@@ -770,34 +1040,36 @@ export default function StudentIdCardModal({ student, onClose }: StudentIdCardMo
         }
 
         // Institution titles
-        ctx.textAlign = "center";
+        ctx.textAlign = bgImage === "theme_4" ? "left" : "center";
         ctx.fillStyle = isDarkHeader ? "#ffffff" : "#0f172a";
         ctx.font = "bold 34px 'Outfit', sans-serif";
-        ctx.fillText(mainName.toUpperCase(), width / 2, 155);
-        
+        ctx.fillText(mainName.toUpperCase(), bgImage === "theme_4" ? 210 : width / 2, bgImage === "theme_4" ? 80 : 155);
+
         ctx.fillStyle = isDarkHeader ? "rgba(255, 255, 255, 0.75)" : "#000000";
         ctx.font = "bold 22px 'Outfit', sans-serif";
-        ctx.fillText(lastName.toUpperCase(), width / 2, 185);
+        ctx.fillText(lastName.toUpperCase(), bgImage === "theme_4" ? 210 : width / 2, bgImage === "theme_4" ? 120 : 185);
 
         // Student ID Card Label Pill
         const pillW = 160;
         const pillH = 24;
         const pillX = width / 2 - pillW / 2;
-        const pillY = 223 - pillH / 2;
-        ctx.strokeStyle = isDarkHeader ? "rgba(255, 255, 255, 0.3)" : "#000000";
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.roundRect ? ctx.roundRect(pillX, pillY, pillW, pillH, 12) : ctx.rect(pillX, pillY, pillW, pillH);
-        ctx.stroke();
+        const pillY = (bgImage === "theme_4" ? 165 : 223) - pillH / 2;
+        if (bgImage !== "theme_4") {
+          ctx.strokeStyle = isDarkHeader ? "rgba(255, 255, 255, 0.3)" : "#000000";
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.roundRect ? ctx.roundRect(pillX, pillY, pillW, pillH, 12) : ctx.rect(pillX, pillY, pillW, pillH);
+          ctx.stroke();
+        }
 
         ctx.fillStyle = isDarkHeader ? "rgba(255, 255, 255, 0.8)" : "#000000";
-        ctx.font = "bold 13px 'Outfit', sans-serif";
-        ctx.textAlign = "center";
+        ctx.font = bgImage === "theme_4" ? "bold 23px 'Outfit', sans-serif" : "bold 16px 'Outfit', sans-serif";
+        ctx.textAlign = bgImage === "theme_4" ? "left" : "center";
         ctx.textBaseline = "middle";
         if ('letterSpacing' in ctx) {
-          ctx.letterSpacing = "2.6px"; // 0.2em of 13px
+          ctx.letterSpacing = bgImage === "theme_4" ? "4.6px" : "3.2px"; // 0.2em of font size
         }
-        ctx.fillText("Student ID Card", width / 2, 223);
+        ctx.fillText("Student ID Card", bgImage === "theme_4" ? 210 : width / 2, bgImage === "theme_4" ? 165 : 223);
         ctx.textBaseline = "alphabetic";
         if ('letterSpacing' in ctx) {
           ctx.letterSpacing = "normal"; // reset
@@ -805,12 +1077,12 @@ export default function StudentIdCardModal({ student, onClose }: StudentIdCardMo
 
         // Profile Photo
         const photoX = width / 2;
-        const photoY = 375; // center of photo
-        const radius = 100;
+        const photoY = bgImage === "theme_4" ? 365 : 375; // center of photo
+        const radius = bgImage === "theme_4" ? 150 : 100;
 
         if (showPhoto) {
-          ctx.strokeStyle = currentStyles.photoBorder;
-          ctx.lineWidth = 8;
+          ctx.strokeStyle = bgImage === "theme_4" ? "#3b82f6" : currentStyles.photoBorder;
+          ctx.lineWidth = bgImage === "theme_4" ? 2 : 8;
           ctx.beginPath();
           ctx.arc(photoX, photoY, radius + 4, 0, Math.PI * 2);
           ctx.stroke();
@@ -821,8 +1093,8 @@ export default function StudentIdCardModal({ student, onClose }: StudentIdCardMo
           ctx.clip();
 
           try {
-            if (student.photo_url) {
-              const photo = await loadImgSecurely(student.photo_url);
+            if (activeStudent.photo_url) {
+              const photo = await loadImgSecurely(activeStudent.photo_url);
               drawImageCover(ctx, photo, photoX - radius, photoY - radius, radius * 2, radius * 2);
             } else {
               throw new Error();
@@ -848,28 +1120,28 @@ export default function StudentIdCardModal({ student, onClose }: StudentIdCardMo
         if ('letterSpacing' in ctx) {
           ctx.letterSpacing = "0.75px"; // tracking-wide
         }
-        ctx.fillText(nameText.toUpperCase(), photoX, 515);
+        ctx.fillText(nameText.toUpperCase(), photoX, bgImage === "theme_4" ? 570 : 515);
         if ('letterSpacing' in ctx) {
           ctx.letterSpacing = "normal"; // reset
         }
 
         // Course pill
         ctx.save();
-        ctx.strokeStyle = "#3b82f6"; // blue-500
+        ctx.strokeStyle = bgImage === "theme_4" ? "#f97316" : "#3b82f6"; // blue-500
         ctx.lineWidth = 1.5;
-        ctx.font = "bold 15px 'Outfit', sans-serif";
+        ctx.font = bgImage === "theme_4" ? "bold 20px 'Outfit', sans-serif" : "bold 15px 'Outfit', sans-serif";
         if ('letterSpacing' in ctx) {
-          ctx.letterSpacing = "0.75px"; // tracking-wider
+          ctx.letterSpacing = bgImage === "theme_4" ? "1px" : "0.75px"; // tracking-wider
         }
-        const textWidth = ctx.measureText(courseText.toUpperCase()).width + 30;
-        const capH = 30;
+        const textWidth = ctx.measureText(courseText.toUpperCase()).width + (bgImage === "theme_4" ? 40 : 30);
+        const capH = bgImage === "theme_4" ? 38 : 30;
         const capX = photoX - textWidth / 2;
-        const capY = 535;
+        const capY = bgImage === "theme_4" ? 610 : 535;
         ctx.beginPath();
         ctx.roundRect ? ctx.roundRect(capX, capY, textWidth, capH, capH / 2) : ctx.strokeRect(capX, capY, textWidth, capH);
         ctx.stroke();
 
-        ctx.fillStyle = "#000000"; // black
+        ctx.fillStyle = bgImage === "theme_4" ? "#f97316" : "#000000"; // black
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillText(courseText.toUpperCase(), photoX, capY + capH / 2);
@@ -881,7 +1153,7 @@ export default function StudentIdCardModal({ student, onClose }: StudentIdCardMo
         ctx.rotate(-Math.PI / 2);
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillStyle = "#3b82f6"; // blue-500
+        ctx.fillStyle = bgImage === "theme_4" ? "#f97316" : "#3b82f6"; // blue-500
         ctx.font = "italic bold 28px 'Outfit', sans-serif";
         if ('letterSpacing' in ctx) {
           ctx.letterSpacing = "5.6px"; // 0.2em of 28px
@@ -915,14 +1187,14 @@ export default function StudentIdCardModal({ student, onClose }: StudentIdCardMo
           }
         });
 
-        const labelWidthOffset = 145;
+        const labelWidthOffset = 120;
         const totalBlockWidth = labelWidthOffset + maxValWidth;
         const currentX = ((width - totalBlockWidth) / 2) - 25;
         ctx.restore();
 
         ctx.textAlign = "left";
         dataRows.forEach((row, i) => {
-          const startY = 615;
+          const startY = bgImage === "theme_4" ? 695 : 615;
           const rowHeight = 45;
           const currentY = startY + (i * rowHeight);
 
@@ -964,63 +1236,65 @@ export default function StudentIdCardModal({ student, onClose }: StudentIdCardMo
         });
 
         // QR / Barcode
-        if (barcodeType === "qr") {
-          const qrSize = 110;
-          const qrX = width / 2 - qrSize / 2;
-          const qrY = 840;
+        if (bgImage !== "theme_4") {
+          if (barcodeType === "qr") {
+            const qrSize = 110;
+            const qrX = width / 2 - qrSize / 2;
+            const qrY = 840;
 
-          try {
-            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${idText}`;
-            const qrImg = await loadImgSecurely(qrUrl);
+            try {
+              const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${idText}`;
+              const qrImg = await loadImgSecurely(qrUrl);
+              ctx.fillStyle = "#ffffff";
+              ctx.beginPath();
+              ctx.roundRect ? ctx.roundRect(qrX - 10, qrY - 10, qrSize + 20, qrSize + 20, 12) : ctx.fillRect(qrX - 10, qrY - 10, qrSize + 20, qrSize + 20);
+              ctx.fill();
+              ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
+            } catch {
+              ctx.fillStyle = "#ffffff";
+              ctx.beginPath();
+              ctx.roundRect ? ctx.roundRect(qrX - 10, qrY - 10, qrSize + 20, qrSize + 20, 12) : ctx.fillRect(qrX - 10, qrY - 10, qrSize + 20, qrSize + 20);
+              ctx.fill();
+              ctx.fillStyle = "#000000";
+              ctx.fillRect(qrX + 10, qrY + 10, 30, 30);
+              ctx.fillStyle = "#ffffff";
+              ctx.fillRect(qrX + 16, qrY + 16, 18, 18);
+              ctx.fillStyle = "#000000";
+              ctx.fillRect(qrX + 20, qrY + 20, 10, 10);
+              ctx.fillRect(qrX + qrSize - 40, qrY + 10, 30, 30);
+              ctx.fillStyle = "#ffffff";
+              ctx.fillRect(qrX + qrSize - 34, qrY + 16, 18, 18);
+              ctx.fillStyle = "#000000";
+              ctx.fillRect(qrX + qrSize - 30, qrY + 20, 10, 10);
+              ctx.fillRect(qrX + 10, qrY + qrSize - 40, 30, 30);
+              ctx.fillStyle = "#ffffff";
+              ctx.fillRect(qrX + 16, qrY + qrSize - 34, 18, 18);
+              ctx.fillStyle = "#000000";
+              ctx.fillRect(qrX + 20, qrY + qrSize - 30, 10, 10);
+            }
+          } else {
+            const barW = 200;
+            const barH = 50;
+            const barX = width / 2 - barW / 2;
+            const barY = 840;
+
             ctx.fillStyle = "#ffffff";
             ctx.beginPath();
-            ctx.roundRect ? ctx.roundRect(qrX - 10, qrY - 10, qrSize + 20, qrSize + 20, 12) : ctx.fillRect(qrX - 10, qrY - 10, qrSize + 20, qrSize + 20);
+            ctx.roundRect ? ctx.roundRect(barX - 15, barY - 10, barW + 30, barH + 25, 12) : ctx.fillRect(barX - 15, barY - 10, barW + 30, barH + 25);
             ctx.fill();
-            ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
-          } catch {
-            ctx.fillStyle = "#ffffff";
-            ctx.beginPath();
-            ctx.roundRect ? ctx.roundRect(qrX - 10, qrY - 10, qrSize + 20, qrSize + 20, 12) : ctx.fillRect(qrX - 10, qrY - 10, qrSize + 20, qrSize + 20);
-            ctx.fill();
+
+            drawBarcode39(ctx, barcodeText || idText, barX, barY, barW, barH, "#000000");
+
             ctx.fillStyle = "#000000";
-            ctx.fillRect(qrX + 10, qrY + 10, 30, 30);
-            ctx.fillStyle = "#ffffff";
-            ctx.fillRect(qrX + 16, qrY + 16, 18, 18);
-            ctx.fillStyle = "#000000";
-            ctx.fillRect(qrX + 20, qrY + 20, 10, 10);
-            ctx.fillRect(qrX + qrSize - 40, qrY + 10, 30, 30);
-            ctx.fillStyle = "#ffffff";
-            ctx.fillRect(qrX + qrSize - 34, qrY + 16, 18, 18);
-            ctx.fillStyle = "#000000";
-            ctx.fillRect(qrX + qrSize - 30, qrY + 20, 10, 10);
-            ctx.fillRect(qrX + 10, qrY + qrSize - 40, 30, 30);
-            ctx.fillStyle = "#ffffff";
-            ctx.fillRect(qrX + 16, qrY + qrSize - 34, 18, 18);
-            ctx.fillStyle = "#000000";
-            ctx.fillRect(qrX + 20, qrY + qrSize - 30, 10, 10);
+            ctx.font = "bold 12px monospace";
+            ctx.textAlign = "center";
+            ctx.fillText(barcodeText || idText, width / 2, barY + barH + 12);
           }
-        } else {
-          const barW = 200;
-          const barH = 50;
-          const barX = width / 2 - barW / 2;
-          const barY = 840;
-
-          ctx.fillStyle = "#ffffff";
-          ctx.beginPath();
-          ctx.roundRect ? ctx.roundRect(barX - 15, barY - 10, barW + 30, barH + 25, 12) : ctx.fillRect(barX - 15, barY - 10, barW + 30, barH + 25);
-          ctx.fill();
-
-          drawBarcode39(ctx, barcodeText || idText, barX, barY, barW, barH, "#000000");
-
-          ctx.fillStyle = "#000000";
-          ctx.font = "bold 12px monospace";
-          ctx.textAlign = "center";
-          ctx.fillText(barcodeText || idText, width / 2, barY + barH + 12);
         }
       } else {
         // --- LANDSCAPE ELEMENTS DRAWING ---
         const leftColX = 180;
-        
+
         // Logo and Institution Titles
         const logoSize = 80;
         const logoX = (width - logoSize) / 2;
@@ -1041,7 +1315,7 @@ export default function StudentIdCardModal({ student, onClose }: StudentIdCardMo
         ctx.fillStyle = isDarkHeader ? "#ffffff" : "#0f172a";
         ctx.font = "bold 26px 'Outfit', sans-serif";
         ctx.fillText(mainName.toUpperCase(), width / 2, logoY + logoSize + 25);
-        
+
         ctx.fillStyle = isDarkHeader ? "rgba(255, 255, 255, 0.75)" : "#000000";
         ctx.font = "bold 16px 'Outfit', sans-serif";
         ctx.fillText(lastName.toUpperCase(), width / 2, logoY + logoSize + 45);
@@ -1064,8 +1338,8 @@ export default function StudentIdCardModal({ student, onClose }: StudentIdCardMo
           ctx.clip();
 
           try {
-            if (student.photo_url) {
-              const photo = await loadImgSecurely(student.photo_url);
+            if (activeStudent.photo_url) {
+              const photo = await loadImgSecurely(activeStudent.photo_url);
               drawImageCover(ctx, photo, photoX - radius, photoY - radius, radius * 2, radius * 2);
             } else {
               throw new Error();
@@ -1199,49 +1473,219 @@ export default function StudentIdCardModal({ student, onClose }: StudentIdCardMo
     } else {
       // --- BACK SIDE CANVAS ---
       if (orientation === "portrait") {
-        if (!bgImage) {
+        if (bgImage === "theme_4") {
           // Clear background (white)
           ctx.fillStyle = "#ffffff";
           ctx.fillRect(0, 0, width, height);
 
-          // Slanted corners (tirachha)
-          ctx.fillStyle = currentStyles.primary;
+
+
+          // 2. "TERMS & CONDITIONS" title
+          const tcY = 70;
+          ctx.textAlign = "center";
+          ctx.font = "bold 24px 'Outfit', sans-serif";
+          ctx.fillStyle = "#1e1e24";
+          ctx.fillText("TERMS & CONDITIONS", width / 2, tcY);
+
+          // Draw blue underline
+          const tcWidth = ctx.measureText("TERMS & CONDITIONS").width;
+          ctx.save();
           ctx.beginPath();
-          ctx.moveTo(width, 0);
-          ctx.lineTo(width - 120, 0);
-          ctx.lineTo(width, 120);
-          ctx.closePath();
+          ctx.moveTo(width / 2 - tcWidth / 2, tcY + 6);
+          ctx.lineTo(width / 2 + tcWidth / 2, tcY + 6);
+          ctx.strokeStyle = "#3b82f6"; // blue
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+          ctx.restore();
+
+          // 3. Terms content
+          ctx.textAlign = "left";
+          ctx.font = "bold 20px 'Outfit', sans-serif";
+          ctx.fillStyle = "#000000";
+          let currentTcY = 110;
+          const leftMargin = 59;
+          const contentWidth = 520;
+          const t1Lines = drawLeftWrappedText(ctx, "1. This card is non-transferable and property of the institute.", leftMargin, currentTcY, contentWidth, 28);
+          currentTcY += t1Lines * 28 + 12;
+
+          const t2Lines = drawLeftWrappedText(ctx, "2. If found, please return to the institute address mentioned below.", leftMargin, currentTcY, contentWidth, 28);
+          currentTcY += t2Lines * 28 + 12;
+
+          const t3Lines = drawLeftWrappedText(ctx, "3. Report loss of card immediately to the office.", leftMargin, currentTcY, contentWidth, 28);
+
+          // 4. Colored decorative blocks (6 squares with opacity gradient)
+          const sqSize = 25;
+          const sqGap = 10;
+          const startSqX = 15;
+           const sqY = 265;
+          const sqColors = [
+            "rgba(249, 115, 22, 1.0)",
+            "rgba(249, 115, 22, 0.8)",
+            "rgba(249, 115, 22, 0.6)",
+            "rgba(249, 115, 22, 0.4)",
+            "rgba(249, 115, 22, 0.25)",
+            "rgba(249, 115, 22, 0.1)"
+          ];
+          sqColors.forEach((color, idx) => {
+            ctx.fillStyle = color;
+            ctx.fillRect(startSqX + idx * (sqSize + sqGap), sqY, sqSize, sqSize);
+          });
+
+          // 5. Centered large QR code
+          const qrSize = 240;
+          const qrX = (width - qrSize) / 2;
+          const qrY = 310;
+          try {
+            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${idText}&color=1e1e24`;
+            const qrImg = await loadImgSecurely(qrUrl);
+            ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
+          } catch {
+            // Draw placeholder box
+            ctx.strokeStyle = "#e2e8f0";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(qrX, qrY, qrSize, qrSize);
+          }
+
+        } else {
+          if (!bgImage) {
+            // Clear background (white)
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, width, height);
+
+            // Slanted corners (tirachha)
+            ctx.fillStyle = currentStyles.primary;
+            ctx.beginPath();
+            ctx.moveTo(width, 0);
+            ctx.lineTo(width - 120, 0);
+            ctx.lineTo(width, 120);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(80, 0);
+            ctx.lineTo(0, 80);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(0, height);
+            ctx.lineTo(0, height - 120);
+            ctx.lineTo(120, height);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(width, height);
+            ctx.lineTo(width - 120, height);
+            ctx.lineTo(width, height - 120);
+            ctx.closePath();
+            ctx.fill();
+          }
+
+          // Slot
+          ctx.fillStyle = "rgba(0, 0, 0, 0.08)";
+          ctx.beginPath();
+          const slotX = (width - 100) / 2;
+          const slotY = 18;
+          ctx.roundRect ? ctx.roundRect(slotX, slotY, 100, 15, 7.5) : ctx.rect(slotX, slotY, 100, 15);
           ctx.fill();
 
-          ctx.beginPath();
-          ctx.moveTo(0, 0);
-          ctx.lineTo(80, 0);
-          ctx.lineTo(0, 80);
-          ctx.closePath();
-          ctx.fill();
+          // Logo
+          const backLogoSize = 110;
+          const backLogoX = (width - backLogoSize) / 2;
+          const backLogoY = 30;
 
-          ctx.beginPath();
-          ctx.moveTo(0, height);
-          ctx.lineTo(0, height - 120);
-          ctx.lineTo(120, height);
-          ctx.closePath();
-          ctx.fill();
+          if (logoUrl) {
+            try {
+              const logoImg = await loadImgSecurely(logoUrl);
+              ctx.drawImage(logoImg, backLogoX, backLogoY, backLogoSize, backLogoSize);
+            } catch {
+              ctx.fillStyle = currentStyles.primary;
+              ctx.beginPath();
+              ctx.arc(backLogoX + backLogoSize / 2, backLogoY + backLogoSize / 2, backLogoSize / 2, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.textAlign = "center";
+              ctx.textBaseline = "middle";
+              ctx.font = "bold 28px 'Outfit', sans-serif";
+              ctx.fillStyle = "#ffffff";
+              ctx.fillText("V", backLogoX + backLogoSize / 2, backLogoY + backLogoSize / 2);
+              ctx.textBaseline = "alphabetic";
+            }
+          } else {
+            ctx.fillStyle = currentStyles.primary;
+            ctx.beginPath();
+            ctx.arc(backLogoX + backLogoSize / 2, backLogoY + backLogoSize / 2, backLogoSize / 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.font = "bold 28px 'Outfit', sans-serif";
+            ctx.fillStyle = "#ffffff";
+            ctx.fillText("V", backLogoX + backLogoSize / 2, backLogoY + backLogoSize / 2);
+            ctx.textBaseline = "alphabetic";
+          }
 
-          ctx.beginPath();
-          ctx.moveTo(width, height);
-          ctx.lineTo(width - 120, height);
-          ctx.lineTo(width, height - 120);
-          ctx.closePath();
-          ctx.fill();
+          // Institute Name
+          const mainName = instituteName.split(" ").slice(0, -1).join(" ");
+          const lastName = instituteName.split(" ").slice(-1)[0];
+
+          ctx.textAlign = "center";
+          ctx.fillStyle = bgImage ? "#0f172a" : "#ffffff";
+          ctx.font = "bold 34px 'Outfit', sans-serif";
+          ctx.fillText(mainName.toUpperCase(), width / 2, 155);
+
+          ctx.fillStyle = bgImage ? "#000000" : "rgba(255,255,255,0.7)";
+          ctx.font = "bold 22px 'Outfit', sans-serif";
+          ctx.fillText(lastName.toUpperCase(), width / 2, 185);
+
+          const tcY = 290;
+          ctx.textAlign = "center";
+          ctx.font = "bold 24px 'Outfit', sans-serif";
+          ctx.fillStyle = bgImage ? "#000000" : "rgba(255,255,255,0.8)";
+          ctx.fillText("TERMS & CONDITIONS", width / 2, tcY);
+
+          ctx.font = "normal 19px 'Outfit', sans-serif";
+          ctx.fillStyle = bgImage ? "#000000" : "rgba(255,255,255,0.7)";
+
+          let currentTcY = tcY + 36;
+          const t1Lines = drawCenteredWrappedText(ctx, "1. This card is non-transferable and property of the institute.", width / 2, currentTcY, 520, 26);
+          currentTcY += t1Lines * 26 + 10;
+
+          const t2Lines = drawCenteredWrappedText(ctx, "2. If found, please return to the institute address mentioned below.", width / 2, currentTcY, 520, 26);
+          currentTcY += t2Lines * 26 + 10;
+
+          const t3Lines = drawCenteredWrappedText(ctx, "3. Report loss of card immediately to the office.", width / 2, currentTcY, 520, 26);
+
         }
 
-        // Slot
-        ctx.fillStyle = "rgba(0, 0, 0, 0.08)";
-        ctx.beginPath();
-        const slotX = (width - 100) / 2;
-        const slotY = 18;
-        ctx.roundRect ? ctx.roundRect(slotX, slotY, 100, 15, 7.5) : ctx.rect(slotX, slotY, 100, 15);
-        ctx.fill();
+        // Signature area
+        if (bgImage !== "theme_4" && showSignature) {
+          const sigX = width / 2;
+          const sigY = 525;
+
+          ctx.textAlign = "center";
+
+          const activeSigUrl = processedSignatureUrl || signatureUrl;
+          if (activeSigUrl) {
+            try {
+              const sigImg = await loadImgSecurely(activeSigUrl);
+              ctx.save();
+              ctx.translate(sigX, sigY + 4);
+              ctx.rotate(-0.1);
+              ctx.drawImage(sigImg, -100, -25, 200, 50);
+              ctx.restore();
+            } catch {
+              // No fallback text
+            }
+          }
+
+          ctx.font = "bold 18px 'Outfit', sans-serif";
+          ctx.fillStyle = bgImage ? "#000000" : "rgba(255, 255, 255, 0.6)";
+          ctx.fillText("Director Signature", sigX, sigY + 35);
+        }
+
+
+
       } else {
         // Landscape back: clear card with slanted corners
         if (!bgImage) {
@@ -1278,7 +1722,7 @@ export default function StudentIdCardModal({ student, onClose }: StudentIdCardMo
       // Columns Grid details removed
 
       // Terms and Conditions, Logo, Institute Name & Institute Address
-      if (orientation === "portrait") {
+      if (orientation === "portrait" && bgImage !== "theme_4") {
         // Logo
         const backLogoSize = 110;
         const backLogoX = (width - backLogoSize) / 2;
@@ -1312,53 +1756,53 @@ export default function StudentIdCardModal({ student, onClose }: StudentIdCardMo
           ctx.fillText("V", backLogoX + backLogoSize / 2, backLogoY + backLogoSize / 2);
           ctx.textBaseline = "alphabetic";
         }
- 
+
         // Institute Name
         const mainName = instituteName.split(" ").slice(0, -1).join(" ");
         const lastName = instituteName.split(" ").slice(-1)[0];
- 
+
         ctx.textAlign = "center";
         ctx.fillStyle = bgImage ? "#0f172a" : "#ffffff";
         ctx.font = "bold 34px 'Outfit', sans-serif";
         ctx.fillText(mainName.toUpperCase(), width / 2, 155);
-        
+
         ctx.fillStyle = bgImage ? "#000000" : "rgba(255,255,255,0.7)";
         ctx.font = "bold 22px 'Outfit', sans-serif";
         ctx.fillText(lastName.toUpperCase(), width / 2, 185);
- 
+
         const tcY = 290;
         ctx.textAlign = "center";
         ctx.font = "bold 24px 'Outfit', sans-serif";
         ctx.fillStyle = bgImage ? "#000000" : "rgba(255,255,255,0.8)";
         ctx.fillText("TERMS & CONDITIONS", width / 2, tcY);
- 
+
         ctx.font = "normal 19px 'Outfit', sans-serif";
         ctx.fillStyle = bgImage ? "#000000" : "rgba(255,255,255,0.7)";
-        
+
         let currentTcY = tcY + 36;
         const t1Lines = drawCenteredWrappedText(ctx, "1. This card is non-transferable and property of the institute.", width / 2, currentTcY, 520, 26);
         currentTcY += t1Lines * 26 + 10;
- 
+
         const t2Lines = drawCenteredWrappedText(ctx, "2. If found, please return to the institute address mentioned below.", width / 2, currentTcY, 520, 26);
         currentTcY += t2Lines * 26 + 10;
- 
+
         const t3Lines = drawCenteredWrappedText(ctx, "3. Report loss of card immediately to the office.", width / 2, currentTcY, 520, 26);
- 
+
       }
- 
+
       // Signature area
       if (showSignature) {
         const sigX = orientation === "portrait" ? width / 2 : 780;
-        const sigY = orientation === "portrait" ? 525 : 425;
- 
+        const sigY = orientation === "portrait" ? (bgImage === "theme_4" ? 600 : 525) : 425;
+
         ctx.textAlign = "center";
- 
+
         const drawSignatureText = (c: CanvasRenderingContext2D, txt: string, sx: number, sy: number, col: string) => {
           c.font = "italic bold 32px 'Georgia', serif";
           c.fillStyle = bgImage ? "#0f172a" : col;
           c.fillText(txt, sx, sy);
         };
- 
+
         const activeSigUrl = processedSignatureUrl || signatureUrl;
         if (activeSigUrl) {
           try {
@@ -1372,14 +1816,14 @@ export default function StudentIdCardModal({ student, onClose }: StudentIdCardMo
             // No fallback text
           }
         }
- 
+
         ctx.font = "bold 18px 'Outfit', sans-serif";
         ctx.fillStyle = bgImage ? "#000000" : "rgba(255, 255, 255, 0.6)";
         ctx.fillText("Director Signature", sigX, sigY + 35);
       }
- 
+
       if (orientation === "portrait") {
-        const addressY = 630;
+        const addressY = bgImage === "theme_4" ? 720 : 630;
         ctx.textAlign = "center";
 
         ctx.font = "bold 26px 'Outfit', sans-serif";
@@ -1395,28 +1839,70 @@ export default function StudentIdCardModal({ student, onClose }: StudentIdCardMo
         ctx.lineWidth = 1.5;
         ctx.stroke();
 
-        ctx.font = "bold 23px 'Outfit', sans-serif";
-        ctx.fillText("📞 +91 8103170595", width / 2, addressY + 36);
-        ctx.fillText("✉️ visionitpratappur@gmail.com", width / 2, addressY + 66);
+        const iconColor = "#3b82f6"; // blue icon color
+        const textColor = bgImage ? "#000000" : "rgba(255,255,255,0.9)";
+        
+        const drawContactRow = (iconType: string, text: string, yPos: number) => {
+          ctx.save();
+          ctx.font = "bold 23px 'Outfit', sans-serif";
+          ctx.fillStyle = textColor;
+          ctx.textBaseline = "middle";
+          
+          const textW = ctx.measureText(text).width;
+          const iconSize = 22;
+          const gap = 12;
+          const totalW = iconSize + gap + textW;
+          const startX = (width - totalW) / 2;
+          
+          // Draw Icon
+          drawVectorIcon(ctx, iconType, startX + iconSize / 2, yPos, iconSize, iconColor);
+          
+          // Draw Text
+          ctx.textAlign = "left";
+          ctx.fillText(text, startX + iconSize + gap, yPos);
+          ctx.restore();
+        };
 
+        drawContactRow("phone", "+91 8103170595", addressY + 36);
+        drawContactRow("email", "visionitpratappur@gmail.com", addressY + 72);
+
+        ctx.textAlign = "center";
         ctx.font = "bold 26px 'Outfit', sans-serif";
         ctx.fillStyle = bgImage ? "#000000" : "rgba(255,255,255,0.8)";
-        ctx.fillText("INSTITUTE ADDRESS", width / 2, addressY + 122);
+        ctx.fillText("INSTITUTE ADDRESS", width / 2, addressY + 120);
         const instAddrWidth = ctx.measureText("INSTITUTE ADDRESS").width;
         ctx.beginPath();
-        ctx.moveTo(width / 2 - instAddrWidth / 2, addressY + 126);
-        ctx.lineTo(width / 2 + instAddrWidth / 2, addressY + 126);
+        ctx.moveTo(width / 2 - instAddrWidth / 2, addressY + 124);
+        ctx.lineTo(width / 2 + instAddrWidth / 2, addressY + 124);
         ctx.strokeStyle = ctx.fillStyle;
         ctx.lineWidth = 1.5;
         ctx.stroke();
 
         ctx.font = "bold 24px 'Outfit', sans-serif";
         ctx.fillStyle = bgImage ? "#000000" : "rgba(255,255,255,0.9)";
+
+        const nextY = addressY + 165;
+        const addrLinesCount = drawCenteredWrappedText(ctx, "Shubham Gift Gallery, kadampara chowk, Pratappur, Surajpur(C.G.) - 497223", width / 2, nextY, 540, 27);
+
+        ctx.save();
+        ctx.textAlign = "center";
+        const webText = "www.visionitinstitute.com";
+        const webY = nextY + addrLinesCount * 27 + 10;
         
-        const nextY = addressY + 154;
-        const addrLinesCount = drawCenteredWrappedText(ctx, "Vision IT Computer Institute, kadampara chowk, Pratappur, Surajpur(C.G.) - 497223", width / 2, nextY, 540, 27);
+        ctx.font = "bold 24px 'Outfit', sans-serif";
+        ctx.fillStyle = textColor;
+        ctx.textBaseline = "middle";
         
-        ctx.fillText("🌐 www.visionitinstitute.com", width / 2, nextY + addrLinesCount * 27 + 45);
+        const webTextW = ctx.measureText(webText).width;
+        const webIconSize = 22;
+        const webGap = 12;
+        const webTotalW = webIconSize + webGap + webTextW;
+        const webStartX = (width - webTotalW) / 2;
+        
+        drawVectorIcon(ctx, "website", webStartX + webIconSize / 2, webY, webIconSize, iconColor);
+        ctx.textAlign = "left";
+        ctx.fillText(webText, webStartX + webIconSize + webGap, webY);
+        ctx.restore();
       }
 
       // Footer removed
@@ -1483,6 +1969,56 @@ export default function StudentIdCardModal({ student, onClose }: StudentIdCardMo
     } finally {
       setIsExportingFront(false);
       setIsExportingBack(false);
+    }
+  };
+
+  // Trigger Bulk PDF Download
+  const handleBulkDownload = async () => {
+    setBulkProgress(1);
+    try {
+      const jspdfModule = await loadJsPDF();
+      const { jsPDF } = jspdfModule;
+
+      const cardW = 53.98;
+      const cardH = 85.6;
+
+      const pdf = new jsPDF({
+        orientation: "p",
+        unit: "mm",
+        format: [cardW, cardH]
+      });
+
+      // Force Theme 4 and Portrait orientation for bulk download
+      setBgImage("theme_4");
+      setOrientation("portrait");
+
+      for (let i = 0; i < bulkStudents.length; i++) {
+        setBulkProgress(i + 1);
+        const currentStudent = bulkStudents[i];
+
+        // Draw front
+        const frontData = await drawToCanvas("front", currentStudent, "theme_4", "portrait");
+        if (!frontData) throw new Error(`Front canvas failed for ${currentStudent.name}`);
+        
+        // If it's not the first card, add a page for the front
+        if (i > 0) {
+          pdf.addPage([cardW, cardH], "p");
+        }
+        pdf.addImage(frontData, "PNG", 0, 0, cardW, cardH);
+
+        // Draw back
+        const backData = await drawToCanvas("back", currentStudent, "theme_4", "portrait");
+        if (!backData) throw new Error(`Back canvas failed for ${currentStudent.name}`);
+        pdf.addPage([cardW, cardH], "p");
+        pdf.addImage(backData, "PNG", 0, 0, cardW, cardH);
+      }
+
+      pdf.save(`Bulk_ID_Cards_${courseTitle.replace(/\s+/g, "_")}_Theme4.pdf`);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to generate bulk PDF. Please check CORS settings on images.");
+    } finally {
+      setBulkProgress(0);
     }
   };
 
@@ -1777,11 +2313,16 @@ export default function StudentIdCardModal({ student, onClose }: StudentIdCardMo
           // --- PORTRAIT LAYOUT FRONT ---
           <>
             {/* STUDENT ID CARD label — centered just above photo */}
-            <div className={`text-center mt-16 mb-1 z-10 relative shrink-0`}>
-              <span className={`text-[6px] font-black uppercase tracking-[0.2em] px-3 py-0.5 rounded-full border ${bgImage === "/idcard/idcard_2.png" || template === "modern"
-                ? "text-white/80 border-white/30"
-                : "text-black border-black/30"
-                }`}>Student ID Card</span>
+            <div className="text-center mt-16 mb-1 z-10 relative shrink-0">
+              <span className={`font-black uppercase ${
+                bgImage === "theme_4"
+                  ? "text-[8px] tracking-[0.25em] text-slate-800 border-none !p-0"
+                  : `text-[6.5px] tracking-[0.2em] px-3 py-0.5 rounded-full border ${
+                      bgImage === "/idcard/idcard_2.png" || template === "modern"
+                        ? "text-white/80 border-white/30"
+                        : "text-black border-black/30"
+                    }`
+              }`}>Student ID Card</span>
             </div>
 
             {/* Photo */}
@@ -1797,10 +2338,14 @@ export default function StudentIdCardModal({ student, onClose }: StudentIdCardMo
             </div>
 
             {/* Name / Course */}
-            <div className="text-center mt-2 px-4 z-10 relative shrink-0">
+            <div className={`text-center px-4 z-10 relative shrink-0 ${bgImage === "theme_4" ? "mt-4" : "mt-2"}`}>
               <h3 className="text-xs font-black uppercase tracking-wide leading-tight text-black">{nameText}</h3>
               <div className="mt-1.5 flex justify-center">
-                <span className="px-3 py-0.5 rounded-full text-[6.5px] font-bold tracking-wider uppercase text-black shadow-sm border border-blue-500">
+                <span className={`px-3 py-0.5 rounded-full font-bold tracking-wider uppercase shadow-sm border ${
+                  bgImage === "theme_4"
+                    ? "text-[#f97316] border-[#f97316] text-[8.5px] mt-1.5"
+                    : "text-black border-blue-500 text-[6.5px]"
+                }`}>
                   {courseText}
                 </span>
               </div>
@@ -1961,41 +2506,90 @@ export default function StudentIdCardModal({ student, onClose }: StudentIdCardMo
             // --- PORTRAIT LAYOUT BACK ---
             <>
 
-              {/* Center Content Stack: Logo -> Institute Name -> Terms */}
-              {/* Top Header — Matches Front */}
-              <div className="absolute -top-2 left-4 right-4 flex flex-col items-center gap-1 z-10 text-center">
-                {/* Logo */}
-                {logoUrl ? (
-                  <img src={logoUrl} alt="Logo" className="w-[48px] h-[48px] object-contain opacity-90" />
-                ) : (
-                  <div className="w-[48px] h-[48px] rounded-full bg-blue-900 flex items-center justify-center font-black text-[18px] text-white opacity-90">V</div>
-                )}
-                
-                {/* Institute Name */}
-                <div className="mt-1 text-left leading-none">
-                  <div className={`text-[14px] font-black uppercase tracking-wider ${bgImage ? 'text-slate-800' : 'text-white'}`}>
-                    {instituteName.split(" ").slice(0, -1).join(" ")}
-                  </div>
-                  <div className={`text-[9px] font-bold uppercase tracking-[0.2em] mt-0.5 ${bgImage ? 'text-black' : 'text-white/70'}`}>
-                    {instituteName.split(" ").slice(-1)[0]}
+              {/* Top Header — Matches Front (Hidden for theme_4) */}
+              {bgImage !== "theme_4" && (
+                <div className="absolute -top-2 left-4 right-4 flex flex-col items-center gap-1 z-10 text-center">
+                  {/* Logo */}
+                  {logoUrl ? (
+                    <img src={logoUrl} alt="Logo" className="w-[48px] h-[48px] object-contain opacity-90" />
+                  ) : (
+                    <div className="w-[48px] h-[48px] rounded-full bg-blue-900 flex items-center justify-center font-black text-[18px] text-white opacity-90">V</div>
+                  )}
+
+                  {/* Institute Name */}
+                  <div className="mt-1 text-left leading-none">
+                    <div className={`text-[14px] font-black uppercase tracking-wider ${bgImage ? 'text-slate-800' : 'text-white'}`}>
+                      {instituteName.split(" ").slice(0, -1).join(" ")}
+                    </div>
+                    <div className={`text-[9px] font-bold uppercase tracking-[0.2em] mt-0.5 ${bgImage ? 'text-black' : 'text-white/70'}`}>
+                      {instituteName.split(" ").slice(-1)[0]}
+                    </div>
                   </div>
                 </div>
-              </div>
-              {/* Center Content Stack: Terms */}
-              <div className="flex flex-col items-center justify-center flex-1 w-full gap-2 mt-[105px] pb-2">
-                {/* Terms & Conditions + Institute Address */}
-                <div className="mt-2 text-center w-full px-2 z-10">
-                  <h5 className={`text-[11px] font-bold uppercase tracking-wider mb-1 ${bgImage ? 'text-black' : 'text-white/80'}`}>Terms & Conditions</h5>
-                  <ul className={`text-[9px] leading-snug list-none space-y-1 p-0 m-0 ${bgImage ? 'text-black' : 'text-white/70'}`}>
-                    <li>1. This card is non-transferable and property of the institute.</li>
-                    <li>2. If found, please return to the institute address mentioned below.</li>
-                    <li>3. Report loss of card immediately to the office.</li>
-                  </ul>
+              )}
+
+              {bgImage === "theme_4" ? (
+                // --- THEME 4 BACK SIDE PREVIEW ---
+                <div className="flex flex-col flex-grow w-full pt-1 px-2 z-10">
+                  {/* Terms & Conditions centered */}
+                  <div className="mt-2 text-center w-full px-2">
+                    <h5 className="text-[11px] font-black uppercase tracking-wider mb-1 text-slate-800 border-b border-blue-500 pb-[1px] inline-block">Terms & Conditions</h5>
+                    <ul className="text-[8.5px] leading-snug list-none space-y-1.5 p-0 m-0 text-black font-semibold text-left mt-1.5">
+                      <li>1. This card is non-transferable and property of the institute.</li>
+                      <li>2. If found, please return to the institute address mentioned below.</li>
+                      <li>3. Report loss of card immediately to the office.</li>
+                    </ul>
+                  </div>
+
+                  {/* Colored decorative blocks (6 squares) */}
+                  <div className="flex gap-1.5 mt-3 px-2">
+                    <span className="w-2.5 h-2.5 bg-orange-500 rounded-[2px]" />
+                    <span className="w-2.5 h-2.5 bg-orange-500/80 rounded-[2px]" />
+                    <span className="w-2.5 h-2.5 bg-orange-500/60 rounded-[2px]" />
+                    <span className="w-2.5 h-2.5 bg-orange-500/40 rounded-[2px]" />
+                    <span className="w-2.5 h-2.5 bg-orange-500/25 rounded-[2px]" />
+                    <span className="w-2.5 h-2.5 bg-orange-500/10 rounded-[2px]" />
+                  </div>
+
+                  {/* Centered QR code */}
+                  <div className="mt-3 flex justify-center">
+                    <div className="w-[62px] h-[62px] bg-white p-1 rounded-lg flex items-center justify-center shadow-md border border-slate-200">
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${idText}&color=1e1e24`}
+                        alt="QR"
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Signature area for theme_4 */}
+                  {showSignature && (
+                    <div className="mt-3 flex flex-col items-center shrink-0 relative z-20">
+                      {signatureUrl ? (
+                        <img src={processedSignatureUrl || signatureUrl} alt="Signature" className="h-[20px] object-contain transform rotate-[-6deg] translate-y-[4px] relative z-20" />
+                      ) : (
+                        <div className="h-[20px]" />
+                      )}
+                      <span className="text-[6.5px] uppercase tracking-wider mt-0.5 font-bold text-black border-t border-dashed border-black/40 pt-0.5 w-[80px] text-center leading-none">Director Signature</span>
+                    </div>
+                  )}
                 </div>
-              </div>
- 
+              ) : (
+                // --- STANDARD THEMES BACK SIDE PREVIEW ---
+                <div className="flex flex-col items-center justify-center flex-1 w-full gap-2 mt-[105px] pb-2">
+                  <div className="mt-2 text-center w-full px-2 z-10">
+                    <h5 className={`text-[11px] font-bold uppercase tracking-wider mb-1 ${bgImage ? 'text-black' : 'text-white/80'}`}>Terms & Conditions</h5>
+                    <ul className={`text-[9px] leading-snug list-none space-y-1 p-0 m-0 ${bgImage ? 'text-black' : 'text-white/70'}`}>
+                      <li>1. This card is non-transferable and property of the institute.</li>
+                      <li>2. If found, please return to the institute address mentioned below.</li>
+                      <li>3. Report loss of card immediately to the office.</li>
+                    </ul>
+                  </div>
+                </div>
+              )}
+
               {/* Signature area */}
-              {showSignature && (
+              {showSignature && bgImage !== "theme_4" && (
                 <div className="mt-3.5 flex flex-col items-center shrink-0 -translate-y-4 relative z-20">
                   {signatureUrl ? (
                     <img src={processedSignatureUrl || signatureUrl} alt="Signature" className="h-[22px] object-contain transform rotate-[-6deg] translate-y-[4px] relative z-20" />
@@ -2015,7 +2609,7 @@ export default function StudentIdCardModal({ student, onClose }: StudentIdCardMo
                 </div>
                 <div className={`text-[9.5px] font-semibold leading-snug ${bgImage ? 'text-black' : 'text-white/90'} flex flex-col items-center gap-0.5`}>
                   <span className={`font-extrabold text-[8.5px] border-b-[0.5px] border-current pb-[1px] inline-block mb-0.5 ${bgImage ? 'text-black' : 'text-white/70'}`}>INSTITUTE ADDRESS</span>
-                  <span>Vision IT Computer Institute, kadampara chowk, Pratappur, Surajpur(C.G.) - 497223</span>
+                  <span>Shubham Gift Gallery, kadampara chowk, Pratappur, Surajpur(C.G.) - 497223</span>
                   <span className="flex items-center gap-1.5 mt-1"><Globe className="w-2.5 h-2.5" /> www.visionitinstitute.com</span>
                 </div>
               </div>
@@ -2082,7 +2676,7 @@ export default function StudentIdCardModal({ student, onClose }: StudentIdCardMo
   };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-slate-950 flex flex-col font-sans overflow-hidden">
+    <div className="fixed inset-0 z-[100] bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 font-sans overflow-y-auto custom-scrollbar">
       {/* Dynamic Embedded CSS Styles */}
       <style dangerouslySetInnerHTML={{
         __html: `
@@ -2188,10 +2782,10 @@ export default function StudentIdCardModal({ student, onClose }: StudentIdCardMo
           }
         }
       `}} />
- 
+
       {/* Off-screen Canvas for image building */}
       <canvas ref={canvasRef} className="hidden" />
- 
+
       {/* Styled Printable Container for Print Media (Rendered as Portal at body level) */}
       {isMounted && createPortal(
         <div id="print-card-container" className="hidden">
@@ -2205,420 +2799,179 @@ export default function StudentIdCardModal({ student, onClose }: StudentIdCardMo
         document.body
       )}
 
-      {/* Top Header Bar */}
-      <div className="bg-slate-900 border-b border-slate-800 px-6 py-4 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-blue-500/10 text-blue-400 rounded-2xl">
-            <CreditCard size={20} />
+      {/* Centered Compact Modal Card */}
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col my-auto">
+
+        {/* Header */}
+        <div className="border-b border-slate-800 px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 bg-blue-500/10 text-blue-400 rounded-xl">
+              <CreditCard size={18} />
+            </div>
+            <div>
+              <h1 className="text-sm font-black text-white uppercase tracking-widest">
+                {isBulkMode ? "Bulk ID Cards" : "ID Card"}
+              </h1>
+              <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">
+                {isBulkMode ? `Course: ${courseTitle}` : `Download for ${primaryStudent.name || ""}`}
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
-              ID Card Design Studio <span className="text-blue-500 font-normal">v2.0</span>
-            </h1>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">
-              Customize, print, and export high-res badges for <span className="text-slate-200 font-extrabold">{student.name}</span>
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            disabled={isPrinting}
-            onClick={handlePrint}
-            className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-750 text-white rounded-xl text-[10.5px] font-black uppercase tracking-widest transition-all shadow-md shadow-blue-500/10 cursor-pointer disabled:opacity-75"
-          >
-            {isPrinting ? <Loader2 size={13} className="animate-spin" /> : <Printer size={13} />}
-            {isPrinting ? "Compiling..." : "Print ID Badge"}
-          </button>
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-xl transition-all cursor-pointer flex items-center gap-1.5"
-            title="Exit Generator"
+            className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-xl transition-all cursor-pointer"
+            title="Close"
           >
-            <X size={18} />
-            <span className="text-[10.5px] font-black uppercase tracking-widest hidden sm:inline pr-1">Exit Studio</span>
+            <X size={16} />
           </button>
         </div>
-      </div>
 
-      {/* Split Workspace Layout */}
-      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-
-        {/* Left Control Panel */}
-        <div className="w-full lg:w-[460px] bg-slate-900 border-r border-slate-800 flex flex-col overflow-y-auto p-6 space-y-6 custom-scrollbar shrink-0">
-
-          {/* Section 1: Template & Theme Settings */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 pb-2 border-b border-slate-800">
-              <Sparkles size={16} className="text-blue-500" />
-              <h2 className="text-xs font-black uppercase tracking-wider text-white">Layout & Theme</h2>
-            </div>
-
-            {/* Background Image Template */}
-            <div className="space-y-2">
-              <label className="block text-[9px] font-black uppercase tracking-wider text-slate-400">Select Template Theme</label>
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setBgImage("/idcard/idcard_1.png");
-                    setOrientation("portrait");
-                  }}
-                  className={`p-2 rounded-xl border text-left transition-all cursor-pointer h-12 flex flex-col justify-center ${bgImage === "/idcard/idcard_1.png"
-                    ? "bg-blue-600/10 border-blue-500 text-blue-400 shadow-sm font-extrabold"
-                    : "bg-slate-800/40 border-slate-800 hover:border-slate-700 hover:bg-slate-800/80 text-slate-400"
-                    }`}
-                >
-                  <span className="text-[10px] font-black uppercase tracking-wider block text-center">Theme 1</span>
-                  <span className="text-[7px] text-slate-500 uppercase block text-center mt-0.5">Blue Corners</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setBgImage("/idcard/idcard_2.png");
-                    setOrientation("portrait");
-                  }}
-                  className={`p-2 rounded-xl border text-left transition-all cursor-pointer h-12 flex flex-col justify-center ${bgImage === "/idcard/idcard_2.png"
-                    ? "bg-blue-600/10 border-blue-500 text-blue-400 shadow-sm font-extrabold"
-                    : "bg-slate-800/40 border-slate-800 hover:border-slate-700 hover:bg-slate-800/80 text-slate-400"
-                    }`}
-                >
-                  <span className="text-[10px] font-black uppercase tracking-wider block text-center">Theme 2</span>
-                  <span className="text-[7px] text-slate-500 uppercase block text-center mt-0.5">Blue Waves</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setBgImage("/idcard/idcard_3.png");
-                    setOrientation("portrait");
-                  }}
-                  className={`p-2 rounded-xl border text-left transition-all cursor-pointer h-12 flex flex-col justify-center ${bgImage === "/idcard/idcard_3.png"
-                    ? "bg-blue-600/10 border-blue-500 text-blue-400 shadow-sm font-extrabold"
-                    : "bg-slate-800/40 border-slate-800 hover:border-slate-700 hover:bg-slate-800/80 text-slate-400"
-                    }`}
-                >
-                  <span className="text-[10px] font-black uppercase tracking-wider block text-center">Theme 3</span>
-                  <span className="text-[7px] text-slate-500 uppercase block text-center mt-0.5">Orange Waves</span>
-                </button>
+        {/* Body */}
+        <div className="p-6 space-y-6">
+          {isBulkMode ? (
+            <div className="space-y-4">
+              <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-2xl flex items-center gap-4">
+                <div className="p-3 bg-blue-500 text-white rounded-xl">
+                  <CreditCard size={24} />
+                </div>
+                <div>
+                  <h3 className="text-xs font-black text-white uppercase tracking-widest">Bulk Generation</h3>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">
+                    Course: <span className="text-blue-400 font-extrabold">{courseTitle}</span>
+                  </p>
+                  <p className="text-[9px] text-emerald-400 font-bold uppercase tracking-wider mt-0.5">
+                    {bulkStudents.length} Students Selected
+                  </p>
+                </div>
               </div>
-            </div>
 
-          </div>
+              <div className="p-4 bg-slate-800/40 border border-slate-800 rounded-2xl space-y-3">
+                <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  <span>Export Format:</span>
+                  <span className="text-white font-extrabold">PDF Book (Theme 4 Only)</span>
+                </div>
+                <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  <span>Layout Style:</span>
+                  <span className="text-white font-extrabold">Portrait ID Card</span>
+                </div>
+                {bulkProgress > 0 && (
+                  <div className="space-y-1.5 pt-2">
+                    <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-wider text-blue-400">
+                      <span>Generating PDF Cards...</span>
+                      <span>{bulkProgress} / {bulkStudents.length}</span>
+                    </div>
+                    <div className="w-full bg-slate-850 h-2 rounded-full overflow-hidden border border-slate-800">
+                      <div 
+                        className="bg-blue-500 h-full rounded-full transition-all duration-300"
+                        style={{ width: `${(bulkProgress / bulkStudents.length) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
 
-          {/* Section 2: Branding & School Details */}
-          <div className="space-y-4 pt-4 border-t border-slate-800/80">
-            <div className="flex items-center gap-2 pb-2 border-b border-slate-800">
-              <Palette size={16} className="text-blue-500" />
-              <h2 className="text-xs font-black uppercase tracking-wider text-white">Institution Branding</h2>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="block text-[9px] font-black uppercase tracking-wider text-slate-400">Institute Name</label>
-                <input
-                  type="text"
-                  value={instituteName}
-                  onChange={(e) => setInstituteName(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 outline-none focus:border-blue-500 transition-all font-bold"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="block text-[9px] font-black uppercase tracking-wider text-slate-400">Website URL</label>
-                <input
-                  type="text"
-                  value={websiteText}
-                  onChange={(e) => setWebsiteText(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 outline-none focus:border-blue-500 transition-all font-bold"
-                />
-              </div>
-            </div>
-
-            {/* Custom Logo Upload */}
-            <div className="space-y-2">
-              <label className="block text-[9px] font-black uppercase tracking-wider text-slate-400">Institution Logo</label>
-              <div className="flex items-center gap-3">
-                <label className="cursor-pointer px-4 py-2 bg-slate-800 hover:bg-slate-750 border border-slate-700 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-300 transition-all flex items-center gap-2 shrink-0">
-                  <Upload size={12} />
-                  Choose File
-                  <input type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} />
-                </label>
-                <input
-                  type="text"
-                  value={logoUrl || ""}
-                  onChange={(e) => setLogoUrl(e.target.value)}
-                  placeholder="Or paste Logo Image URL here..."
-                  className="flex-1 px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 outline-none focus:border-blue-500 transition-all font-bold"
-                />
-              </div>
-            </div>
-
-            {/* Signature Designation & Image Upload */}
-            <div className="space-y-2">
-              <label className="block text-[9px] font-black uppercase tracking-wider text-slate-400">Authorized Signature Designation</label>
-              <input
-                type="text"
-                value={signatureText}
-                onChange={(e) => setSignatureText(e.target.value)}
-                placeholder="Authorized Signatory title..."
-                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 outline-none focus:border-blue-500 transition-all font-bold"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-[9px] font-black uppercase tracking-wider text-slate-400">Signature Image Asset</label>
-              <div className="flex items-center gap-3">
-                <label className="cursor-pointer px-4 py-2 bg-slate-800 hover:bg-slate-750 border border-slate-700 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-300 transition-all flex items-center gap-2 shrink-0">
-                  <Upload size={12} />
-                  Choose File
-                  <input type="file" className="hidden" accept="image/*" onChange={handleSignatureUpload} />
-                </label>
-                <input
-                  type="text"
-                  value={signatureUrl || ""}
-                  onChange={(e) => setSignatureUrl(e.target.value)}
-                  placeholder="Or paste signature URL here..."
-                  className="flex-1 px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 outline-none focus:border-blue-500 transition-all font-bold"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Section 3: Student Profile overrides */}
-          <div className="space-y-4 pt-4 border-t border-slate-800/80">
-            <div className="flex items-center gap-2 pb-2 border-b border-slate-800">
-              <Sliders size={16} className="text-blue-500" />
-              <h2 className="text-xs font-black uppercase tracking-wider text-white">Student Details</h2>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="block text-[9px] font-black uppercase tracking-wider text-slate-400">Student Name</label>
-                <input
-                  type="text"
-                  value={nameText}
-                  onChange={(e) => setNameText(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white outline-none focus:border-blue-500 transition-all font-bold"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="block text-[9px] font-black uppercase tracking-wider text-slate-400">Student ID No</label>
-                <input
-                  type="text"
-                  value={idText}
-                  onChange={(e) => setIdText(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white outline-none focus:border-blue-500 transition-all font-bold"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="block text-[9px] font-black uppercase tracking-wider text-slate-400">Course / Class</label>
-                <input
-                  type="text"
-                  value={courseText}
-                  onChange={(e) => setCourseText(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white outline-none focus:border-blue-500 transition-all font-bold"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="block text-[9px] font-black uppercase tracking-wider text-slate-400">Blood Group</label>
-                <input
-                  type="text"
-                  value={bloodGroup}
-                  onChange={(e) => setBloodGroup(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white outline-none focus:border-blue-500 transition-all font-bold"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="block text-[9px] font-black uppercase tracking-wider text-slate-400">Contact Number</label>
-                <input
-                  type="text"
-                  value={phoneText}
-                  onChange={(e) => setPhoneText(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white outline-none focus:border-blue-500 transition-all font-bold"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="block text-[9px] font-black uppercase tracking-wider text-slate-400">Email Address</label>
-                <input
-                  type="text"
-                  value={emailText}
-                  onChange={(e) => setEmailText(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white outline-none focus:border-blue-500 transition-all font-bold"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="block text-[9px] font-black uppercase tracking-wider text-slate-400">Father's Name</label>
-                <input
-                  type="text"
-                  value={fatherName}
-                  onChange={(e) => setFatherName(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white outline-none focus:border-blue-500 transition-all font-bold"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="block text-[9px] font-black uppercase tracking-wider text-slate-400">Mother's Name</label>
-                <input
-                  type="text"
-                  value={motherName}
-                  onChange={(e) => setMotherName(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white outline-none focus:border-blue-500 transition-all font-bold"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-3">
-              <div className="space-y-1.5">
-                <label className="block text-[9px] font-black uppercase tracking-wider text-slate-400">Date of Birth</label>
-                <input
-                  type="date"
-                  value={dobText}
-                  onChange={(e) => setDobText(e.target.value)}
-                  className="w-full px-2 py-2 bg-slate-800 border border-slate-700 rounded-xl text-[10px] text-white outline-none focus:border-blue-500 transition-all font-bold"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="block text-[9px] font-black uppercase tracking-wider text-slate-400">Admission Date</label>
-                <input
-                  type="date"
-                  value={admissionText}
-                  onChange={(e) => setAdmissionText(e.target.value)}
-                  className="w-full px-2 py-2 bg-slate-800 border border-slate-700 rounded-xl text-[10px] text-white outline-none focus:border-blue-500 transition-all font-bold"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="block text-[9px] font-black uppercase tracking-wider text-slate-400">Aadhar No</label>
-                <input
-                  type="text"
-                  value={aadharText}
-                  onChange={(e) => setAadharText(e.target.value)}
-                  className="w-full px-2 py-2 bg-slate-800 border border-slate-700 rounded-xl text-[10px] text-white outline-none focus:border-blue-500 transition-all font-bold"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="block text-[9px] font-black uppercase tracking-wider text-slate-400">Residential Address</label>
-              <textarea
-                rows={2}
-                value={addressText}
-                onChange={(e) => setAddressText(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white outline-none focus:border-blue-500 transition-all font-bold"
-              />
-            </div>
-
-
-          </div>
-
-          {/* Section 4: Visibility toggles */}
-          <div className="space-y-4 pt-4 border-t border-slate-800/80">
-            <div className="flex items-center gap-2 pb-2 border-b border-slate-800">
-              <Sliders size={16} className="text-blue-500" />
-              <h2 className="text-xs font-black uppercase tracking-wider text-white">Visibility Toggles</h2>
-            </div>
-
-            <div className="divide-y divide-slate-800/40">
-              <div className="flex justify-between items-center py-2.5">
-                <span className="text-[10px] text-slate-300 font-black uppercase tracking-wider">Show Profile Photo</span>
-                <button
-                  type="button"
-                  onClick={() => setShowPhoto(!showPhoto)}
-                  className={`w-9 h-5.5 rounded-full p-0.5 transition-colors duration-200 outline-none cursor-pointer ${showPhoto ? 'bg-blue-600' : 'bg-slate-750'}`}
-                >
-                  <div className={`w-4.5 h-4.5 rounded-full bg-white transition-transform duration-200 shadow-sm ${showPhoto ? 'translate-x-3.5' : 'translate-x-0'}`} />
-                </button>
-              </div>
-              <div className="flex justify-between items-center py-2.5">
-                <span className="text-[10px] text-slate-300 font-black uppercase tracking-wider">Show Blood Group</span>
-                <button
-                  type="button"
-                  onClick={() => setShowBloodGroup(!showBloodGroup)}
-                  className={`w-9 h-5.5 rounded-full p-0.5 transition-colors duration-200 outline-none cursor-pointer ${showBloodGroup ? 'bg-blue-600' : 'bg-slate-750'}`}
-                >
-                  <div className={`w-4.5 h-4.5 rounded-full bg-white transition-transform duration-200 shadow-sm ${showBloodGroup ? 'translate-x-3.5' : 'translate-x-0'}`} />
-                </button>
-              </div>
-              <div className="flex justify-between items-center py-2.5">
-                <span className="text-[10px] text-slate-300 font-black uppercase tracking-wider">Show Emergency Contact</span>
-                <button
-                  type="button"
-                  onClick={() => setShowEmergencyContact(!showEmergencyContact)}
-                  className={`w-9 h-5.5 rounded-full p-0.5 transition-colors duration-200 outline-none cursor-pointer ${showEmergencyContact ? 'bg-blue-600' : 'bg-slate-750'}`}
-                >
-                  <div className={`w-4.5 h-4.5 rounded-full bg-white transition-transform duration-200 shadow-sm ${showEmergencyContact ? 'translate-x-3.5' : 'translate-x-0'}`} />
-                </button>
-              </div>
-              <div className="flex justify-between items-center py-2.5">
-                <span className="text-[10px] text-slate-300 font-black uppercase tracking-wider">Show Residential Address</span>
-                <button
-                  type="button"
-                  onClick={() => setShowAddress(!showAddress)}
-                  className={`w-9 h-5.5 rounded-full p-0.5 transition-colors duration-200 outline-none cursor-pointer ${showAddress ? 'bg-blue-600' : 'bg-slate-750'}`}
-                >
-                  <div className={`w-4.5 h-4.5 rounded-full bg-white transition-transform duration-200 shadow-sm ${showAddress ? 'translate-x-3.5' : 'translate-x-0'}`} />
-                </button>
-              </div>
-              <div className="flex justify-between items-center py-2.5">
-                <span className="text-[10px] text-slate-300 font-black uppercase tracking-wider">Show Signature Area</span>
-                <button
-                  type="button"
-                  onClick={() => setShowSignature(!showSignature)}
-                  className={`w-9 h-5.5 rounded-full p-0.5 transition-colors duration-200 outline-none cursor-pointer ${showSignature ? 'bg-blue-600' : 'bg-slate-750'}`}
-                >
-                  <div className={`w-4.5 h-4.5 rounded-full bg-white transition-transform duration-200 shadow-sm ${showSignature ? 'translate-x-3.5' : 'translate-x-0'}`} />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Live Preview Area */}
-        <div className="flex-1 bg-slate-950 flex flex-col items-center justify-center p-8 overflow-y-auto relative min-h-0">
-
-          <div className="flex flex-col items-center gap-6 max-w-full">
-
-            {/* Quick Downloader Buttons */}
-            <div className="flex flex-col gap-3 w-full max-w-[320px] mt-4">
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  disabled={isExportingFront}
-                  onClick={() => handleDownload("front")}
-                  className="py-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-750 rounded-xl text-[9px] font-black uppercase tracking-widest text-slate-300 flex items-center justify-center gap-2 transition-all shadow-sm cursor-pointer disabled:opacity-50"
-                >
-                  {isExportingFront ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
-                  Front PDF
-                </button>
-                <button
-                  disabled={isExportingBack}
-                  onClick={() => handleDownload("back")}
-                  className="py-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-750 rounded-xl text-[9px] font-black uppercase tracking-widest text-slate-300 flex items-center justify-center gap-2 transition-all shadow-sm cursor-pointer disabled:opacity-50"
-                >
-                  {isExportingBack ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
-                  Back PDF
-                </button>
-              </div>
               <button
-                disabled={isExportingFront || isExportingBack}
-                onClick={() => handleDownload("both")}
-                className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[9.5px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer disabled:opacity-50"
+                type="button"
+                disabled={bulkProgress > 0}
+                onClick={handleBulkDownload}
+                className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isExportingFront || isExportingBack ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
-                Download Combined PDF
+                {bulkProgress > 0 ? (
+                  <>
+                    <Loader2 size={12} className="animate-spin" />
+                    Generating PDF...
+                  </>
+                ) : (
+                  <>
+                    <Download size={12} />
+                    Download Bulk ID Cards (PDF)
+                  </>
+                )}
               </button>
             </div>
+          ) : (
+            <>
+              {/* Theme Selector */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 pb-1.5 border-b border-slate-800">
+                  <Sparkles size={14} className="text-blue-500" />
+                  <h2 className="text-[10px] font-black uppercase tracking-wider text-white">Layout & Theme</h2>
+                </div>
 
-            {/* Helpful Tips Alert Box */}
-            <div className="text-center bg-slate-900/40 border border-slate-900 rounded-2xl p-4 max-w-[480px] text-[9.5px] text-slate-400 font-bold leading-normal transition-colors mt-4">
-              💡 <strong>Printing Setup Guide:</strong> Prepares standard CR80 layout. In the browser print pop-up, set margins to <strong>None</strong>, disable headers/footers, and select <strong>{orientation === "portrait" ? "Portrait" : "Landscape"}</strong> layout orientation.
-            </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBgImage("/idcard/idcard_1.png");
+                      setOrientation("portrait");
+                    }}
+                    className={`p-2 rounded-xl border text-left transition-all cursor-pointer h-12 flex flex-col justify-center items-center ${bgImage === "/idcard/idcard_1.png"
+                      ? "bg-blue-600/10 border-blue-500 text-blue-400 shadow-sm font-extrabold"
+                      : "bg-slate-800/40 border-slate-800 hover:border-slate-700 hover:bg-slate-800/80 text-slate-400"
+                      }`}
+                  >
+                    <span className="text-[10px] font-black uppercase tracking-wider block text-center">Theme 1</span>
+                    <span className="text-[6px] text-slate-500 uppercase block text-center mt-0.5">Corners</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBgImage("/idcard/idcard_2.png");
+                      setOrientation("portrait");
+                    }}
+                    className={`p-2 rounded-xl border text-left transition-all cursor-pointer h-12 flex flex-col justify-center items-center ${bgImage === "/idcard/idcard_2.png"
+                      ? "bg-blue-600/10 border-blue-500 text-blue-400 shadow-sm font-extrabold"
+                      : "bg-slate-800/40 border-slate-800 hover:border-slate-700 hover:bg-slate-800/80 text-slate-400"
+                      }`}
+                  >
+                    <span className="text-[10px] font-black uppercase tracking-wider block text-center">Theme 2</span>
+                    <span className="text-[6px] text-slate-500 uppercase block text-center mt-0.5">Waves</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBgImage("/idcard/idcard_3.png");
+                      setOrientation("portrait");
+                    }}
+                    className={`p-2 rounded-xl border text-left transition-all cursor-pointer h-12 flex flex-col justify-center items-center ${bgImage === "/idcard/idcard_3.png"
+                      ? "bg-blue-600/10 border-blue-500 text-blue-400 shadow-sm font-extrabold"
+                      : "bg-slate-800/40 border-slate-800 hover:border-slate-700 hover:bg-slate-800/80 text-slate-400"
+                      }`}
+                  >
+                    <span className="text-[10px] font-black uppercase tracking-wider block text-center">Theme 3</span>
+                    <span className="text-[6px] text-slate-500 uppercase block text-center mt-0.5">Orange</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBgImage("theme_4");
+                      setOrientation("portrait");
+                    }}
+                    className={`p-2 rounded-xl border text-left transition-all cursor-pointer h-12 flex flex-col justify-center items-center ${bgImage === "theme_4"
+                      ? "bg-blue-600/10 border-blue-500 text-blue-400 shadow-sm font-extrabold"
+                      : "bg-slate-800/40 border-slate-800 hover:border-slate-700 hover:bg-slate-800/80 text-slate-400"
+                      }`}
+                  >
+                    <span className="text-[10px] font-black uppercase tracking-wider block text-center">Theme 4</span>
+                    <span className="text-[6px] text-emerald-500 uppercase block text-center mt-0.5">Dark Cyber</span>
+                  </button>
+                </div>
+              </div>
 
-          </div>
+              {/* Download Button */}
+              <div className="pt-2">
+                <button
+                  disabled={isExportingFront || isExportingBack}
+                  onClick={() => handleDownload("both")}
+                  className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg cursor-pointer disabled:opacity-50"
+                >
+                  {isExportingFront || isExportingBack ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
+                  Download Combined PDF
+                </button>
+              </div>
+            </>
+          )}
+
         </div>
 
       </div>

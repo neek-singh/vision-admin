@@ -25,7 +25,7 @@ import {
   CalendarCheck,
   ChevronDown
 } from "lucide-react";
-import { setupStudentFee, recordPayment, deleteFeeRecord } from "@/app/actions/lms/fees";
+import { setupStudentFee, recordPayment, deleteFeeRecord, deletePayment } from "@/app/actions/lms/fees";
 
 export default function FeesClient({ 
   initialFees, 
@@ -235,6 +235,28 @@ export default function FeesClient({
     }
     setLoading(false);
   };
+
+  const handleDeletePayment = async (paymentId: string, feeId: string) => {
+    if (!confirm("Are you sure you want to delete this payment transaction? This will update the student's payment status and installment schedule.")) return;
+    setLoading(true);
+    const result = await deletePayment(paymentId, feeId);
+    if (result.success) {
+      alert("Payment transaction deleted successfully!");
+    } else {
+      alert("Error: " + result.error);
+    }
+    setLoading(false);
+  };
+
+  // Keep showHistory in sync with updated initialFees
+  useEffect(() => {
+    if (showHistory) {
+      const updatedFee = initialFees.find(f => f.id === showHistory.id);
+      if (updatedFee) {
+        setShowHistory(updatedFee);
+      }
+    }
+  }, [initialFees, showHistory]);
 
   const handleDownloadReceipt = (pay: any, student: any, course: any) => {
     const printWindow = window.open("", "_blank", "width=800,height=700");
@@ -1630,13 +1652,22 @@ export default function FeesClient({
                                   <p className="text-[9px] font-mono text-slate-400 mt-1">Ref: {pay.transaction_id}</p>
                                 )}
                              </div>
-                             <button 
-                               onClick={() => handleDownloadReceipt(pay, showHistory.students, showHistory.courses)} 
-                               className="p-2 text-slate-400 hover:text-blue-600 hover:bg-white dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
-                               title="Download / Print Receipt"
-                             >
-                               <Download size={14}/>
-                             </button>
+                             <div className="flex items-center gap-1.5">
+                                <button 
+                                  onClick={() => handleDownloadReceipt(pay, showHistory.students, showHistory.courses)} 
+                                  className="p-2 text-slate-400 hover:text-blue-600 hover:bg-white dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
+                                  title="Download / Print Receipt"
+                                >
+                                  <Download size={14}/>
+                                </button>
+                                <button 
+                                  onClick={() => handleDeletePayment(pay.id, showHistory.id)} 
+                                  className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-lg transition-all cursor-pointer"
+                                  title="Delete Payment"
+                                >
+                                  <Trash2 size={14}/>
+                                </button>
+                             </div>
                           </div>
                         ))
                       )}

@@ -181,3 +181,62 @@ export async function deleteFeeRecord(id: string) {
   revalidatePath("/admin/fees");
   return { success: true };
 }
+
+export async function deletePayment(paymentId: string, feeId: string) {
+  const supabase = await createServerSupabaseClient();
+
+  // 1. Delete payment
+  const { error: deleteError } = await supabase
+    .from("payments")
+    .delete()
+    .eq("id", paymentId);
+
+  if (deleteError) return { error: deleteError.message };
+
+  // 2. Calculate new Total Paid
+  const { data: allPayments } = await supabase
+    .from("payments")
+    .select("amount")
+    .eq("fee_id", feeId);
+
+  const totalPaid = allPayments?.reduce((acc, p) => acc + Number(p.amount), 0) || 0;
+
+  // 3. Update fee status
+  const { data: fee } = await supabase.from("fees").select("final_fee").eq("id", feeId).single();
+  if (fee) {
+    const finalFee = Number(fee.final_fee);
+    let newStatus = 'partial';
+    if (totalPaid >= finalFee) newStatus = 'paid';
+    else if (totalPaid === 0) newStatus = 'due';
+
+    await supabase.from("fees").update({
+      status: newStatus
+    }).eq("id", feeId);
+
+    // 4. Reset installments to pending
+    await supabase.from("installments").update({ status: 'pending' }).eq("fee_id", feeId);
+
+    // 5. Re-allocate remaining totalPaid
+    const { data: installments } = await supabase
+      .from("installments")
+      .select("*")
+      .eq("fee_id", feeId)
+      .order("due_date", { ascending: true });
+
+    if (installments) {
+      let remainingPaid = totalPaid;
+      for (const inst of installments) {
+        if (remainingPaid >= Number(inst.amount)) {
+          await supabase.from("installments").update({ status: 'paid' }).eq("id", inst.id);
+          remainingPaid -= Number(inst.amount);
+        } else {
+          break;
+        }
+      }
+    }
+  }
+
+  revalidatePath("/admin/fees");
+  return { success: true };
+}
+

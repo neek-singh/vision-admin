@@ -21,7 +21,8 @@ import {
   Check,
   KeyRound,
   Copy,
-  CheckCircle2
+  CheckCircle2,
+  Award
 } from "lucide-react";
 import dynamic from "next/dynamic";
 
@@ -39,6 +40,11 @@ const BatchAssignmentModal = dynamic(() => import("@/components/lms/students/Bat
 });
 
 const StudentIdCardModal = dynamic(() => import("@/components/lms/students/StudentIdCardModal"), { 
+  ssr: false,
+  loading: () => <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-[100] flex items-center justify-center"><Loader2 className="animate-spin text-blue-600" /></div>
+});
+
+const StudentCertificateModal = dynamic(() => import("@/components/lms/students/StudentCertificateModal"), { 
   ssr: false,
   loading: () => <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-[100] flex items-center justify-center"><Loader2 className="animate-spin text-blue-600" /></div>
 });
@@ -74,6 +80,8 @@ export default function StudentTable({
   const [editingBatchFor, setEditingBatchFor] = useState<any | null>(null);
   const [isAssigningBatchTo, setIsAssigningBatchTo] = useState<any | null>(null);
   const [idCardStudent, setIdCardStudent] = useState<any | null>(null);
+  const [bulkIdCardData, setBulkIdCardData] = useState<{ students: any[]; courseTitle: string } | null>(null);
+  const [certificateStudent, setCertificateStudent] = useState<any | null>(null);
   const [availableCourses, setAvailableCourses] = useState<any[]>(passedCourses);
 
   // Credentials Modal State
@@ -379,6 +387,22 @@ export default function StudentTable({
         />
       )}
 
+      {bulkIdCardData && (
+        <StudentIdCardModal
+          student={null}
+          bulkStudents={bulkIdCardData.students}
+          courseTitle={bulkIdCardData.courseTitle}
+          onClose={() => setBulkIdCardData(null)}
+        />
+      )}
+
+      {certificateStudent && (
+        <StudentCertificateModal
+          student={certificateStudent}
+          onClose={() => setCertificateStudent(null)}
+        />
+      )}
+
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Card 1: Total Students */}
@@ -546,6 +570,28 @@ export default function StudentTable({
                 <BookOpen size={12} />
               </div>
             </div>
+
+            {/* Bulk ID Cards (Theme 4) button */}
+            {selectedCourse && (
+              <button
+                type="button"
+                onClick={() => {
+                  const courseObj = availableCourses.find(c => c.id === selectedCourse);
+                  if (filteredStudents.length === 0) {
+                    alert("No students found in the current course filter.");
+                    return;
+                  }
+                  setBulkIdCardData({
+                    students: filteredStudents,
+                    courseTitle: courseObj?.title || "Selected Course"
+                  });
+                }}
+                className="w-full sm:w-auto px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
+              >
+                <IdCard size={12} />
+                Bulk ID Cards (Theme 4)
+              </button>
+            )}
 
             {/* Reset Filters button */}
             {(query || selectedBatch || selectedCourse || selectedStatus !== "all") && (
@@ -746,6 +792,13 @@ export default function StudentTable({
                             <IdCard size={18} />
                           </button>
                           <button 
+                            onClick={() => setCertificateStudent(student)}
+                            className="p-2 text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
+                            title="Generate Certificate"
+                          >
+                            <Award size={18} />
+                          </button>
+                          <button 
                             onClick={() => setEditingStudent(student)}
                             className="p-2 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
                             title="Edit Student"
@@ -878,6 +931,12 @@ export default function StudentTable({
                       className="flex-1 py-3 bg-blue-50/50 hover:bg-blue-50 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 text-blue-700 dark:text-blue-400 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 border border-blue-100/50 dark:border-blue-900/30 shadow-sm transition-all cursor-pointer"
                     >
                       <IdCard size={14} className="text-blue-600 dark:text-blue-400" /> Generate ID Card
+                    </button>
+                    <button 
+                      onClick={() => setCertificateStudent(student)}
+                      className="flex-1 py-3 bg-amber-50/50 hover:bg-amber-50 dark:bg-amber-500/10 dark:hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 border border-amber-100/50 dark:border-amber-900/30 shadow-sm transition-all cursor-pointer"
+                    >
+                      <Award size={14} className="text-amber-600 dark:text-amber-400" /> Generate Certificate
                     </button>
                     <button 
                       onClick={() => setEditingStudent(student)}

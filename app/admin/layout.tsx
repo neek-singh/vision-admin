@@ -30,7 +30,8 @@ import {
   Sun,
   Moon,
   MessageSquare,
-  TrendingUp
+  TrendingUp,
+  TrendingDown
 } from "lucide-react";
 
 const navGroups = [
@@ -58,6 +59,7 @@ const navGroups = [
       { href: "/admin/lms/calendar", label: "Calendar & Events", icon: Calendar },
       { href: "/admin/notifications", label: "Notifications", icon: Bell },
       { href: "/admin/fees", label: "Fees Management", icon: Wallet },
+      { href: "/admin/expenses", label: "Expenses Management", icon: TrendingDown },
       { href: "/admin/lms/chats", label: "LMS Chats", icon: MessageSquare },
       { href: "/admin/lms/analytics", label: "LMS Analytics", icon: TrendingUp },
     ]
