@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import fs from "fs";
 
-const blogsFilePath = "c:\\Users\\as007\\vision-web\\data\\blogs.json";
+const blogsFilePath = "c:\\Users\\as007\\vision-web\\features\\blog\\data\\blogs.json";
 
 export async function saveBlog(formData: any) {
   try {

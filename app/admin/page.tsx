@@ -42,7 +42,7 @@ async function getSupabase() {
 // 📊 Stats Section Component
 async function StatsSection({ supabase }: { supabase: any }) {
   // Read local blog data
-  const blogsFilePath = "c:\\Users\\as007\\vision-web\\data\\blogs.json";
+  const blogsFilePath = "c:\\Users\\as007\\vision-web\\features\\blog\\data\\blogs.json";
   let blogsList: any[] = [];
   try {
     if (fs.existsSync(blogsFilePath)) {
@@ -53,7 +53,7 @@ async function StatsSection({ supabase }: { supabase: any }) {
   }
 
   // Read local gallery data
-  const galleryFilePath = "c:\\Users\\as007\\vision-web\\data\\gallery.json";
+  const galleryFilePath = "c:\\Users\\as007\\vision-web\\features\\gallery\\data\\gallery.json";
   let galleryList: any[] = [];
   try {
     if (fs.existsSync(galleryFilePath)) {
@@ -249,7 +249,7 @@ async function DashboardDetails({ supabase }: { supabase: any }) {
     .limit(4);
 
   // 2. Read recent blogs
-  const blogsFilePath = "c:\\Users\\as007\\vision-web\\data\\blogs.json";
+  const blogsFilePath = "c:\\Users\\as007\\vision-web\\features\\blog\\data\\blogs.json";
   let recentBlogs: any[] = [];
   try {
     if (fs.existsSync(blogsFilePath)) {
@@ -265,7 +265,7 @@ async function DashboardDetails({ supabase }: { supabase: any }) {
   }
 
   // 3. Read recent gallery images
-  const galleryFilePath = "c:\\Users\\as007\\vision-web\\data\\gallery.json";
+  const galleryFilePath = "c:\\Users\\as007\\vision-web\\features\\gallery\\data\\gallery.json";
   let recentGallery: any[] = [];
   try {
     if (fs.existsSync(galleryFilePath)) {

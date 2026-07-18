@@ -3,7 +3,7 @@
 import fs from "fs";
 import { revalidatePath } from "next/cache";
 
-const statsFilePath = "c:\\Users\\as007\\vision-web\\data\\stats.json";
+const statsFilePath = "c:\\Users\\as007\\vision-web\\features\\admin\\data\\stats.json";
 
 export async function updateStats(formData: FormData) {
   try {

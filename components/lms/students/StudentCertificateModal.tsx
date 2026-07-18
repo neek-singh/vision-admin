@@ -121,7 +121,7 @@ async function drawSeal(ctx: CanvasRenderingContext2D, cx: number, cy: number, r
     ctx.restore();
   } catch {
     // Fallback: star
-    ctx.font = `bold ${r * 0.5}px serif`;
+    ctx.font = `bold ${r * 0.5}px 'Poppins', sans-serif`;
     ctx.fillStyle = "#1e3a8a";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
@@ -131,7 +131,7 @@ async function drawSeal(ctx: CanvasRenderingContext2D, cx: number, cy: number, r
   // Circular text between outer rings
   const circleText = "✦  VISION IT INSTITUTE  ✦  CERTIFIED  ";
   const textRadius = r - 14;
-  ctx.font = `bold ${Math.round(r * 0.13)}px Georgia, serif`;
+  ctx.font = `bold ${Math.round(r * 0.13)}px 'Poppins', sans-serif`;
   ctx.fillStyle = "#1e3a8a";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
@@ -147,6 +147,192 @@ async function drawSeal(ctx: CanvasRenderingContext2D, cx: number, cy: number, r
   ctx.restore();
 }
 
+function drawGoldBadge(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number) {
+  ctx.save();
+
+  // 1. Draw Ribbon Tails (hanging down at the back)
+  // Prestigious dark blue ribbons with gold borders!
+  
+  // Left ribbon
+  // Shadow/Outline (Gold border)
+  ctx.fillStyle = "#fbbf24"; // Bright gold border
+  ctx.beginPath();
+  ctx.moveTo(cx - 30, cy + 50);
+  ctx.lineTo(cx - 100, cy + r * 1.6);
+  ctx.lineTo(cx - 50, cy + r * 1.48); // Chevron tip
+  ctx.lineTo(cx - 10, cy + r * 1.6);
+  ctx.lineTo(cx - 10, cy + 50);
+  ctx.closePath();
+  ctx.fill();
+
+  // Inner Blue body of left ribbon
+  ctx.fillStyle = "#1e40af"; // Brand blue
+  ctx.beginPath();
+  ctx.moveTo(cx - 24, cy + 50);
+  ctx.lineTo(cx - 92, cy + r * 1.56);
+  ctx.lineTo(cx - 50, cy + r * 1.45);
+  ctx.lineTo(cx - 16, cy + r * 1.56);
+  ctx.lineTo(cx - 16, cy + 50);
+  ctx.closePath();
+  ctx.fill();
+
+  // Gold accent stripe in the middle of left ribbon
+  ctx.fillStyle = "#fbbf24";
+  ctx.beginPath();
+  ctx.moveTo(cx - 52, cy + 50);
+  ctx.lineTo(cx - 58, cy + r * 1.46);
+  ctx.lineTo(cx - 50, cy + r * 1.43);
+  ctx.lineTo(cx - 48, cy + r * 1.46);
+  ctx.lineTo(cx - 48, cy + 50);
+  ctx.closePath();
+  ctx.fill();
+
+  // Right ribbon
+  // Shadow/Outline (Gold border)
+  ctx.fillStyle = "#d97706"; // Darker gold border for overlap
+  ctx.beginPath();
+  ctx.moveTo(cx + 10, cy + 50);
+  ctx.lineTo(cx + 10, cy + r * 1.6);
+  ctx.lineTo(cx + 50, cy + r * 1.48); // Chevron tip
+  ctx.lineTo(cx + 100, cy + r * 1.6);
+  ctx.lineTo(cx + 30, cy + 50);
+  ctx.closePath();
+  ctx.fill();
+
+  // Inner Blue body of right ribbon
+  ctx.fillStyle = "#1e3a8a"; // Darker brand blue
+  ctx.beginPath();
+  ctx.moveTo(cx + 16, cy + 50);
+  ctx.lineTo(cx + 16, cy + r * 1.56);
+  ctx.lineTo(cx + 50, cy + r * 1.45);
+  ctx.lineTo(cx + 92, cy + r * 1.56);
+  ctx.lineTo(cx + 24, cy + 50);
+  ctx.closePath();
+  ctx.fill();
+
+  // Gold accent stripe in the middle of right ribbon
+  ctx.fillStyle = "#d97706";
+  ctx.beginPath();
+  ctx.moveTo(cx + 48, cy + 50);
+  ctx.lineTo(cx + 48, cy + r * 1.46);
+  ctx.lineTo(cx + 50, cy + r * 1.43);
+  ctx.lineTo(cx + 52, cy + r * 1.46);
+  ctx.lineTo(cx + 52, cy + 50);
+  ctx.closePath();
+  ctx.fill();
+
+
+  // 2. Draw Scalloped Outer Circle (Medal) - Gold
+  const numScallops = 36;
+  const outerR = r;
+  const innerR = r - 14;
+  ctx.beginPath();
+  for (let i = 0; i <= numScallops; i++) {
+    const angle = (i / numScallops) * Math.PI * 2;
+    const nextAngle = ((i + 1) / numScallops) * Math.PI * 2;
+    const midAngle = (angle + nextAngle) / 2;
+
+    const x = cx + outerR * Math.cos(angle);
+    const y = cy + outerR * Math.sin(angle);
+    const midX = cx + innerR * Math.cos(midAngle);
+    const midY = cy + innerR * Math.sin(midAngle);
+    const nextX = cx + outerR * Math.cos(nextAngle);
+    const nextY = cy + outerR * Math.sin(nextAngle);
+
+    if (i === 0) {
+      ctx.moveTo(x, y);
+    }
+    ctx.quadraticCurveTo(midX, midY, nextX, nextY);
+  }
+  ctx.closePath();
+
+  // Gold radial gradient fill
+  const medalGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+  medalGrad.addColorStop(0, "#fffbeb");
+  medalGrad.addColorStop(0.3, "#fcd34d");
+  medalGrad.addColorStop(0.8, "#fbbf24");
+  medalGrad.addColorStop(1, "#d97706");
+  ctx.fillStyle = medalGrad;
+  ctx.fill();
+
+  // Double stroke
+  ctx.strokeStyle = "#d97706";
+  ctx.lineWidth = 4;
+  ctx.stroke();
+
+  ctx.strokeStyle = "#b45309";
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+
+  // 3. Draw Blue Ring Band (Brand color!)
+  ctx.beginPath();
+  ctx.arc(cx, cy, r - 22, 0, Math.PI * 2);
+  const ringGrad = ctx.createRadialGradient(cx, cy, r - 70, cx, cy, r - 22);
+  ringGrad.addColorStop(0, "#1d4ed8"); // Light blue
+  ringGrad.addColorStop(1, "#1e3a8a"); // Navy blue
+  ctx.fillStyle = ringGrad;
+  ctx.fill();
+
+  ctx.strokeStyle = "#fbbf24"; // Gold stroke around the blue ring
+  ctx.lineWidth = 4;
+  ctx.stroke();
+
+
+  // 4. Circular Text on the Blue Ring: "✦ VISION IT COMPUTER INSTITUTE ✦"
+  // Draw text only along the top arc (left → top → right) so it stays readable
+  const circleText = "✦ VISION IT COMPUTER INSTITUTE ✦";
+  const textRadius = r - 44;
+  ctx.font = `bold ${Math.round(r * 0.10)}px 'Poppins', sans-serif`;
+  ctx.fillStyle = "#ffffff"; // White text
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  const arcStart = -Math.PI;       // -180° = left side
+  const arcSpan  =  Math.PI;       //  180° span → ends at 0° = right side (goes through top)
+  for (let i = 0; i < circleText.length; i++) {
+    const angle = arcStart + (i / (circleText.length - 1)) * arcSpan;
+    ctx.save();
+    ctx.translate(cx + textRadius * Math.cos(angle), cy + textRadius * Math.sin(angle));
+    ctx.rotate(angle + Math.PI / 2);
+    ctx.fillText(circleText[i], 0, 0);
+    ctx.restore();
+  }
+
+
+  // 5. Draw Inner Center Circle (White background for text)
+  ctx.beginPath();
+  ctx.arc(cx, cy, r - 66, 0, Math.PI * 2);
+  ctx.fillStyle = "#ffffff";
+  ctx.fill();
+
+  ctx.strokeStyle = "#fbbf24";
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+
+  // 6. Draw Center Text ("VIT INSTITUTE")
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = "#1e3a8a"; // Brand navy blue
+
+  // 3 stars at the top
+  ctx.font = "24px 'Poppins', sans-serif";
+  ctx.fillText("★  ★  ★", cx, cy - r * 0.52);
+
+  // "VIT" in center
+  ctx.font = "bold 64px 'Poppins', sans-serif";
+  ctx.fillText("VIT", cx, cy - 2);
+
+  // "INSTITUTE" below
+  ctx.font = "bold 24px 'Poppins', sans-serif";
+  ctx.fillText("INSTITUTE", cx, cy + 34);
+
+  // 2 stars at the bottom
+  ctx.font = "20px 'Poppins', sans-serif";
+  ctx.fillText("★  ★", cx, cy + 62);
+
+  ctx.restore();
+}
 
 export default function StudentCertificateModal({ student, onClose }: StudentCertificateModalProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -162,6 +348,23 @@ export default function StudentCertificateModal({ student, onClose }: StudentCer
   const [issueDate, setIssueDate] = useState<string>(() =>
     new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })
   );
+  const [prefix, setPrefix] = useState<string>(() => {
+    const nameUpper = (student?.name || "").toUpperCase().trim();
+    if (
+      nameUpper.startsWith("MR. ") ||
+      nameUpper.startsWith("MR ") ||
+      nameUpper.startsWith("MISS. ") ||
+      nameUpper.startsWith("MISS ") ||
+      nameUpper.startsWith("MS. ") ||
+      nameUpper.startsWith("MS ")
+    ) {
+      return "";
+    }
+    const g = (student?.gender || "").toLowerCase().trim();
+    if (g === "male") return "Mr. ";
+    if (g === "female") return "Miss. ";
+    return "";
+  });
 
   const logoUrl = "/logo.png";
   const signatureUrl = "/idcard/signature.png";
@@ -175,10 +378,25 @@ export default function StudentCertificateModal({ student, onClose }: StudentCer
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    // ── Load Google Fonts via FontFace API ───────────────
+    const fontsToLoad = [
+      { name: "Poppins", url: "https://fonts.gstatic.com/s/poppins/v21/pxiDypQkot1TnFhsFMOfGShVF9eO.woff2", weight: "400" },
+      { name: "Poppins", url: "https://fonts.gstatic.com/s/poppins/v21/pxiByp8kv8JHgFVrLCz7Z1xlFd2JQEk.woff2", weight: "700" },
+    ];
+    await Promise.allSettled(
+      fontsToLoad.map(async ({ name, url, weight }) => {
+        const font = new FontFace(name, `url(${url})`, { weight });
+        const loaded = await font.load();
+        document.fonts.add(loaded);
+      })
+    );
+    await document.fonts.ready;
+
     canvas.width = CANVAS_W;
     canvas.height = CANVAS_H;
     const W = CANVAS_W;
     const H = CANVAS_H;
+    const CONTENT_X = 940; // Shifted left to reduce empty spacing next to the sidebar
 
     // ── Background ──────────────────────────────────────
     ctx.fillStyle = "#ffffff";
@@ -224,11 +442,47 @@ export default function StudentCertificateModal({ student, onClose }: StudentCer
     drawCorner(IM, H - IM, 1, -1);
     drawCorner(W - IM, H - IM, -1, -1);
 
+    // ── Left Sidebar: Vertical Yellow Bar + QR Code ──────
+    const barX = IM + 150; // Increase left margin from IM + 70 to IM + 150
+    const barWidth = 360; 
+    const barY = IM + 240; // Centered vertically (240px gap from top/bottom inner borders)
+    const barHeight = 1400;
+
+    // Draw yellow vertical bar
+    ctx.fillStyle = "#0ea5e9"; // Sky blue brand color
+    ctx.fillRect(barX, barY, barWidth, barHeight);
+
+    // Draw rotated "CERTIFICATE" text inside the bar
+    ctx.save();
+    ctx.translate(barX + barWidth / 2, barY + barHeight / 2);
+    ctx.rotate(-Math.PI / 2); // Rotate -90 degrees
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 150px 'Poppins', sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("CERTIFICATE", 0, 0);
+    ctx.restore();
+
+    // Draw QR Code below the vertical bar
+    const qrSize = 360; // Match barWidth
+    const qrX = barX + (barWidth - qrSize) / 2;
+    const qrY = barY + barHeight + 60;
+    const verificationUrl = `https://visionitinstitute.com/verify?id=${certNo}`;
+    // Force version 3 (ecc=L, margin=0) to guarantee a 29x29 module grid for perfect styling
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=360x360&ecc=L&margin=0&data=${encodeURIComponent(verificationUrl)}`;
+
+    try {
+      const qrImg = await loadImgSecurely(qrUrl);
+      ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
+    } catch (e) {
+      console.error("Failed to load QR code image:", e);
+    }
+
     // ── Logo (left) + Institute Header (right) ───────────
     const bannerH = 340; // keep same value so layout below still aligns
-    const logoSize = 300;
-    const logoX = IM + 60;
-    const logoY = IM + 20;
+    const logoSize = 250;
+    const logoX = IM + 540; // Shifted left to match shifted content baseline
+    const logoY = IM + 35;
     if (logoUrl) {
       try {
         const logoImg = await loadImgSecurely(logoUrl);
@@ -243,86 +497,82 @@ export default function StudentCertificateModal({ student, onClose }: StudentCer
       }
     }
 
-    // Institute name (centered)
-    ctx.textAlign = "center";
+    // Institute name (left-aligned)
+    ctx.textAlign = "left";
     ctx.fillStyle = "#000000";
-    ctx.font = "bold 110px Georgia, serif";
-    ctx.fillText("VISION IT COMPUTER INSTITUTE", W / 2, IM + bannerH - 170);
+    ctx.font = "bold 88px 'Poppins', sans-serif";
+    ctx.fillText("VISION IT COMPUTER INSTITUTE", CONTENT_X, IM + bannerH - 170);
 
-    ctx.font = "500 54px Georgia, serif";
-    ctx.fillStyle = "#000000";
-    ctx.fillText("Pratappur, Surajpur (C.G.)", W / 2, IM + bannerH - 100);
+    const nameWidth = ctx.measureText("VISION IT COMPUTER INSTITUTE").width;
+    const headerCenterX = CONTENT_X + nameWidth / 2;
 
-    // ── Certificate Title ────────────────────────────────
-    const titleY = IM + bannerH + 150;
     ctx.textAlign = "center";
-    ctx.font = "bold 96px Georgia, serif";
+    ctx.font = "44px 'Poppins', sans-serif";
     ctx.fillStyle = "#000000";
-    ctx.fillText("CERTIFICATE OF COMPLETION", W / 2, titleY);
+    ctx.fillText("Pratappur, Surajpur (C.G.) - 497223", headerCenterX, IM + bannerH - 100);
+
+    // Restore text alignment to left for subsequent certificate details
+    ctx.textAlign = "left";
+
+    // ── Certificate Title Layout Baseline ────────────────
+    const titleY = IM + bannerH + 20; // Shifted up to close the gap after title removal
 
 
     // ── "This is to certify that" ────────────────────────
     const subtitleY = titleY + 140;
-    ctx.font = "italic 62px Georgia, serif";
+    ctx.font = "62px 'Poppins', sans-serif";
     ctx.fillStyle = "#000000";
-    ctx.fillText("This is to certify that", W / 2, subtitleY);
+    ctx.fillText("This is to certify that", CONTENT_X, subtitleY);
 
     // ── Student Name ─────────────────────────────────────
     const nameY = subtitleY + 200;
-    ctx.font = "bold 148px Georgia, serif";
-    ctx.fillStyle = "#000000";
-    ctx.fillText(studentName.toUpperCase(), W / 2, nameY);
+    ctx.font = "bold 110px 'Poppins', sans-serif";
+    ctx.fillStyle = "#0ea5e9"; // Sky blue
+
+    const nameUpper = studentName.toUpperCase().trim();
+    let namePrefix = prefix;
+    if (
+      nameUpper.startsWith("MR. ") ||
+      nameUpper.startsWith("MR ") ||
+      nameUpper.startsWith("MISS. ") ||
+      nameUpper.startsWith("MISS ") ||
+      nameUpper.startsWith("MS. ") ||
+      nameUpper.startsWith("MS ")
+    ) {
+      namePrefix = "";
+    }
+    ctx.fillText(namePrefix + studentName.toUpperCase(), CONTENT_X, nameY);
 
 
 
     // ── "has successfully completed the course" ──────────
     const completedY = nameY + 140;
-    ctx.font = "italic 58px Georgia, serif";
+    ctx.font = "58px 'Poppins', sans-serif";
     ctx.fillStyle = "#000000";
-    ctx.fillText("has successfully completed the course", W / 2, completedY);
+    ctx.fillText("has successfully completed the course", CONTENT_X, completedY);
 
     // ── Course Name (Plain Text without Border) ──────────
     const courseY = completedY + 175;
     const shortCourse = getShortCourse(courseName);
     const fullCourseDisplay = shortCourse !== courseName ? `${courseName}  (${shortCourse})` : courseName;
-    ctx.font = "bold italic 90px 'Times New Roman', Times, serif";
+    ctx.font = "bold 90px 'Poppins', sans-serif";
     ctx.fillStyle = "#000000";
-    ctx.fillText(fullCourseDisplay, W / 2, courseY);
-
-    // ── Cert No. & Issue Date ────────────────────────────
-    const metaY = courseY + 190;
-    ctx.fillStyle = "#000000";
-    ctx.font = "500 48px Georgia, serif";
-
-    // Left: Certificate No label + monospace value
-    ctx.textAlign = "left";
-    ctx.fillText("Certificate No: ", IM + 120, metaY);
-    const labelW1 = ctx.measureText("Certificate No: ").width;
-    ctx.font = "bold 48px 'Courier New', Courier, monospace";
-    ctx.fillText(certNo, IM + 120 + labelW1, metaY);
-
-    // Right: Date of Issue (fully right-aligned at right edge)
-    ctx.textAlign = "right";
-    ctx.font = "500 48px Georgia, serif";
-    ctx.fillText(`Date of Issue: ${issueDate}`, W - IM - 120, metaY);
-
-
-    // Horizontal divider
-    ctx.strokeStyle = "#cccccc";
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(IM + 80, metaY + 55);
-    ctx.lineTo(W - IM - 80, metaY + 55);
-    ctx.stroke();
+    ctx.fillText(fullCourseDisplay, CONTENT_X, courseY);
 
     // ── Signatures (Instructor on Left, Director on Right) ─
-    const sigBaseY = metaY + 140;
+    const sigBaseY = qrY; // Aligned with QR code vertical position
     const sigH = 150;
     const sigW = 440;
     const sigLineW = 600;
 
-    const leftCenterX = W / 2 - 700;
-    const rightCenterX = W / 2 + 700;
+    const leftCenterX = CONTENT_X + 300;
+    const rightCenterX = leftCenterX + 900; // Moved closer to Instructor
+
+    // ── "Verified by" label above signatures ─────────────
+    ctx.font = "65px 'Poppins', sans-serif";
+    ctx.fillStyle = "#000000";
+    ctx.textAlign = "left";
+    ctx.fillText("Verified by", CONTENT_X, sigBaseY - 20);
 
     // Load signature image
     if (signatureUrl) {
@@ -346,14 +596,10 @@ export default function StudentCertificateModal({ student, onClose }: StudentCer
     ctx.lineTo(leftCenterX + sigLineW / 2, sigBaseY + 165);
     ctx.stroke();
 
-    ctx.font = "bold 50px Georgia, serif";
+    ctx.font = "bold 50px 'Poppins', sans-serif";
     ctx.fillStyle = "#000000";
     ctx.textAlign = "center";
     ctx.fillText("Instructor", leftCenterX, sigBaseY + 220);
-
-    ctx.font = "40px Georgia, serif";
-    ctx.fillStyle = "#000000";
-    ctx.fillText("VISION IT COMPUTER INSTITUTE", leftCenterX, sigBaseY + 272);
 
     // Right signature line & text
     ctx.beginPath();
@@ -361,16 +607,31 @@ export default function StudentCertificateModal({ student, onClose }: StudentCer
     ctx.lineTo(rightCenterX + sigLineW / 2, sigBaseY + 165);
     ctx.stroke();
 
-    ctx.font = "bold 50px Georgia, serif";
+    ctx.font = "bold 50px 'Poppins', sans-serif";
     ctx.fillStyle = "#000000";
     ctx.textAlign = "center";
     ctx.fillText("Director", rightCenterX, sigBaseY + 220);
 
-    ctx.font = "40px Georgia, serif";
+
+    // ── Cert No. & Issue Date (at the very bottom, no divider line) ──
+    const metaY = H - IM - 90; // 2300px (very bottom of certificate margin)
     ctx.fillStyle = "#000000";
-    ctx.fillText("VISION IT COMPUTER INSTITUTE", rightCenterX, sigBaseY + 272);
+    ctx.font = "48px 'Poppins', sans-serif";
 
+    // Left: Certificate No label + monospace value
+    ctx.textAlign = "left";
+    ctx.fillText("Certificate No: ", CONTENT_X, metaY);
+    const labelW1 = ctx.measureText("Certificate No: ").width;
+    ctx.font = "bold 48px 'Poppins', sans-serif";
+    ctx.fillText(certNo, CONTENT_X + labelW1, metaY);
 
+    // Right: Date of Issue (fully right-aligned at right edge)
+    ctx.textAlign = "right";
+    ctx.font = "48px 'Poppins', sans-serif";
+    ctx.fillText(`Date of Issue: ${issueDate}`, W - IM - 120, metaY);
+
+    // Draw the gold scalloped medal badge with ribbons in the top right corner
+    drawGoldBadge(ctx, W - IM - 250, IM + 250, 140);
   };
 
 
@@ -421,6 +682,18 @@ export default function StudentCertificateModal({ student, onClose }: StudentCer
 
           {/* Edit fields */}
           <div className="px-8 py-6 grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-slate-100 dark:border-slate-800">
+            <div className="space-y-1">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Prefix (Mr. / Miss.)</label>
+              <select
+                value={prefix}
+                onChange={(e) => setPrefix(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-semibold text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer"
+              >
+                <option value="Mr. ">Mr.</option>
+                <option value="Miss. ">Miss.</option>
+                <option value="">None</option>
+              </select>
+            </div>
             {[
               { label: "Student Name", value: studentName, setter: setStudentName },
               { label: "Course Name", value: courseName, setter: setCourseName },

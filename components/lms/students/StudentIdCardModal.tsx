@@ -635,12 +635,15 @@ export default function StudentIdCardModal({ student, onClose, bulkStudents = []
     };
 
     // Portrait is 638x1012. Landscape is 1012x638
+    // SCALE: 3x for full HD output (no blurring when PDF is zoomed)
+    const SCALE = 3;
     const width = orientation === "portrait" ? 638 : 1012;
     const height = orientation === "portrait" ? 1012 : 638;
-    canvas.width = width;
-    canvas.height = height;
+    canvas.width = width * SCALE;
+    canvas.height = height * SCALE;
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = "high";
+    ctx.scale(SCALE, SCALE);
 
     // Clear background
     ctx.fillStyle = "#ffffff";

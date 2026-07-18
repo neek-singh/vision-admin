@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import fs from "fs";
 
-const galleryFilePath = "c:\\Users\\as007\\vision-web\\data\\gallery.json";
+const galleryFilePath = "c:\\Users\\as007\\vision-web\\features\\gallery\\data\\gallery.json";
 
 export async function getImages() {
   try {

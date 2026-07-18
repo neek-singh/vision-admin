@@ -43,7 +43,7 @@ export default async function ManageStatsPage() {
   }
 
   // Load existing stats
-  const statsFilePath = "c:\\Users\\as007\\vision-web\\data\\stats.json";
+  const statsFilePath = "c:\\Users\\as007\\vision-web\\features\\admin\\data\\stats.json";
 
   let stats = {
     expert_mentors: "10+",

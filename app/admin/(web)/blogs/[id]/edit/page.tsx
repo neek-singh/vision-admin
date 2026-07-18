@@ -48,7 +48,7 @@ export default async function EditBlogPage(
   }
 
   // 📄 Fetch blog
-  const blogsFilePath = "c:\\Users\\as007\\vision-web\\data\\blogs.json";
+  const blogsFilePath = "c:\\Users\\as007\\vision-web\\features\\blog\\data\\blogs.json";
 
   let blog: any = null;
 
