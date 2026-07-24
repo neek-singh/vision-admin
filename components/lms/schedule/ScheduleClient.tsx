@@ -168,10 +168,14 @@ export default function ScheduleClient({
   });
 
   const toggleModuleExpand = (modId: string) => {
-    setExpandedModules(prev => ({
-      ...prev,
-      [modId]: prev[modId] === false ? true : false
-    }));
+    setExpandedModules(prev => {
+      const isDefaultExpanded = modId !== 'tests-group' && modId !== 'materials-group';
+      const isCurrentExpanded = prev[modId] !== undefined ? prev[modId] : isDefaultExpanded;
+      return {
+        ...prev,
+        [modId]: !isCurrentExpanded
+      };
+    });
   };
 
   // Compute calendar days for the month
@@ -206,6 +210,11 @@ export default function ScheduleClient({
   const courseBatches = useMemo(() => {
     return batchesList.filter((b: any) => b.course_id === selectedCourseId);
   }, [batchesList, selectedCourseId]);
+
+  const selectedBatchObj = useMemo(() => {
+    return batchesList.find((b: any) => b.title === selectedBatch);
+  }, [batchesList, selectedBatch]);
+  const selectedBatchId = selectedBatchObj?.id;
 
   // Fetch curriculum when course changes; auto-select batch if only one exists
   useEffect(() => {
@@ -305,42 +314,75 @@ export default function ScheduleClient({
     return map;
   }, [initialSchedules, selectedCourseId, selectedBatch]);
 
-  // Hierarchical Curriculum structures filtered by search
+  // Hierarchical Curriculum structures filtered by search and batch
   const filteredModules = useMemo(() => {
     return curriculum.modules.map(mod => {
-      const filteredLessons = (mod.lessons || []).filter((l: any) => 
-        !searchQuery || l.title.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+      // Filter module by batch (only if a specific batch is selected, show global or assigned modules)
+      if (selectedBatch !== "All Batches" && selectedBatchId) {
+        const isAssigned = mod.batches?.includes(selectedBatchId);
+        const isGlobal = !mod.batches || mod.batches.length === 0;
+        if (!isAssigned && !isGlobal) return null;
+      }
+
+      const filteredLessons = (mod.lessons || []).filter((l: any) => {
+        if (selectedBatch !== "All Batches" && selectedBatchId) {
+          const isAssigned = l.batches?.includes(selectedBatchId);
+          const isGlobal = !l.batches || l.batches.length === 0;
+          if (!isAssigned && !isGlobal) return false;
+        }
+        return !searchQuery || l.title.toLowerCase().includes(searchQuery.toLowerCase());
+      });
       
       const filteredChapters = (mod.lms_chapters || []).map((chap: any) => {
-        const filteredChapLessons = (chap.lessons || []).filter((l: any) =>
-          !searchQuery || l.title.toLowerCase().includes(searchQuery.toLowerCase())
-        );
+        if (selectedBatch !== "All Batches" && selectedBatchId) {
+          const isAssigned = chap.batches?.includes(selectedBatchId);
+          const isGlobal = !chap.batches || chap.batches.length === 0;
+          if (!isAssigned && !isGlobal) return null;
+        }
+
+        const filteredChapLessons = (chap.lessons || []).filter((l: any) => {
+          if (selectedBatch !== "All Batches" && selectedBatchId) {
+            const isAssigned = l.batches?.includes(selectedBatchId);
+            const isGlobal = !l.batches || l.batches.length === 0;
+            if (!isAssigned && !isGlobal) return false;
+          }
+          return !searchQuery || l.title.toLowerCase().includes(searchQuery.toLowerCase());
+        });
         return {
           ...chap,
           lessons: filteredChapLessons
         };
-      }).filter((chap: any) => chap.lessons.length > 0 || !searchQuery || chap.title.toLowerCase().includes(searchQuery.toLowerCase()));
+      }).filter(Boolean).filter((chap: any) => chap.lessons.length > 0 || !searchQuery || chap.title.toLowerCase().includes(searchQuery.toLowerCase()));
 
       return {
         ...mod,
         lessons: filteredLessons,
         lms_chapters: filteredChapters
       };
-    }).filter(mod => mod.lessons.length > 0 || mod.lms_chapters.length > 0 || !searchQuery || mod.title.toLowerCase().includes(searchQuery.toLowerCase()));
-  }, [curriculum.modules, searchQuery]);
+    }).filter(Boolean).filter(mod => mod.lessons.length > 0 || mod.lms_chapters.length > 0 || !searchQuery || mod.title.toLowerCase().includes(searchQuery.toLowerCase()));
+  }, [curriculum.modules, searchQuery, selectedBatch, selectedBatchId]);
 
   const filteredTests = useMemo(() => {
-    return curriculum.tests.filter(t => 
-      !searchQuery || t.title.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [curriculum.tests, searchQuery]);
+    return curriculum.tests.filter(t => {
+      if (selectedBatch !== "All Batches" && selectedBatchId) {
+        const isAssigned = t.batches?.includes(selectedBatchId);
+        const isGlobal = !t.batches || t.batches.length === 0;
+        if (!isAssigned && !isGlobal) return false;
+      }
+      return !searchQuery || t.title.toLowerCase().includes(searchQuery.toLowerCase());
+    });
+  }, [curriculum.tests, searchQuery, selectedBatch, selectedBatchId]);
 
   const filteredMaterials = useMemo(() => {
-    return curriculum.materials.filter(m => 
-      !searchQuery || m.title.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [curriculum.materials, searchQuery]);
+    return curriculum.materials.filter(m => {
+      if (selectedBatch !== "All Batches" && selectedBatchId) {
+        const isAssigned = m.batches?.includes(selectedBatchId);
+        const isGlobal = !m.batches || m.batches.length === 0;
+        if (!isAssigned && !isGlobal) return false;
+      }
+      return !searchQuery || m.title.toLowerCase().includes(searchQuery.toLowerCase());
+    });
+  }, [curriculum.materials, searchQuery, selectedBatch, selectedBatchId]);
 
   const handleDelete = async (id: string) => {
     if (!confirm("Remove this event from schedule?")) return;

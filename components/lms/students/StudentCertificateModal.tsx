@@ -382,6 +382,8 @@ export default function StudentCertificateModal({ student, onClose }: StudentCer
     const fontsToLoad = [
       { name: "Poppins", url: "https://fonts.gstatic.com/s/poppins/v21/pxiDypQkot1TnFhsFMOfGShVF9eO.woff2", weight: "400" },
       { name: "Poppins", url: "https://fonts.gstatic.com/s/poppins/v21/pxiByp8kv8JHgFVrLCz7Z1xlFd2JQEk.woff2", weight: "700" },
+      { name: "Poppins", url: "https://fonts.gstatic.com/s/poppins/v21/pxiGyp8kv8JHgFVrLPTed3FBGPaTSQ.woff2", weight: "300" },
+      { name: "Poppins", url: "https://fonts.gstatic.com/s/poppins/v21/pxiByp8kv8JHgFVrLFj_Z1xlFd2JQEk.woff2", weight: "200" },
     ];
     await Promise.allSettled(
       fontsToLoad.map(async ({ name, url, weight }) => {
@@ -416,23 +418,23 @@ export default function StudentCertificateModal({ student, onClose }: StudentCer
 
     // ── Corner ornaments ─────────────────────────────────
     const drawCorner = (cx: number, cy: number, rx: number, ry: number) => {
-      const size = 200;
+      const size = 130;
       ctx.save();
       ctx.translate(cx, cy);
       ctx.scale(rx, ry);
-      ctx.strokeStyle = "#1e40af";
-      ctx.lineWidth = 14 / Math.abs(rx);
+      ctx.strokeStyle = "#93c5fd";
+      ctx.lineWidth = 10 / Math.abs(rx);
       ctx.beginPath();
       ctx.moveTo(0, size);
       ctx.lineTo(0, 0);
       ctx.lineTo(size, 0);
       ctx.stroke();
-      ctx.strokeStyle = "#60a5fa";
-      ctx.lineWidth = 6 / Math.abs(rx);
+      ctx.strokeStyle = "#bfdbfe";
+      ctx.lineWidth = 5 / Math.abs(rx);
       ctx.beginPath();
-      ctx.moveTo(40, size - 30);
-      ctx.lineTo(40, 40);
-      ctx.lineTo(size - 30, 40);
+      ctx.moveTo(30, size - 20);
+      ctx.lineTo(30, 30);
+      ctx.lineTo(size - 20, 30);
       ctx.stroke();
       ctx.restore();
     };
@@ -442,26 +444,11 @@ export default function StudentCertificateModal({ student, onClose }: StudentCer
     drawCorner(IM, H - IM, 1, -1);
     drawCorner(W - IM, H - IM, -1, -1);
 
-    // ── Left Sidebar: Vertical Yellow Bar + QR Code ──────
-    const barX = IM + 150; // Increase left margin from IM + 70 to IM + 150
-    const barWidth = 360; 
-    const barY = IM + 240; // Centered vertically (240px gap from top/bottom inner borders)
+    // ── Left Sidebar: QR Code ──────
+    const barX = IM + 150;
+    const barWidth = 360;
+    const barY = IM + 240;
     const barHeight = 1400;
-
-    // Draw yellow vertical bar
-    ctx.fillStyle = "#0ea5e9"; // Sky blue brand color
-    ctx.fillRect(barX, barY, barWidth, barHeight);
-
-    // Draw rotated "CERTIFICATE" text inside the bar
-    ctx.save();
-    ctx.translate(barX + barWidth / 2, barY + barHeight / 2);
-    ctx.rotate(-Math.PI / 2); // Rotate -90 degrees
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 150px 'Poppins', sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText("CERTIFICATE", 0, 0);
-    ctx.restore();
 
     // Draw QR Code below the vertical bar
     const qrSize = 360; // Match barWidth
@@ -515,14 +502,41 @@ export default function StudentCertificateModal({ student, onClose }: StudentCer
     ctx.textAlign = "left";
 
     // ── Certificate Title Layout Baseline ────────────────
-    const titleY = IM + bannerH + 20; // Shifted up to close the gap after title removal
+    const titleY = IM + bannerH + 300;
+
+    // ── "CERTIFICATE OF COMPLETION" centered title ────────
+    const certTitleX = W / 2;
+    ctx.textAlign = "center";
+    ctx.font = "bold 90px 'Poppins', sans-serif";
+
+    // Measure text width for background
+    const certTitleTextW = ctx.measureText("CERTIFICATE OF COMPLETION").width;
+    const certTitlePadX = 60;
+    const certTitlePadY = 30;
+    const certTitleBgH = 90 + certTitlePadY * 2;
+    const certTitleBgX = certTitleX - certTitleTextW / 2 - certTitlePadX;
+    const certTitleBgY = titleY;
+    const certTitleBgW = certTitleTextW + certTitlePadX * 2;
+
+    // Draw sky blue background
+    ctx.fillStyle = "#0ea5e9";
+    ctx.fillRect(certTitleBgX, certTitleBgY, certTitleBgW, certTitleBgH);
+
+    // Draw white text vertically centered in background
+    ctx.fillStyle = "#ffffff";
+    ctx.textBaseline = "middle";
+    ctx.fillText("CERTIFICATE OF COMPLETION", certTitleX, certTitleBgY + certTitleBgH / 2);
+    ctx.textBaseline = "alphabetic"; // reset
+
+
+    ctx.textAlign = "center";
 
 
     // ── "This is to certify that" ────────────────────────
-    const subtitleY = titleY + 140;
-    ctx.font = "62px 'Poppins', sans-serif";
+    const subtitleY = certTitleBgY + certTitleBgH + 120; // safely below background
+    ctx.font = "250 62px 'Poppins', sans-serif";
     ctx.fillStyle = "#000000";
-    ctx.fillText("This is to certify that", CONTENT_X, subtitleY);
+    ctx.fillText("This is to certify that", W / 2, subtitleY);
 
     // ── Student Name ─────────────────────────────────────
     const nameY = subtitleY + 200;
@@ -541,15 +555,15 @@ export default function StudentCertificateModal({ student, onClose }: StudentCer
     ) {
       namePrefix = "";
     }
-    ctx.fillText(namePrefix + studentName.toUpperCase(), CONTENT_X, nameY);
+    ctx.fillText(namePrefix + studentName.toUpperCase(), W / 2, nameY);
 
 
 
     // ── "has successfully completed the course" ──────────
     const completedY = nameY + 140;
-    ctx.font = "58px 'Poppins', sans-serif";
+    ctx.font = "250 58px 'Poppins', sans-serif";
     ctx.fillStyle = "#000000";
-    ctx.fillText("has successfully completed the course", CONTENT_X, completedY);
+    ctx.fillText("has successfully completed the course", W / 2, completedY);
 
     // ── Course Name (Plain Text without Border) ──────────
     const courseY = completedY + 175;
@@ -557,10 +571,16 @@ export default function StudentCertificateModal({ student, onClose }: StudentCer
     const fullCourseDisplay = shortCourse !== courseName ? `${courseName}  (${shortCourse})` : courseName;
     ctx.font = "bold 90px 'Poppins', sans-serif";
     ctx.fillStyle = "#000000";
-    ctx.fillText(fullCourseDisplay, CONTENT_X, courseY);
+    ctx.fillText(fullCourseDisplay, W / 2, courseY);
+
+    // ── "from Vision IT Computer Institute..." ───────────
+    const fromY = courseY + 120;
+    ctx.font = "250 58px 'Poppins', sans-serif";
+    ctx.fillStyle = "#000000";
+    ctx.fillText("from Vision IT Computer Institute with satisfactory performance.", W / 2, fromY);
 
     // ── Signatures (Instructor on Left, Director on Right) ─
-    const sigBaseY = qrY; // Aligned with QR code vertical position
+    const sigBaseY = fromY + 200; // Positioned just below "from..." line
     const sigH = 150;
     const sigW = 440;
     const sigLineW = 600;
@@ -631,7 +651,7 @@ export default function StudentCertificateModal({ student, onClose }: StudentCer
     ctx.fillText(`Date of Issue: ${issueDate}`, W - IM - 120, metaY);
 
     // Draw the gold scalloped medal badge with ribbons in the top right corner
-    drawGoldBadge(ctx, W - IM - 250, IM + 250, 140);
+    drawGoldBadge(ctx, W - IM - 380, IM + 250, 140);
   };
 
 

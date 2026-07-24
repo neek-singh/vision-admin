@@ -50,7 +50,6 @@ const navGroups = [
       { href: "/admin/students/add", label: "Add Student", icon: UserPlus },
       { href: "/admin/courses", label: "Manage Courses", icon: BookOpen },
       { href: "/admin/lms/content", label: "Course Curriculum", icon: FileText },
-      { href: "/admin/lms/batch-content", label: "Batch Content", icon: LayoutDashboard },
       { href: "/admin/lms/tests", label: "Manage Tests", icon: ClipboardList },
       { href: "/admin/lms/materials", label: "Notes & Materials", icon: FileText },
       { href: "/admin/lms/assignments", label: "Assignments", icon: PenTool },

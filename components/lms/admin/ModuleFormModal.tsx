@@ -16,6 +16,7 @@ interface ModuleFormModalProps {
   isEditing?: boolean;
   moduleId?: string;
   initialData?: any;
+  selectedBatchId?: string;
 }
 
 export default function ModuleFormModal({ 
@@ -28,11 +29,18 @@ export default function ModuleFormModal({
   currentModulesCount,
   isEditing = false,
   moduleId,
-  initialData
+  initialData,
+  selectedBatchId
 }: ModuleFormModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [title, setTitle] = useState(initialData?.title || "");
-  const [batches, setBatches] = useState<string[]>(initialData?.batches || (mode === "batch" ? [availableBatches[0]?.id].filter(Boolean) : []));
+  const [isGlobal, setIsGlobal] = useState(
+    initialData ? (!initialData.batches || initialData.batches.length === 0) : (mode === "global")
+  );
+  const [batches, setBatches] = useState<string[]>(
+    initialData?.batches || 
+    (mode === "batch" && selectedBatchId ? [selectedBatchId] : [])
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,7 +53,7 @@ export default function ModuleFormModal({
         title,
         subtitle: null,
         batch: mode === "batch" ? batchName : null,
-        batches: batches,
+        batches: isGlobal ? [] : batches,
         order_index: isEditing ? initialData?.order_index : (currentModulesCount + 1)
       };
 
@@ -94,14 +102,32 @@ export default function ModuleFormModal({
               />
             </div>
 
-            <div className="space-y-2">
-              <MultiSelect 
-                label="Assign to Batches"
-                options={availableBatches.map(b => ({ value: b.id, label: b.batch_display }))}
-                selected={batches}
-                onChange={setBatches}
+            <div className="flex items-center gap-2 py-2">
+              <input 
+                type="checkbox" 
+                id="is_global_module"
+                checked={isGlobal}
+                onChange={(e) => {
+                  setIsGlobal(e.target.checked);
+                  if (e.target.checked) setBatches([]);
+                }}
+                className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
               />
+              <label htmlFor="is_global_module" className="text-xs font-semibold text-slate-700 cursor-pointer">
+                Global Module (Visible to all batches)
+              </label>
             </div>
+
+            {!isGlobal && (
+              <div className="space-y-2">
+                <MultiSelect 
+                  label="Assign to Batches"
+                  options={availableBatches.map(b => ({ value: b.id, label: b.batch_display }))}
+                  selected={batches}
+                  onChange={setBatches}
+                />
+              </div>
+            )}
             <div className="pt-4">
               <button 
                 disabled={isSubmitting}

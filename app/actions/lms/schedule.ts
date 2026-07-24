@@ -72,15 +72,18 @@ export async function getCurriculumTopics(courseId: string) {
       title,
       subtitle,
       order_index,
+      batches,
       lms_chapters(
         id,
         title,
         order_index,
+        batches,
         lessons(
           id,
           title,
           lesson_type,
-          order_index
+          order_index,
+          batches
         )
       ),
       lessons(
@@ -88,7 +91,8 @@ export async function getCurriculumTopics(courseId: string) {
         title,
         lesson_type,
         chapter_id,
-        order_index
+        order_index,
+        batches
       )
     `)
     .eq("course_id", courseId)
@@ -122,13 +126,13 @@ export async function getCurriculumTopics(courseId: string) {
   // 2. Fetch tests for this course
   const { data: tests } = await supabase
     .from("tests")
-    .select("id, title")
+    .select("id, title, batches")
     .eq("course_id", courseId);
 
   // 3. Fetch materials for this course
   const { data: materials } = await supabase
     .from("materials")
-    .select("id, title")
+    .select("id, title, batches")
     .eq("course_id", courseId);
 
   return {

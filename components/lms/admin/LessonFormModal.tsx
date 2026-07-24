@@ -15,6 +15,8 @@ interface LessonFormModalProps {
   onClose: () => void;
   onSuccess: () => void;
   currentLessonsCount: number;
+  selectedBatchId?: string;
+  mode?: "global" | "batch";
 }
 
 interface TheoryBlock {
@@ -42,9 +44,14 @@ export default function LessonFormModal({
   availableBatches, 
   onClose, 
   onSuccess,
-  currentLessonsCount
+  currentLessonsCount,
+  selectedBatchId,
+  mode
 }: LessonFormModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGlobal, setIsGlobal] = useState(
+    initialData ? (!initialData.batches || initialData.batches.length === 0) : (mode === "global")
+  );
   const [lesson, setLesson] = useState({
     title: initialData?.title || "",
     type: initialData?.lesson_type || initialData?.type || "video",
@@ -54,7 +61,7 @@ export default function LessonFormModal({
     is_free: initialData?.is_free || false,
     is_locked: initialData?.is_locked || false,
     order_index: initialData?.order_index || 0,
-    batches: initialData?.batches || []
+    batches: initialData?.batches || (mode === "batch" && selectedBatchId ? [selectedBatchId] : [])
   });
 
   const isTypePreSelected = !!(initialData?.lesson_type || initialData?.type);
@@ -1214,7 +1221,7 @@ export default function LessonFormModal({
         pdf_url: (lesson.type === 'assignment' || lesson.type === 'video') ? lesson.pdf_url : null,
         duration: null,
         is_free: lesson.is_free,
-        batches: lesson.batches,
+        batches: isGlobal ? [] : lesson.batches,
         course_id: courseId,
         lesson_type: lesson.type,
         order_index: isEditing ? lesson.order_index : (currentLessonsCount + 1)
@@ -1566,16 +1573,32 @@ export default function LessonFormModal({
                 </div>
               )}
 
-              {!isTypePreSelected && (
-                <div className="md:col-span-2 space-y-2">
+              <div className="md:col-span-2 space-y-2">
+                <div className="flex items-center gap-2 py-1">
+                  <input 
+                    type="checkbox" 
+                    id="is_global_lesson"
+                    checked={isGlobal}
+                    onChange={(e) => {
+                      setIsGlobal(e.target.checked);
+                      if (e.target.checked) setLesson(prev => ({ ...prev, batches: [] }));
+                    }}
+                    className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-blue-600 focus:ring-blue-500 focus:ring-offset-slate-900 cursor-pointer"
+                  />
+                  <label htmlFor="is_global_lesson" className="text-xs font-semibold text-slate-400 cursor-pointer">
+                    Global Lesson (Visible to all batches)
+                  </label>
+                </div>
+
+                {!isGlobal && (
                   <MultiSelect 
                     label="Visible to Batches"
                     options={availableBatches.map(b => ({ value: b.id, label: b.batch_display }))}
                     selected={lesson.batches}
                     onChange={(s) => setLesson({...lesson, batches: s})}
                   />
-                </div>
-              )}
+                )}
+              </div>
             </div>
 
             <div className="pt-6 flex gap-4">

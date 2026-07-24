@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { X, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import MultiSelect from "@/components/ui/MultiSelect";
 
 interface ChapterFormModalProps {
   courseId: string;
@@ -13,6 +14,9 @@ interface ChapterFormModalProps {
   isEditing?: boolean;
   chapterId?: string;
   initialData?: any;
+  mode: "global" | "batch";
+  selectedBatchId?: string;
+  availableBatches: any[];
 }
 
 export default function ChapterFormModal({ 
@@ -23,10 +27,20 @@ export default function ChapterFormModal({
   currentChaptersCount,
   isEditing = false,
   chapterId,
-  initialData
+  initialData,
+  mode,
+  selectedBatchId,
+  availableBatches = []
 }: ChapterFormModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [title, setTitle] = useState(initialData?.title || "");
+  const [isGlobal, setIsGlobal] = useState(
+    initialData ? (!initialData.batches || initialData.batches.length === 0) : (mode === "global")
+  );
+  const [batches, setBatches] = useState<string[]>(
+    initialData?.batches || 
+    (mode === "batch" && selectedBatchId ? [selectedBatchId] : [])
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,6 +52,7 @@ export default function ChapterFormModal({
         module_id: moduleId,
         course_id: courseId,
         title,
+        batches: isGlobal ? [] : batches,
         order_index: isEditing ? initialData?.order_index : (currentChaptersCount + 1)
       };
 
@@ -85,6 +100,33 @@ export default function ChapterFormModal({
                 className="w-full px-0 py-3 bg-transparent border-b-2 border-slate-100 focus:border-blue-600 outline-none transition-all font-black text-black text-lg placeholder:text-slate-300" 
               />
             </div>
+
+            <div className="flex items-center gap-2 py-2">
+              <input 
+                type="checkbox" 
+                id="is_global_chapter"
+                checked={isGlobal}
+                onChange={(e) => {
+                  setIsGlobal(e.target.checked);
+                  if (e.target.checked) setBatches([]);
+                }}
+                className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+              />
+              <label htmlFor="is_global_chapter" className="text-xs font-semibold text-slate-700 cursor-pointer">
+                Global Chapter (Visible to all batches)
+              </label>
+            </div>
+
+            {!isGlobal && (
+              <div className="space-y-2">
+                <MultiSelect 
+                  label="Assign to Batches"
+                  options={availableBatches.map(b => ({ value: b.id, label: b.batch_display }))}
+                  selected={batches}
+                  onChange={setBatches}
+                />
+              </div>
+            )}
 
             <div className="pt-4">
               <button 

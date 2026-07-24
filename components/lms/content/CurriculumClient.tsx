@@ -29,10 +29,10 @@ import {
   EyeOff,
   Lock,
   Unlock,
-  HelpCircle
+  HelpCircle,
+  Trash2
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import DeleteButton from "@/components/ui/DeleteButton";
 import Badge from "@/components/ui/Badge";
 import dynamic from "next/dynamic";
 
@@ -68,6 +68,7 @@ export default function CourseContentManagement({
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [previewLesson, setPreviewLesson] = useState<any>(null);
   const [showRoadmapMobile, setShowRoadmapMobile] = useState(false);
+  const [currentMode, setCurrentMode] = useState<"global" | "batch">(mode);
 
   // Advanced Search & Filter States
   const [searchQuery, setSearchQuery] = useState("");
@@ -76,9 +77,73 @@ export default function CourseContentManagement({
   // Safety guardrail for reordering
   const reorderEnabled = !searchQuery.trim() && contentTypeFilter === 'all';
 
+  // Modules filtered by batch
+  const batchModules = useMemo(() => {
+    return modules.map(mod => {
+      // Filter chapters first
+      const filteredChapters = (mod.lms_chapters || []).map((ch: any) => {
+        if (currentMode === "batch" && selectedBatchId) {
+          const isAssignedChapter = ch.batches?.includes(selectedBatchId);
+          const isGlobalChapter = !ch.batches || ch.batches.length === 0;
+          if (!isAssignedChapter && !isGlobalChapter) return null;
+        } else if (currentMode === "global") {
+          const isGlobalChapter = !ch.batches || ch.batches.length === 0;
+          if (!isGlobalChapter) return null;
+        }
+
+        const totalLessonsInDb = ch.lessons?.length || 0;
+        const filteredLessons = (ch.lessons || []).filter((l: any) => {
+          if (currentMode === "batch" && selectedBatchId) {
+            const isAssigned = l.batches?.includes(selectedBatchId);
+            const isGlobal = !l.batches || l.batches.length === 0;
+            return isAssigned || isGlobal;
+          } else if (currentMode === "global") {
+            return !l.batches || l.batches.length === 0;
+          }
+          return true;
+        });
+
+        // Hide chapter if it has lessons in DB but none are visible
+        if (totalLessonsInDb > 0 && filteredLessons.length === 0) {
+          return null;
+        }
+
+        return {
+          ...ch,
+          lessons: filteredLessons
+        };
+      }).filter(Boolean);
+
+      // Filter direct lessons
+      const filteredDirectLessons = (mod.lessons || []).filter((l: any) => {
+        if (currentMode === "batch" && selectedBatchId) {
+          const isAssigned = l.batches?.includes(selectedBatchId);
+          const isGlobal = !l.batches || l.batches.length === 0;
+          return isAssigned || isGlobal;
+        } else if (currentMode === "global") {
+          return !l.batches || l.batches.length === 0;
+        }
+        return true;
+      });
+
+      const moduleMatchesBatch = currentMode === "batch"
+        ? (!selectedBatchId || !mod.batches || mod.batches.length === 0 || mod.batches.includes(selectedBatchId))
+        : (!mod.batches || mod.batches.length === 0);
+
+      if (moduleMatchesBatch) {
+        return {
+          ...mod,
+          lms_chapters: filteredChapters,
+          lessons: filteredDirectLessons
+        };
+      }
+      return null;
+    }).filter(Boolean);
+  }, [modules, currentMode, selectedBatchId]);
+
   // Memoized curriculum statistics
   const stats = useMemo(() => {
-    let totalModules = modules.length;
+    let totalModules = batchModules.length;
     let totalChapters = 0;
     let totalLessons = 0;
     let totalClasses = 0;
@@ -90,7 +155,7 @@ export default function CourseContentManagement({
     let freeCount = 0;
     let lockedCount = 0;
 
-    modules.forEach(m => {
+    batchModules.forEach(m => {
       totalChapters += m.lms_chapters?.length || 0;
 
       const directLessons = m.lessons || [];
@@ -148,13 +213,13 @@ export default function CourseContentManagement({
       freeCount,
       lockedCount
     };
-  }, [modules]);
+  }, [batchModules]);
 
   // Memoized dynamic curriculum filtering
   const filteredModules = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
 
-    return modules.map(mod => {
+    return batchModules.map(mod => {
       // Filter chapters first
       const filteredChapters = (mod.lms_chapters || []).map((ch: any) => {
         const filteredLessons = (ch.lessons || []).filter((l: any) => {
@@ -212,7 +277,7 @@ export default function CourseContentManagement({
       }
       return null;
     }).filter(Boolean);
-  }, [modules, searchQuery, contentTypeFilter]);
+  }, [batchModules, searchQuery, contentTypeFilter]);
 
   // Helper functions to handle dynamic search-auto-expanding
   const isModuleExpanded = (moduleId: string) => {
@@ -251,10 +316,66 @@ export default function CourseContentManagement({
   }>({ show: false, moduleId: "", isEditing: false, currentLessonsCount: 0 });
   const [copyToCourseModal, setCopyToCourseModal] = useState<{ show: boolean, module: any } | null>(null);
   const [targetCourseId, setTargetCourseId] = useState<string>("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleDeleteItem = async (id: string, table: "lms_modules" | "lms_chapters" | "lessons", itemTitle: string, itemData: any) => {
+    const confirmDelete = confirm(`Are you sure you want to delete "${itemTitle}"?`);
+    if (!confirmDelete) return;
+
+    setDeletingId(id);
+    try {
+      if (currentMode === "global") {
+        const { error } = await supabase.from(table).delete().eq("id", id);
+        if (error) throw error;
+      } else if (currentMode === "batch" && selectedBatchId) {
+        const batchesList = itemData.batches || [];
+        if (batchesList.length === 1 && batchesList[0] === selectedBatchId) {
+          const { error } = await supabase.from(table).delete().eq("id", id);
+          if (error) throw error;
+        } else if (batchesList.length > 1) {
+          const newBatches = batchesList.filter((bId: string) => bId !== selectedBatchId);
+          const { error } = await supabase.from(table).update({ batches: newBatches }).eq("id", id);
+          if (error) throw error;
+        } else {
+          // If global: exclude from this batch by explicitly assigning to all other batches of this course
+          const otherBatches = availableBatches
+            .filter((b: any) => b.course_id === currentCourseId && b.id !== selectedBatchId)
+            .map((b: any) => b.id);
+          
+          const { error } = await supabase.from(table).update({ batches: otherBatches }).eq("id", id);
+          if (error) throw error;
+        }
+      }
+      handleRefresh();
+    } catch (err: any) {
+      console.error("Delete failed:", err);
+      alert(err.message || "Delete failed");
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const selectedBatchObj = useMemo(() => availableBatches.find(b => b.id === selectedBatchId), [availableBatches, selectedBatchId]);
-  const currentCourseId = mode === "batch" ? (selectedBatchObj?.course_id || "") : selectedCourseId;
-  const currentBatchName = mode === "batch" ? (selectedBatchObj?.type || null) : null;
+  const currentCourseId = currentMode === "batch" ? (selectedBatchObj?.course_id || "") : selectedCourseId;
+  const currentBatchName = currentMode === "batch" ? (selectedBatchObj?.type || null) : null;
+
+  const courseBatches = useMemo(() => {
+    return availableBatches.filter(b => b.course_id === selectedCourseId);
+  }, [availableBatches, selectedCourseId]);
+
+  // Sync mode & batch selection when course changes
+  useEffect(() => {
+    if (currentMode === "batch") {
+      const filtered = availableBatches.filter(b => b.course_id === selectedCourseId);
+      if (filtered.length > 0) {
+        if (!filtered.some(b => b.id === selectedBatchId)) {
+          setSelectedBatchId(filtered[0].id);
+        }
+      } else {
+        setCurrentMode("global");
+      }
+    }
+  }, [selectedCourseId, availableBatches, currentMode, selectedBatchId]);
 
   useEffect(() => {
     if (currentCourseId) {
@@ -263,7 +384,7 @@ export default function CourseContentManagement({
       setModules([]);
       setLoading(false);
     }
-  }, [currentCourseId, currentBatchName]);
+  }, [currentCourseId, currentBatchName, currentMode]);
 
   async function fetchModulesAndLessons(courseId: string, batchName: string | null) {
     setLoading(true);
@@ -283,7 +404,7 @@ export default function CourseContentManagement({
       `)
       .eq("course_id", courseId);
 
-    if (mode === "global") {
+    if (currentMode === "global") {
       query = query.is("batch", null);
     }
 
@@ -394,62 +515,97 @@ export default function CourseContentManagement({
             course_id: currentCourseId,
             title: m.title
           }));
-          await supabase.from('lms_modules').upsert(updates);
+          const { error } = await supabase.from('lms_modules').upsert(updates);
+          if (error) throw error;
         } else if (draggedItem.type === 'chapter') {
-          const moduleIndex = modules.findIndex(m => m.id === draggedItem.parentId);
-          if (moduleIndex !== -1) {
-            const chapters = modules[moduleIndex].lms_chapters || [];
-            const updates = chapters.map((c: any, idx: number) => ({
-              id: c.id,
-              order_index: idx + 1,
-              module_id: draggedItem.parentId,
-              course_id: currentCourseId,
-              title: c.title
-            }));
-            await supabase.from('lms_chapters').upsert(updates);
-          }
-        } else {
-          // Lesson movement
-          // Find if it's in a chapter or direct module
-          let lessonUpdates: any[] = [];
-          let table = 'lessons';
-
-          const moduleWithDirectLesson = modules.find(m => m.id === draggedItem.parentId);
-          if (moduleWithDirectLesson) {
-            const lessons = moduleWithDirectLesson.lessons?.filter((l: any) => !l.chapter_id) || [];
-            lessonUpdates = lessons.map((l: any, idx: number) => ({
-              id: l.id,
-              order_index: idx + 1,
-              module_id: draggedItem.parentId,
-              chapter_id: null,
-              course_id: currentCourseId,
-              title: l.title
-            }));
-          } else {
-            // Check in chapters
-            for (const mod of modules) {
-              const chapter = mod.lms_chapters?.find((c: any) => c.id === draggedItem.parentId);
-              if (chapter) {
-                const lessons = chapter.lessons || [];
-                lessonUpdates = lessons.map((l: any, idx: number) => ({
-                  id: l.id,
-                  order_index: idx + 1,
-                  module_id: mod.id,
-                  chapter_id: chapter.id,
-                  course_id: currentCourseId,
-                  title: l.title
-                }));
-                break;
-              }
+          // Resolve current parent module ID from modules list
+          let foundModuleId = draggedItem.parentId;
+          for (const m of modules) {
+            if (m.lms_chapters?.some((c: any) => c.id === draggedItem.id)) {
+              foundModuleId = m.id;
+              break;
             }
           }
 
-          if (lessonUpdates.length > 0) {
-            await supabase.from('lessons').upsert(lessonUpdates);
+          if (foundModuleId) {
+            const moduleObj = modules.find(m => m.id === foundModuleId);
+            if (moduleObj) {
+              const chapters = moduleObj.lms_chapters || [];
+              const updates = chapters.map((c: any, idx: number) => ({
+                id: c.id,
+                order_index: idx + 1,
+                module_id: foundModuleId,
+                course_id: currentCourseId,
+                title: c.title
+              }));
+              const { error } = await supabase.from('lms_chapters').upsert(updates);
+              if (error) throw error;
+            }
+          }
+        } else {
+          // Lesson movement: locate where the lesson currently is
+          let foundParentId: string | null = null;
+          let foundModuleId: string | null = null;
+          let isDirect = false;
+
+          for (const m of modules) {
+            if (m.lessons?.some((l: any) => l.id === draggedItem.id)) {
+              foundParentId = m.id;
+              foundModuleId = m.id;
+              isDirect = true;
+              break;
+            }
+            for (const c of (m.lms_chapters || [])) {
+              if (c.lessons?.some((l: any) => l.id === draggedItem.id)) {
+                foundParentId = c.id;
+                foundModuleId = m.id;
+                isDirect = false;
+                break;
+              }
+            }
+            if (foundParentId) break;
+          }
+
+          if (foundParentId && foundModuleId) {
+            let lessonUpdates: any[] = [];
+            if (isDirect) {
+              const moduleWithDirectLesson = modules.find(m => m.id === foundParentId);
+              if (moduleWithDirectLesson) {
+                const lessons = moduleWithDirectLesson.lessons?.filter((l: any) => !l.chapter_id) || [];
+                lessonUpdates = lessons.map((l: any, idx: number) => ({
+                  id: l.id,
+                  order_index: idx + 1,
+                  module_id: foundParentId,
+                  chapter_id: null,
+                  course_id: currentCourseId,
+                  title: l.title
+                }));
+              }
+            } else {
+              const chapterObj = modules.find(m => m.id === foundModuleId)?.lms_chapters?.find((c: any) => c.id === foundParentId);
+              if (chapterObj) {
+                const lessons = chapterObj.lessons || [];
+                lessonUpdates = lessons.map((l: any, idx: number) => ({
+                  id: l.id,
+                  order_index: idx + 1,
+                  module_id: foundModuleId,
+                  chapter_id: foundParentId,
+                  course_id: currentCourseId,
+                  title: l.title
+                }));
+              }
+            }
+
+            if (lessonUpdates.length > 0) {
+              const { error } = await supabase.from('lessons').upsert(lessonUpdates);
+              if (error) throw error;
+            }
           }
         }
-      } catch (err) {
+        handleRefresh();
+      } catch (err: any) {
         console.error("Error syncing drag order:", err);
+        alert(`Failed to save new order: ${err.message || err}`);
       }
     }
     setDraggedItem(null);
@@ -765,14 +921,15 @@ export default function CourseContentManagement({
         <ModuleFormModal
           courseId={currentCourseId}
           batchName={currentBatchName}
-          mode={mode}
-          availableBatches={availableBatches}
+          mode={currentMode}
+          availableBatches={courseBatches}
           isEditing={moduleModal.isEditing}
           moduleId={moduleModal.moduleId}
           initialData={moduleModal.initialData}
           onClose={() => setModuleModal({ show: false, isEditing: false })}
           onSuccess={handleRefresh}
           currentModulesCount={modules.length}
+          selectedBatchId={selectedBatchId}
         />
       )}
 
@@ -784,10 +941,12 @@ export default function CourseContentManagement({
           isEditing={lessonModal.isEditing}
           lessonId={lessonModal.lessonId}
           initialData={lessonModal.initialData}
-          availableBatches={availableBatches}
+          availableBatches={courseBatches}
           onClose={() => setLessonModal({ show: false, moduleId: "", isEditing: false, currentLessonsCount: 0 })}
           onSuccess={handleRefresh}
           currentLessonsCount={lessonModal.currentLessonsCount || 0}
+          selectedBatchId={selectedBatchId}
+          mode={currentMode}
         />
       )}
 
@@ -801,6 +960,9 @@ export default function CourseContentManagement({
           onClose={() => setChapterModal({ show: false, isEditing: false, moduleId: "" })}
           onSuccess={handleRefresh}
           currentChaptersCount={chapterModal.currentChaptersCount || 0}
+          selectedBatchId={selectedBatchId}
+          mode={currentMode}
+          availableBatches={availableBatches}
         />
       )}
 
@@ -871,37 +1033,89 @@ export default function CourseContentManagement({
             <Settings size={14} className="animate-spin-slow" />
             LMS Content Engine
           </div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">{mode === "global" ? "Course Curriculum" : "Batch Content Manager"}</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">{mode === "global" ? "Design global course templates for all students." : "Manage specific content overrides for individual batches."}</p>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">{currentMode === "global" ? "Course Curriculum" : "Batch Content Manager"}</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">{currentMode === "global" ? "Design global course templates for all students." : "Manage specific content overrides for individual batches."}</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-4 bg-white dark:bg-slate-900 p-2.5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
-          {mode === "global" ? (
-            <div className="px-3 py-1.5 flex items-center gap-3">
-              <span className="text-xs font-semibold text-slate-400 dark:text-slate-550 uppercase tracking-wider">Select Course:</span>
-              <select
-                value={selectedCourseId}
-                onChange={(e) => setSelectedCourseId(e.target.value)}
-                className="bg-transparent text-sm font-bold text-slate-850 dark:text-slate-200 outline-none cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors border-none py-1 focus:ring-0"
-              >
-                {initialCourses.map(course => (
-                  <option key={course.id} value={course.id} className="dark:bg-slate-900 dark:text-slate-200">{course.title}</option>
-                ))}
-              </select>
-            </div>
-          ) : (
-            <div className="px-3 py-1.5 flex items-center gap-3">
-              <Filter size={14} className="text-slate-400 dark:text-slate-500" />
+          {/* Select Course Dropdown */}
+          <div className="px-3 py-1.5 flex items-center gap-3">
+            <span className="text-xs font-semibold text-slate-400 dark:text-slate-550 uppercase tracking-wider">Select Course:</span>
+            <select
+              value={selectedCourseId}
+              onChange={(e) => setSelectedCourseId(e.target.value)}
+              className="bg-transparent text-sm font-bold text-slate-850 dark:text-slate-200 outline-none cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors border-none py-1 focus:ring-0"
+            >
+              {initialCourses.map(course => (
+                <option key={course.id} value={course.id} className="dark:bg-slate-900 dark:text-slate-200">{course.title}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Mode Selector Tab/Toggle */}
+          <div className="flex items-center bg-slate-50 dark:bg-slate-800 p-1 rounded-xl border border-slate-100 dark:border-slate-850">
+            <button
+              onClick={() => setCurrentMode("global")}
+              className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                currentMode === "global"
+                  ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm"
+                  : "text-slate-500 hover:text-slate-700 dark:text-slate-450 dark:hover:text-slate-350"
+              }`}
+            >
+              Global Template
+            </button>
+            <button
+              disabled={courseBatches.length === 0}
+              onClick={() => {
+                setCurrentMode("batch");
+                if (courseBatches.length > 0 && !courseBatches.some(b => b.id === selectedBatchId)) {
+                  setSelectedBatchId(courseBatches[0].id);
+                }
+              }}
+              className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                courseBatches.length === 0 ? "opacity-50 cursor-not-allowed" : ""
+              } ${
+                currentMode === "batch"
+                  ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm"
+                  : "text-slate-500 hover:text-slate-700 dark:text-slate-450 dark:hover:text-slate-350"
+              }`}
+              title={courseBatches.length === 0 ? "No batches active for this course" : "View batch specific overrides"}
+            >
+              Batch Curriculum
+            </button>
+          </div>
+
+          {/* Batch Selector Dropdown (if in Batch mode) */}
+          {currentMode === "batch" && courseBatches.length > 0 && (
+            <div className="px-3 py-1.5 flex items-center gap-3 border-l border-slate-150 dark:border-slate-850">
               <span className="text-xs font-semibold text-slate-400 dark:text-slate-550 uppercase tracking-wider">Select Batch:</span>
               <select
                 value={selectedBatchId}
                 onChange={(e) => setSelectedBatchId(e.target.value)}
-                className="bg-transparent text-sm font-bold text-slate-800 dark:text-slate-200 outline-none cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors border-none py-1 focus:ring-0"
+                className="bg-transparent text-sm font-bold text-slate-850 dark:text-slate-200 outline-none cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors border-none py-1 focus:ring-0"
               >
-                {availableBatches.map(batch => (
-                  <option key={batch.id} value={batch.id} className="dark:bg-slate-900 dark:text-slate-200">{batch.batch_display}</option>
+                {courseBatches.map(batch => (
+                  <option key={batch.id} value={batch.id} className="dark:bg-slate-900 dark:text-slate-200">{batch.type}</option>
                 ))}
               </select>
+            </div>
+          )}
+
+          {/* Linked Batches Summary List (if in Global mode) */}
+          {currentMode === "global" && (
+            <div className="flex flex-wrap items-center gap-1.5 px-3 py-1 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800/60 max-h-[44px] overflow-y-auto custom-scrollbar">
+              <span className="text-[10px] font-bold text-slate-400 dark:text-slate-550 uppercase tracking-wider">Linked Batches:</span>
+              {courseBatches.length > 0 ? (
+                courseBatches.map(batch => (
+                  <span key={batch.id} className="px-2 py-0.5 text-[10px] font-bold bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-md border border-slate-100 dark:border-slate-700/50 shadow-sm" title={batch.batch_display}>
+                    {batch.type}
+                  </span>
+                ))
+              ) : (
+                <span className="text-[10px] font-medium text-amber-600 dark:text-amber-450 bg-amber-50 dark:bg-amber-950/20 px-2 py-0.5 rounded-md border border-amber-100/50 dark:border-amber-950/30">
+                  No batches active
+                </span>
+              )}
             </div>
           )}
           <div className="w-[1px] h-8 bg-slate-100 dark:bg-slate-800 hidden md:block" />
@@ -1273,14 +1487,18 @@ export default function CourseContentManagement({
                       >
                         <Copy size={16} />
                       </button>
-                      <DeleteButton
-                        id={module.id}
-                        table="lms_modules"
-                        title={module.title}
-                        onSuccess={handleRefresh}
-                        showText={false}
-                        className="p-1.5 bg-rose-50 hover:bg-rose-100/80 dark:bg-rose-950/35 dark:hover:bg-rose-950/60 text-rose-600 dark:text-rose-455 border border-rose-100/50 dark:border-rose-900/30 rounded-lg transition-all hover:scale-105 active:scale-95 cursor-pointer flex items-center justify-center shrink-0"
-                      />
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDeleteItem(module.id, "lms_modules", module.title, module); }}
+                        disabled={deletingId === module.id}
+                        className="p-1.5 bg-rose-50 hover:bg-rose-100/80 dark:bg-rose-950/35 dark:hover:bg-rose-950/60 text-rose-600 dark:text-rose-455 border border-rose-100/50 dark:border-rose-900/30 rounded-lg transition-all hover:scale-105 active:scale-95 cursor-pointer flex items-center justify-center shrink-0 disabled:opacity-50"
+                        title="Delete Module"
+                      >
+                        {deletingId === module.id ? (
+                          <Loader2 size={16} className="animate-spin text-rose-500" />
+                        ) : (
+                          <Trash2 size={16} />
+                        )}
+                      </button>
                     </div>
                   </div>
 
@@ -1437,22 +1655,38 @@ export default function CourseContentManagement({
                                     <HelpCircle size={14} />
                                   </button>
                                   <button
+                                    onClick={(e) => { e.stopPropagation(); moveItem('chapter', chapter.id, 'up', module.id); }}
+                                    className="p-1 sm:p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all rounded-lg cursor-pointer"
+                                    title="Move Chapter Up"
+                                  >
+                                    <ArrowUp size={14} />
+                                  </button>
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); moveItem('chapter', chapter.id, 'down', module.id); }}
+                                    className="p-1 sm:p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all rounded-lg cursor-pointer"
+                                    title="Move Chapter Down"
+                                  >
+                                    <ArrowDown size={14} />
+                                  </button>
+                                  <button
                                     onClick={(e) => { e.stopPropagation(); setChapterModal({ show: true, moduleId: module.id, isEditing: true, chapterId: chapter.id, initialData: chapter, currentChaptersCount: module.lms_chapters.length }); }}
                                     className="p-1 sm:p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all rounded-lg cursor-pointer"
                                     title="Edit Chapter"
                                   >
                                     <Edit2 size={14} />
                                   </button>
-                                  <div onClick={(e) => e.stopPropagation()}>
-                                    <DeleteButton
-                                      id={chapter.id}
-                                      table="lms_chapters"
-                                      title={chapter.title}
-                                      onSuccess={handleRefresh}
-                                      showText={false}
-                                      className="p-1 sm:p-1.5 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-rose-500 hover:text-rose-600 border border-transparent hover:border-rose-200 dark:hover:border-rose-900/40 rounded-lg transition-all cursor-pointer flex items-center justify-center"
-                                    />
-                                  </div>
+                                  <button
+                                    onClick={() => handleDeleteItem(chapter.id, "lms_chapters", chapter.title, chapter)}
+                                    disabled={deletingId === chapter.id}
+                                    className="p-1 sm:p-1.5 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-rose-500 hover:text-rose-600 border border-transparent hover:border-rose-200 dark:hover:border-rose-900/40 rounded-lg transition-all cursor-pointer flex items-center justify-center disabled:opacity-50"
+                                    title="Delete Chapter"
+                                  >
+                                    {deletingId === chapter.id ? (
+                                      <Loader2 size={14} className="animate-spin text-rose-500" />
+                                    ) : (
+                                      <Trash2 size={14} />
+                                    )}
+                                  </button>
                                 </div>
                               </div>
 
@@ -1606,16 +1840,22 @@ export default function CourseContentManagement({
 
                                               {/* Actions (Preview, Edit, Delete) - always visible on mobile, hover-only on desktop */}
                                               <div className="flex items-center gap-1 sm:opacity-0 sm:group-hover/lesson:opacity-100 transition-opacity">
+                                                <button onClick={(e) => { e.stopPropagation(); moveItem('lesson', lesson.id, 'up', chapter.id); }} className="w-7 h-7 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-all shadow-sm cursor-pointer" title="Move Up"><ArrowUp size={12} /></button>
+                                                <button onClick={(e) => { e.stopPropagation(); moveItem('lesson', lesson.id, 'down', chapter.id); }} className="w-7 h-7 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-all shadow-sm cursor-pointer" title="Move Down"><ArrowDown size={12} /></button>
                                                 <button onClick={() => setPreviewLesson(lesson)} className="w-7 h-7 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-555 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all shadow-sm cursor-pointer" title="Preview Class"><Eye size={12} /></button>
                                                 <button onClick={() => setLessonModal({ show: true, moduleId: module.id, chapterId: chapter.id, isEditing: true, lessonId: lesson.id, initialData: lesson })} className="w-7 h-7 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-555 hover:text-blue-600 dark:hover:text-blue-400 transition-all shadow-sm cursor-pointer" title="Edit Class"><Edit2 size={12} /></button>
-                                                <DeleteButton
-                                                  id={lesson.id}
-                                                  table="lessons"
-                                                  title={lesson.title}
-                                                  onSuccess={handleRefresh}
-                                                  showText={false}
-                                                  className="w-7 h-7 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-555 hover:text-rose-600 hover:border-rose-100 hover:bg-rose-50 dark:hover:text-rose-455 dark:hover:border-rose-900/40 dark:hover:bg-rose-950/30 transition-all shadow-sm cursor-pointer"
-                                                />
+                                                <button
+                                                  onClick={() => handleDeleteItem(lesson.id, "lessons", lesson.title, lesson)}
+                                                  disabled={deletingId === lesson.id}
+                                                  className="w-7 h-7 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-555 hover:text-rose-600 hover:border-rose-100 hover:bg-rose-50 dark:hover:text-rose-455 dark:hover:border-rose-900/40 dark:hover:bg-rose-950/30 transition-all shadow-sm cursor-pointer disabled:opacity-50"
+                                                  title="Delete Class"
+                                                >
+                                                  {deletingId === lesson.id ? (
+                                                    <Loader2 size={12} className="animate-spin text-rose-500" />
+                                                  ) : (
+                                                    <Trash2 size={12} />
+                                                  )}
+                                                </button>
                                               </div>
                                             </div>
                                           </div>
@@ -1770,16 +2010,22 @@ export default function CourseContentManagement({
 
                                     {/* Actions (Preview, Edit, Delete) - always visible on mobile, hover-only on desktop */}
                                     <div className="flex items-center gap-1 sm:opacity-0 sm:group-hover/lesson:opacity-100 transition-opacity">
+                                      <button onClick={(e) => { e.stopPropagation(); moveItem('lesson', lesson.id, 'up', module.id); }} className="w-7 h-7 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-all shadow-sm cursor-pointer" title="Move Up"><ArrowUp size={12} /></button>
+                                      <button onClick={(e) => { e.stopPropagation(); moveItem('lesson', lesson.id, 'down', module.id); }} className="w-7 h-7 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-all shadow-sm cursor-pointer" title="Move Down"><ArrowDown size={12} /></button>
                                       <button onClick={() => setPreviewLesson(lesson)} className="w-7 h-7 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-555 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all shadow-sm cursor-pointer" title="Preview Class"><Eye size={12} /></button>
                                       <button onClick={() => setLessonModal({ show: true, moduleId: module.id, isEditing: true, lessonId: lesson.id, initialData: lesson })} className="w-7 h-7 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-555 hover:text-blue-600 dark:hover:text-blue-400 transition-all shadow-sm cursor-pointer" title="Edit Class"><Edit2 size={12} /></button>
-                                      <DeleteButton
-                                        id={lesson.id}
-                                        table="lessons"
-                                        title={lesson.title}
-                                        onSuccess={handleRefresh}
-                                        showText={false}
-                                        className="w-7 h-7 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-555 hover:text-rose-600 hover:border-rose-100 hover:bg-rose-50 dark:hover:text-rose-455 dark:hover:border-rose-900/40 dark:hover:bg-rose-950/30 transition-all shadow-sm cursor-pointer"
-                                      />
+                                      <button
+                                        onClick={() => handleDeleteItem(lesson.id, "lessons", lesson.title, lesson)}
+                                        disabled={deletingId === lesson.id}
+                                        className="w-7 h-7 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-555 hover:text-rose-600 hover:border-rose-100 hover:bg-rose-50 dark:hover:text-rose-455 dark:hover:border-rose-900/40 dark:hover:bg-rose-950/30 transition-all shadow-sm cursor-pointer disabled:opacity-50"
+                                        title="Delete Class"
+                                      >
+                                        {deletingId === lesson.id ? (
+                                          <Loader2 size={12} className="animate-spin text-rose-500" />
+                                        ) : (
+                                          <Trash2 size={12} />
+                                        )}
+                                      </button>
                                     </div>
                                   </div>
                                 </div>
