@@ -22,7 +22,9 @@ import {
   KeyRound,
   Copy,
   CheckCircle2,
-  Award
+  Award,
+  Clock,
+  HelpCircle
 } from "lucide-react";
 import dynamic from "next/dynamic";
 
@@ -83,6 +85,7 @@ export default function StudentTable({
   const [bulkIdCardData, setBulkIdCardData] = useState<{ students: any[]; courseTitle: string } | null>(null);
   const [certificateStudent, setCertificateStudent] = useState<any | null>(null);
   const [availableCourses, setAvailableCourses] = useState<any[]>(passedCourses);
+  const [viewingQuizzesFor, setViewingQuizzesFor] = useState<any | null>(null);
 
   // Credentials Modal State
   const [credentialsStudent, setCredentialsStudent] = useState<any | null>(null);
@@ -644,6 +647,7 @@ export default function StudentTable({
                 <th className="px-6 py-4 font-semibold text-xs uppercase tracking-wider">Student</th>
                 <th className="px-6 py-4 font-semibold text-xs uppercase tracking-wider">Contact & ID</th>
                 <th className="px-6 py-4 font-semibold text-xs uppercase tracking-wider">Assigned Courses</th>
+                <th className="px-6 py-4 font-semibold text-xs uppercase tracking-wider">LMS Progress</th>
                 <th className="px-6 py-4 font-semibold text-xs uppercase tracking-wider">Status</th>
                 <th className="px-6 py-4 font-semibold text-right text-xs uppercase tracking-wider">Actions</th>
               </tr>
@@ -651,7 +655,7 @@ export default function StudentTable({
             <tbody>
               {filteredStudents.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-500 dark:text-slate-400 font-medium">
+                  <td colSpan={7} className="px-6 py-12 text-center text-slate-500 dark:text-slate-400 font-medium">
                     No students found.
                   </td>
                 </tr>
@@ -750,6 +754,57 @@ export default function StudentTable({
                                {student.batch ? "Exchange Batch" : "Assign Batch"}
                             </button>
                           </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col gap-2">
+                          {/* Active Time Spent */}
+                          <div className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-350">
+                            <span className="p-1 bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400 rounded-md">
+                              <Clock size={12} />
+                            </span>
+                            <span className="font-bold tabular-nums">
+                              {(() => {
+                                const totalSecs = student.lmsStats?.activeSeconds || 0;
+                                const hrs = Math.floor(totalSecs / 3600);
+                                const mins = Math.floor((totalSecs % 3600) / 60);
+                                if (hrs > 0) return `${hrs}h ${mins}m active`;
+                                return `${mins}m active`;
+                              })()}
+                            </span>
+                          </div>
+
+                          {/* Lessons Completed */}
+                          <div className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-350">
+                            <span className="p-1 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-md">
+                              <BookOpen size={12} />
+                            </span>
+                            <span className="font-bold tabular-nums">
+                              {student.lmsStats?.completedLessons || 0} lessons done
+                            </span>
+                          </div>
+
+                          {/* Quizzes Completed Button */}
+                          {student.lmsStats?.quizzes && student.lmsStats.quizzes.length > 0 ? (
+                            <button
+                              onClick={() => setViewingQuizzesFor(student)}
+                              className="w-full text-left flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-black cursor-pointer hover:underline"
+                            >
+                              <span className="p-1 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-md">
+                                <HelpCircle size={12} />
+                              </span>
+                              <span>
+                                {student.lmsStats.quizzes.length} {student.lmsStats.quizzes.length === 1 ? 'Quiz' : 'Quizzes'} results
+                              </span>
+                            </button>
+                          ) : (
+                            <div className="flex items-center gap-1.5 text-xs text-slate-400 dark:text-slate-550 font-medium">
+                              <span className="p-1 bg-slate-50 dark:bg-slate-800 text-slate-400 rounded-md">
+                                <HelpCircle size={12} />
+                              </span>
+                              <span>No quizzes done</span>
+                            </div>
+                          )}
                         </div>
                       </td>
                       <td className="px-6 py-4">
@@ -885,6 +940,43 @@ export default function StudentTable({
                           </div>
                        </div>
                     </div>
+                  </div>
+
+                  {/* Mobile LMS Progress Details */}
+                  <div className="bg-blue-50/10 dark:bg-slate-800/10 p-4 rounded-2xl border border-blue-100/20 dark:border-slate-800/30 grid grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Study Time</p>
+                      <div className="flex items-center gap-1 font-bold text-slate-750 dark:text-slate-350">
+                        <Clock size={12} className="text-sky-500" />
+                        <span>
+                          {(() => {
+                            const totalSecs = student.lmsStats?.activeSeconds || 0;
+                            const hrs = Math.floor(totalSecs / 3600);
+                            const mins = Math.floor((totalSecs % 3600) / 60);
+                            if (hrs > 0) return `${hrs}h ${mins}m`;
+                            return `${mins}m`;
+                          })()}
+                        </span>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Lessons Completed</p>
+                      <div className="flex items-center gap-1 font-bold text-slate-750 dark:text-slate-350">
+                        <BookOpen size={12} className="text-indigo-500" />
+                        <span>{student.lmsStats?.completedLessons || 0} done</span>
+                      </div>
+                    </div>
+                    {student.lmsStats?.quizzes && student.lmsStats.quizzes.length > 0 && (
+                      <div className="col-span-2 pt-2 border-t border-slate-100 dark:border-slate-800/40">
+                        <button
+                          onClick={() => setViewingQuizzesFor(student)}
+                          className="flex items-center gap-1 font-black text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                        >
+                          <HelpCircle size={12} />
+                          <span>{student.lmsStats.quizzes.length} Quiz Results</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -1139,6 +1231,80 @@ export default function StudentTable({
               {isBulkUpdating ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
               <span>Delete</span>
             </button>
+          </div>
+        </div>
+      )}
+      {/* Quiz Results Modal */}
+      {viewingQuizzesFor && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-850 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900/50">
+              <div>
+                <h3 className="text-lg font-black text-slate-900 dark:text-white leading-none">Quiz & Test Results</h3>
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 font-bold">{viewingQuizzesFor.name}</p>
+              </div>
+              <button 
+                onClick={() => setViewingQuizzesFor(null)} 
+                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all cursor-pointer text-slate-450 dark:text-slate-500"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Content list */}
+            <div className="p-6 overflow-y-auto space-y-4 custom-scrollbar flex-1">
+              {viewingQuizzesFor.lmsStats?.quizzes?.map((quiz: any, idx: number) => {
+                const percent = quiz.totalQuestions > 0 ? Math.round((quiz.score / quiz.totalQuestions) * 100) : 0;
+                const isPassed = percent >= 40;
+
+                return (
+                  <div key={idx} className="bg-slate-50 dark:bg-slate-850/50 border border-slate-100 dark:border-slate-800 p-4.5 rounded-2xl flex flex-col gap-2.5">
+                    <div className="flex justify-between items-start gap-3">
+                      <div>
+                        <h4 className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-505">Quiz Title</h4>
+                        <p className="text-sm font-black text-slate-800 dark:text-white mt-0.5">{quiz.testTitle}</p>
+                      </div>
+                      <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border ${
+                        isPassed 
+                          ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/30" 
+                          : "bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-455 border-rose-100 dark:border-rose-900/30"
+                      }`}>
+                        {isPassed ? "Passed" : "Failed"}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 items-center">
+                      <div>
+                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 block">Score Obtained</span>
+                        <span className="text-base font-black text-slate-900 dark:text-white tabular-nums">
+                          {quiz.score} <span className="text-xs font-medium text-slate-400">/ {quiz.totalQuestions} questions</span>
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 block">Percentage</span>
+                        <span className={`text-base font-black tabular-nums ${isPassed ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-450'}`}>
+                          {percent}%
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Progress Bar visual indicator */}
+                    <div className="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden p-[1px]">
+                      <div 
+                        className={`h-full rounded-full transition-all duration-500 ${isPassed ? 'bg-emerald-500' : 'bg-rose-500'}`}
+                        style={{ width: `${percent}%` }}
+                      />
+                    </div>
+
+                    <div className="flex justify-between items-center text-[10px] text-slate-400 dark:text-slate-500 font-bold mt-1">
+                      <span>Submitted</span>
+                      <span>{new Date(quiz.completedAt).toLocaleDateString('en-US', { dateStyle: 'medium' })}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}

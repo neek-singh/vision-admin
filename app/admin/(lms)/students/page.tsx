@@ -36,6 +36,75 @@ export default async function AdminStudentsPage({
     console.error("Error fetching students:", error);
   }
 
+  // Fetch completed lessons count per student
+  const { data: progressData } = await supabase
+    .from("lesson_progress")
+    .select("student_id, is_completed")
+    .eq("is_completed", true);
+
+  // Fetch active study time per student
+  const { data: activityData } = await supabase
+    .from("student_daily_activity")
+    .select("student_id, active_seconds");
+
+  // Fetch quiz/test results per student
+  const { data: quizData } = await supabase
+    .from("test_results")
+    .select(`
+      student_id,
+      score,
+      total_questions,
+      completed_at,
+      tests (
+        title
+      )
+    `);
+
+  // Map progress, activity and quizzes by student_id
+  const lessonsCompletedMap: Record<string, number> = {};
+  progressData?.forEach(row => {
+    if (row.student_id) {
+      lessonsCompletedMap[row.student_id] = (lessonsCompletedMap[row.student_id] || 0) + 1;
+    }
+  });
+
+  const activeTimeMap: Record<string, number> = {};
+  activityData?.forEach(row => {
+    if (row.student_id) {
+      activeTimeMap[row.student_id] = (activeTimeMap[row.student_id] || 0) + (row.active_seconds || 0);
+    }
+  });
+
+  const quizResultsMap: Record<string, any[]> = {};
+  quizData?.forEach(row => {
+    if (row.student_id) {
+      if (!quizResultsMap[row.student_id]) {
+        quizResultsMap[row.student_id] = [];
+      }
+      quizResultsMap[row.student_id].push({
+        testTitle: (row.tests as any)?.title || "Unnamed Quiz",
+        score: row.score,
+        totalQuestions: row.total_questions,
+        completedAt: row.completed_at
+      });
+    }
+  });
+
+  const studentsWithLMSData = (students || []).map(student => {
+    const totalSeconds = activeTimeMap[student.id] || 0;
+    const completedLessons = lessonsCompletedMap[student.id] || 0;
+    const quizzes = quizResultsMap[student.id] || [];
+
+    return {
+      ...student,
+      lmsStats: {
+        completedLessons,
+        activeSeconds: totalSeconds,
+        quizzes
+      }
+    };
+  });
+
   // Fetch batches from Supabase
   const { data: batchesData } = await supabase
     .from("batches")
@@ -71,7 +140,7 @@ export default async function AdminStudentsPage({
       </div>
 
       <StudentTable 
-        initialStudents={students || []} 
+        initialStudents={studentsWithLMSData} 
         availableBatches={batchNames} 
         availableCourses={courses}
       />
