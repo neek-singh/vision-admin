@@ -1,147 +1,275 @@
-"use client";
+import { createServerSupabaseClient } from "@/lib/supabase-server";
+import ProgressTable from "@/components/lms/progress/ProgressTable";
 
-import { useState } from "react";
-import { 
-  Users, 
-  Search, 
-  Filter, 
-  ArrowUpRight, 
-  CheckCircle2, 
-  Clock, 
-  AlertCircle,
-  MoreHorizontal
-} from "lucide-react";
+export const revalidate = 0;
 
-export default function StudentProgressTracking() {
-  const [searchTerm, setSearchTerm] = useState("");
+export default async function LMSProgressPage() {
+  const supabase = await createServerSupabaseClient();
 
-  const students = [
-    { id: "VIT2026STD001", name: "Amarjeet Kumar", course: "Basic Computer Course", progress: 85, lastActive: "10 mins ago", status: "On Track" },
-    { id: "VIT2026STD002", name: "Neha Singh", course: "Web Development", progress: 45, lastActive: "2 hours ago", status: "Slow Progress" },
-    { id: "VIT2026STD003", name: "Rahul Sharma", course: "Advanced Python", progress: 100, lastActive: "Yesterday", status: "Completed" },
-    { id: "VIT2026STD004", name: "Sonia Verma", course: "Data Science", progress: 12, lastActive: "3 days ago", status: "At Risk" },
-  ];
+  // 1. Fetch students & enrollments
+  const { data: students, error: studentsError } = await supabase
+    .from("students")
+    .select(`
+      *,
+      enrollments(
+        id,
+        batch,
+        courses(id, title, course_code)
+      )
+    `)
+    .order("name", { ascending: true });
+
+  if (studentsError) {
+    console.error("Error fetching students:", studentsError);
+  }
+
+  // 2. Fetch modules
+  const { data: modules } = await supabase
+    .from("lms_modules")
+    .select("id, course_id");
+
+  // 3. Fetch lessons
+  const { data: lessons } = await supabase
+    .from("lessons")
+    .select("id, module_id, lesson_type")
+    .eq("status", "published");
+
+  // 4. Fetch user progress
+  const { data: progressData } = await supabase
+    .from("user_progress")
+    .select("user_id, lesson_id, completed, created_at")
+    .eq("completed", true);
+
+  // 5. Fetch active study time
+  const { data: activityData } = await supabase
+    .from("student_daily_activity")
+    .select("student_id, active_seconds, updated_at");
+
+  // 6. Fetch all tests/quizzes
+  const { data: testsData } = await supabase
+    .from("tests")
+    .select("id, course_id");
+
+  // 7. Fetch quiz/test results per student with test course_id
+  const { data: quizData } = await supabase
+    .from("test_results")
+    .select(`
+      student_id,
+      score,
+      total_questions,
+      test_id,
+      tests (
+        course_id
+      )
+    `);
+
+  // Map module to course
+  const moduleToCourseMap: Record<string, string> = {};
+  modules?.forEach(m => {
+    moduleToCourseMap[m.id] = m.course_id;
+  });
+
+  // Count non-MCQ lessons and MCQ lessons (quizzes) per course
+  const courseLessonsCountMap: Record<string, number> = {};
+  const courseQuizzesCountMap: Record<string, number> = {};
+
+  lessons?.forEach(l => {
+    const courseId = moduleToCourseMap[l.module_id];
+    if (courseId) {
+      if (l.lesson_type === "mcq") {
+        courseQuizzesCountMap[courseId] = (courseQuizzesCountMap[courseId] || 0) + 1;
+      } else {
+        courseLessonsCountMap[courseId] = (courseLessonsCountMap[courseId] || 0) + 1;
+      }
+    }
+  });
+
+  // Add standalone tests to courseQuizzesCountMap
+  testsData?.forEach(t => {
+    if (t.course_id) {
+      courseQuizzesCountMap[t.course_id] = (courseQuizzesCountMap[t.course_id] || 0) + 1;
+    }
+  });
+
+  // Map lesson to course and lesson type
+  const lessonToCourseMap: Record<string, string> = {};
+  const lessonTypeMap: Record<string, string> = {};
+  lessons?.forEach(l => {
+    const courseId = moduleToCourseMap[l.module_id];
+    if (courseId) {
+      lessonToCourseMap[l.id] = courseId;
+      lessonTypeMap[l.id] = l.lesson_type || "video";
+    }
+  });
+
+  // Map completed lessons and completed quizzes per student per course
+  const completedLessonsMap: Record<string, Record<string, number>> = {};
+  const completedQuizzesMap: Record<string, Record<string, number>> = {};
+
+  progressData?.forEach(p => {
+    const studentId = p.user_id;
+    const courseId = lessonToCourseMap[p.lesson_id];
+    const type = lessonTypeMap[p.lesson_id];
+    
+    if (studentId && courseId) {
+      if (type === "mcq") {
+        if (!completedQuizzesMap[studentId]) {
+          completedQuizzesMap[studentId] = {};
+        }
+        completedQuizzesMap[studentId][courseId] = (completedQuizzesMap[studentId][courseId] || 0) + 1;
+      } else {
+        if (!completedLessonsMap[studentId]) {
+          completedLessonsMap[studentId] = {};
+        }
+        completedLessonsMap[studentId][courseId] = (completedLessonsMap[studentId][courseId] || 0) + 1;
+      }
+    }
+  });
+
+  // Track completed unique tests from test_results
+  const completedTestsSet: Record<string, Record<string, Set<string>>> = {};
+  quizData?.forEach(q => {
+    const studentId = q.student_id;
+    const courseId = (q.tests as any)?.course_id;
+    const testId = q.test_id;
+    if (studentId && courseId && testId) {
+      if (!completedTestsSet[studentId]) {
+        completedTestsSet[studentId] = {};
+      }
+      if (!completedTestsSet[studentId][courseId]) {
+        completedTestsSet[studentId][courseId] = new Set();
+      }
+      completedTestsSet[studentId][courseId].add(testId);
+    }
+  });
+
+  // Track last active timestamp per student
+  const lastActiveMap: Record<string, string> = {};
+  activityData?.forEach(row => {
+    if (row.student_id && row.updated_at) {
+      const existing = lastActiveMap[row.student_id];
+      if (!existing || new Date(row.updated_at) > new Date(existing)) {
+        lastActiveMap[row.student_id] = row.updated_at;
+      }
+    }
+  });
+  progressData?.forEach(row => {
+    if (row.user_id && row.created_at) {
+      const existing = lastActiveMap[row.user_id];
+      if (!existing || new Date(row.created_at) > new Date(existing)) {
+        lastActiveMap[row.user_id] = row.created_at;
+      }
+    }
+  });
+
+  // Aggregate active seconds per student
+  const activeTimeMap: Record<string, number> = {};
+  activityData?.forEach(row => {
+    if (row.student_id) {
+      activeTimeMap[row.student_id] = (activeTimeMap[row.student_id] || 0) + (row.active_seconds || 0);
+    }
+  });
+
+  // Flat list of progress records per student enrollment
+  const progressRecords: any[] = [];
+  const uniqueCourses = new Map<string, { id: string; title: string; course_code: string }>();
+
+  // Target active study time (e.g. 5 hours = 18000 seconds)
+  const TARGET_STUDY_SECS = 5 * 3600;
+
+  (students || []).forEach(student => {
+    student.enrollments?.forEach((enrollment: any) => {
+      const course = enrollment.courses;
+      if (!course) return;
+
+      if (!uniqueCourses.has(course.id)) {
+        uniqueCourses.set(course.id, {
+          id: course.id,
+          title: course.title,
+          course_code: course.course_code
+        });
+      }
+
+      const courseId = course.id;
+      
+      // Lessons progress (non-MCQ)
+      const completed = completedLessonsMap[student.id]?.[courseId] || 0;
+      const total = courseLessonsCountMap[courseId] || 0;
+      const progressPercent = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+      // Active study time
+      const activeSeconds = activeTimeMap[student.id] || 0;
+      const studyTimeProgress = Math.min(Math.round((activeSeconds / TARGET_STUDY_SECS) * 100), 100);
+
+      // Quizzes progress (MCQ lessons + test results)
+      const completedQuizzes = (completedQuizzesMap[student.id]?.[courseId] || 0) + (completedTestsSet[student.id]?.[courseId]?.size || 0);
+      const totalQuizzes = courseQuizzesCountMap[courseId] || 0;
+      const quizProgressPercent = totalQuizzes > 0 ? Math.round((completedQuizzes / totalQuizzes) * 100) : 0;
+
+      const lastActive = lastActiveMap[student.id] || null;
+
+      // Status logic
+      let status = "On Track";
+      if (progressPercent === 100) {
+        status = "Completed";
+      } else if (!lastActive) {
+        status = "At Risk";
+      } else {
+        const daysSinceActive = (new Date().getTime() - new Date(lastActive).getTime()) / (1000 * 3600 * 24);
+        if (daysSinceActive > 7) {
+          status = "At Risk";
+        } else if (daysSinceActive > 3 || (progressPercent < 5 && activeSeconds > 0)) {
+          status = "Slow Progress";
+        }
+      }
+
+      progressRecords.push({
+        id: `${student.id}-${courseId}`,
+        studentId: student.student_id || student.id.slice(0, 8),
+        name: student.name,
+        email: student.email || "no-email@visionit.com",
+        phone: student.phone || "No phone",
+        courseName: course.title,
+        courseCode: course.course_code,
+        progress: progressPercent,
+        completedLessons: completed,
+        totalLessons: total,
+        activeSeconds,
+        studyTimeProgress,
+        quizzesDone: completedQuizzes,
+        totalQuizzes,
+        quizProgress: quizProgressPercent,
+        lastActive,
+        status
+      });
+    });
+  });
+
+  const availableCoursesList = Array.from(uniqueCourses.values());
+
+  // Aggregate stats
+  const totalCompleted = progressRecords.filter(r => r.status === "Completed").length;
+  // Active in last 48 hours
+  const activeNowCount = progressRecords.filter(r => {
+    if (!r.lastActive) return false;
+    const hrs = (new Date().getTime() - new Date(r.lastActive).getTime()) / (1000 * 3600);
+    return hrs <= 48;
+  }).length;
+  const atRiskCount = progressRecords.filter(r => r.status === "At Risk").length;
+
+  const stats = {
+    totalCompleted,
+    activeNowCount,
+    atRiskCount
+  };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Student Progress Tracking</h1>
-          <p className="text-sm text-slate-500">Monitor engagement and completion rates across all modules.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button className="px-4 py-2 bg-white border border-slate-200 text-sm font-bold rounded-lg hover:bg-slate-50 transition-all flex items-center gap-2">
-             <Filter size={16} /> Filter By Course
-          </button>
-          <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg transition-all">
-             Export Report
-          </button>
-        </div>
-      </div>
-
-      {/* Analytics Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-emerald-50 p-6 rounded-2xl border border-emerald-100">
-           <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1">Completed Courses</p>
-           <p className="text-3xl font-black text-emerald-700">124</p>
-           <p className="text-xs text-emerald-600/70 font-bold mt-2">Students finished all modules</p>
-        </div>
-        <div className="bg-blue-50 p-6 rounded-2xl border border-blue-100">
-           <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1">Active Learners</p>
-           <p className="text-3xl font-black text-blue-700">842</p>
-           <p className="text-xs text-blue-600/70 font-bold mt-2">Active in the last 24 hours</p>
-        </div>
-        <div className="bg-red-50 p-6 rounded-2xl border border-red-100">
-           <p className="text-[10px] font-black text-red-600 uppercase tracking-widest mb-1">At Risk Students</p>
-           <p className="text-3xl font-black text-red-700">18</p>
-           <p className="text-xs text-red-600/70 font-bold mt-2">No activity for over 7 days</p>
-        </div>
-      </div>
-
-      {/* Main Students Table */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
-           <h2 className="font-bold text-slate-900">Engagement Master List</h2>
-           <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-              <input 
-                type="text" 
-                placeholder="Search by name or ID..." 
-                className="pl-10 pr-4 py-2 bg-slate-50 border-transparent text-sm rounded-xl outline-none focus:bg-white focus:border-blue-500 w-full md:w-80 transition-all"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-           </div>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 text-slate-500 font-bold">
-              <tr>
-                <th className="px-6 py-4 text-[10px] uppercase tracking-widest">Student Info</th>
-                <th className="px-6 py-4 text-[10px] uppercase tracking-widest">Assigned Course</th>
-                <th className="px-6 py-4 text-[10px] uppercase tracking-widest">Mastery Progress</th>
-                <th className="px-6 py-4 text-[10px] uppercase tracking-widest">Health Status</th>
-                <th className="px-6 py-4 text-right"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {students.map((student) => (
-                <tr key={student.id} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="px-6 py-4">
-                     <div>
-                        <p className="font-bold text-slate-900">{student.name}</p>
-                        <p className="text-[10px] text-slate-400 font-bold">{student.id}</p>
-                     </div>
-                  </td>
-                  <td className="px-6 py-4">
-                     <p className="font-bold text-slate-700">{student.course}</p>
-                     <p className="text-[10px] text-slate-400 font-medium flex items-center gap-1">
-                        <Clock size={10} /> Active {student.lastActive}
-                     </p>
-                  </td>
-                  <td className="px-6 py-4">
-                     <div className="space-y-1">
-                        <div className="flex justify-between items-center w-32">
-                           <span className="text-[10px] font-bold text-blue-600">{student.progress}%</span>
-                         </div>
-                         <div className="w-32 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                            <div 
-                             className={`h-full transition-all duration-1000 ${student.progress === 100 ? 'bg-emerald-500' : 'bg-blue-500'}`} 
-                             style={{ width: `${student.progress}%` }} 
-                            />
-                         </div>
-                      </div>
-                  </td>
-                  <td className="px-6 py-4">
-                     <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${
-                       student.status === 'Completed' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
-                       student.status === 'Slow Progress' ? 'bg-amber-50 text-amber-700 border-amber-100' :
-                       student.status === 'At Risk' ? 'bg-red-50 text-red-700 border-red-100' :
-                       'bg-blue-50 text-blue-700 border-blue-100'
-                     }`}>
-                        {student.status === 'Completed' ? <CheckCircle2 size={10} /> : 
-                         student.status === 'At Risk' ? <AlertCircle size={10} /> : <Clock size={10} />}
-                        {student.status}
-                     </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                     <button className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all">
-                        <ArrowUpRight size={18} />
-                     </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
-           <p className="text-xs text-slate-500 font-bold">Showing 4 of {students.length} students</p>
-           <div className="flex gap-2">
-              <button className="px-3 py-1 border border-slate-200 rounded text-xs font-bold disabled:opacity-50" disabled>Prev</button>
-              <button className="px-3 py-1 border border-slate-200 rounded text-xs font-bold">Next</button>
-           </div>
-        </div>
-      </div>
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <ProgressTable 
+        initialRecords={progressRecords} 
+        availableCourses={availableCoursesList}
+        stats={stats}
+      />
     </div>
   );
 }
