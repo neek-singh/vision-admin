@@ -1,9 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
-import { verifyAdmissionDocuments } from "@/app/actions/lms/admin";
-import AdminActions from "./AdminActions";
+import { useState } from "react";
 
 interface Course {
   title: string;
@@ -33,6 +30,7 @@ interface Admission {
   identity_proof_url: string | null;
   flow_step: string | null;
   document_verified: boolean;
+  message: string | null;
   courses: Course | Course[];
   students?: Student[];
 }
@@ -47,7 +45,7 @@ function formatAddress(addressStr: string | null): string {
         parsed.post && `Post: ${parsed.post}`,
         parsed.district && `District: ${parsed.district}`,
         parsed.state && `State: ${parsed.state}`,
-        parsed.pin && `Pin Code: ${parsed.pin}`
+        parsed.pin && `Pin Code: ${parsed.pin}`,
       ].filter(Boolean);
       return parts.join(", ");
     }
@@ -57,33 +55,33 @@ function formatAddress(addressStr: string | null): string {
   return addressStr;
 }
 
-export default function AdmissionRow({ item }: { item: Admission }) {
-  const router = useRouter();
+function parseMessage(msg: string | null): { school?: string; batch?: string; motivation?: string } {
+  if (!msg) return {};
+  const result: { school?: string; batch?: string; motivation?: string } = {};
+  const schoolMatch = msg.match(/School\/College Name:\s*(.+)/);
+  const batchMatch = msg.match(/Batch Preference:\s*(.+)/);
+  const motivMatch = msg.match(/Motivation:\s*([\s\S]+)/);
+  if (schoolMatch) result.school = schoolMatch[1].trim();
+  if (batchMatch) result.batch = batchMatch[1].trim();
+  if (motivMatch) result.motivation = motivMatch[1].trim();
+  if (!schoolMatch && !batchMatch) result.motivation = msg;
+  return result;
+}
+
+export default function AdmissionRow({ item, index }: { item: Admission; index?: number }) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [pending, startTransition] = useTransition();
 
   const formattedCourse = Array.isArray(item.courses) ? item.courses[0] : item.courses;
-  const studentId = item.students?.[0]?.student_id;
-
-  const handleVerify = (verified: boolean) => {
-    startTransition(async () => {
-      const res = await verifyAdmissionDocuments(item.id, verified);
-      if (res?.error) {
-        alert(res.error);
-      } else {
-        router.refresh();
-      }
-    });
-  };
+  const parsedMsg = parseMessage(item.message);
 
   return (
     <>
-      <tr className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+      <tr className="border-b border-gray-50 hover:bg-slate-50/60 transition-colors group">
+        {index !== undefined && (
+          <td className="px-6 py-4 text-xs font-bold text-slate-300 w-10">{index}</td>
+        )}
         <td className="px-6 py-4">
           <div className="font-bold text-gray-900">{item.student_name}</div>
-          <div className="text-xs text-gray-400">
-            {new Date(item.created_at).toLocaleDateString("en-IN")}
-          </div>
         </td>
         <td className="px-6 py-4 text-sm text-gray-600">{item.father_name || "—"}</td>
         <td className="px-6 py-4 text-sm text-gray-600">
@@ -98,107 +96,143 @@ export default function AdmissionRow({ item }: { item: Admission }) {
             {formattedCourse?.course_code}
           </div>
         </td>
-        <td className="px-6 py-4">
-          <span
-            className={`px-3 py-1 rounded-full text-xs font-bold ${
-              item.status === "approved"
-                ? "bg-green-50 text-green-700"
-                : item.status === "rejected"
-                ? "bg-red-50 text-red-700"
-                : "bg-amber-50 text-amber-700"
-            }`}
-          >
-            {item.status}
-          </span>
+        <td className="px-6 py-4 text-sm text-slate-500">
+          {new Date(item.created_at).toLocaleDateString("en-IN", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          })}
         </td>
         <td className="px-6 py-4 text-right">
           <div className="flex items-center gap-2 justify-end">
-            {item.status === "approved" && (
-              <button
-                onClick={() => setIsExpanded(!isExpanded)}
-                className="bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold px-3 py-2 rounded-xl transition-all"
-              >
-                {isExpanded ? "Hide Pipeline" : "View Pipeline"}
-              </button>
-            )}
-            <AdminActions
-              id={item.id}
-              status={item.status}
-              phone={item.phone}
-              studentName={item.student_name}
-              courseTitle={formattedCourse?.title}
-              studentId={studentId}
-            />
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold px-3 py-2 rounded-xl transition-all border border-slate-200"
+            >
+              {isExpanded ? "Hide Details" : "View Details"}
+            </button>
           </div>
         </td>
       </tr>
 
-      {isExpanded && item.status === "approved" && (
+      {/* ── Expanded Details Panel (all statuses) ── */}
+      {isExpanded && (
         <tr className="bg-slate-50/40">
-          <td colSpan={6} className="px-6 py-5 border-t border-b border-slate-100">
-            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4 max-w-4xl text-left">
-              
+          <td colSpan={7} className="px-6 py-5 border-t border-b border-slate-100">
+            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4 max-w-5xl text-left">
+
+              {/* Header */}
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h3 className="font-extrabold text-sm text-slate-900">Admission Pipeline Flow</h3>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-slate-400">Current Step:</span>
-                  <span className="text-xs font-black uppercase tracking-wider px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded">
-                    {item.flow_step || "personal"}
-                  </span>
-                  {item.document_verified && (
-                    <span className="text-xs font-black uppercase tracking-wider px-2 py-0.5 bg-green-50 text-green-700 border border-green-200 rounded">
-                      Verified
-                    </span>
-                  )}
-                </div>
+                <h3 className="font-extrabold text-sm text-slate-900">
+                  Inquiry Details — {item.student_name}
+                </h3>
               </div>
 
-              {/* Personal Details */}
-              {item.father_name ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs font-medium text-slate-700">
+              {/* ── Basic Info (always visible) ── */}
+              <div>
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Basic Information</span>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 text-xs">
                   <div>
-                    <span className="text-slate-400 block text-[10px] uppercase tracking-wider mb-0.5">Father's Name</span>
-                    <span className="text-slate-900 font-semibold">{item.father_name}</span>
+                    <span className="text-slate-400 block text-[10px] uppercase tracking-wider mb-0.5">Student Name</span>
+                    <span className="text-slate-900 font-semibold">{item.student_name}</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[10px] uppercase tracking-wider mb-0.5">Mother's Name</span>
-                    <span className="text-slate-900 font-semibold">{item.mother_name || "—"}</span>
+                    <span className="text-slate-400 block text-[10px] uppercase tracking-wider mb-0.5">Phone</span>
+                    <span className="text-slate-900 font-semibold">{item.phone || "—"}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px] uppercase tracking-wider mb-0.5">Email</span>
+                    <span className="text-slate-900 font-semibold break-all">{item.email || "—"}</span>
                   </div>
                   <div>
                     <span className="text-slate-400 block text-[10px] uppercase tracking-wider mb-0.5">Date of Birth</span>
                     <span className="text-slate-900 font-semibold">
-                      {item.dob ? new Date(item.dob).toLocaleDateString("en-IN", {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                      }) : "—"}
+                      {item.dob
+                        ? new Date(item.dob).toLocaleDateString("en-IN", {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          })
+                        : "—"}
                     </span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block text-[10px] uppercase tracking-wider mb-0.5">Gender</span>
-                    <span className="text-slate-900 font-semibold capitalize">{item.gender || "—"}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block text-[10px] uppercase tracking-wider mb-0.5">Caste / Category</span>
-                    <span className="text-slate-900 font-semibold">{item.category || "—"}</span>
                   </div>
                   <div>
                     <span className="text-slate-400 block text-[10px] uppercase tracking-wider mb-0.5">Qualification</span>
                     <span className="text-slate-900 font-semibold">{item.qualification || "—"}</span>
                   </div>
-                  <div className="sm:col-span-3">
-                    <span className="text-slate-400 block text-[10px] uppercase tracking-wider mb-0.5">Address</span>
-                    <span className="text-slate-900 font-semibold block whitespace-pre-line leading-relaxed">{formatAddress(item.address)}</span>
+                  <div>
+                    <span className="text-slate-400 block text-[10px] uppercase tracking-wider mb-0.5">Applied On</span>
+                    <span className="text-slate-900 font-semibold">
+                      {new Date(item.created_at).toLocaleDateString("en-IN", {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </span>
                   </div>
                 </div>
-              ) : (
-                <p className="text-xs text-slate-400 italic">Personal details form not yet completed by the student.</p>
+              </div>
+
+              {/* ── Inquiry Message / Notes ── */}
+              {item.message && (
+                <div className="border-t border-slate-100 pt-4">
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Inquiry Notes</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                    {parsedMsg.school && (
+                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-3">
+                        <span className="text-slate-400 block text-[10px] uppercase tracking-wider mb-1">School / College</span>
+                        <span className="text-slate-900 font-semibold">{parsedMsg.school}</span>
+                      </div>
+                    )}
+                    {parsedMsg.batch && (
+                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-3">
+                        <span className="text-slate-400 block text-[10px] uppercase tracking-wider mb-1">Batch Preference</span>
+                        <span className="text-slate-900 font-semibold">{parsedMsg.batch}</span>
+                      </div>
+                    )}
+                    {parsedMsg.motivation && (
+                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 sm:col-span-3">
+                        <span className="text-slate-400 block text-[10px] uppercase tracking-wider mb-1">Message / Motivation</span>
+                        <span className="text-slate-900 font-semibold whitespace-pre-line leading-relaxed">{parsedMsg.motivation}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
               )}
 
-              {/* Uploaded Documents */}
+              {/* ── Full Personal Details ── */}
+              {item.father_name && (
+                <div className="border-t border-slate-100 pt-4">
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Personal Details</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs font-medium text-slate-700">
+                    <div>
+                      <span className="text-slate-400 block text-[10px] uppercase tracking-wider mb-0.5">Father's Name</span>
+                      <span className="text-slate-900 font-semibold">{item.father_name}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block text-[10px] uppercase tracking-wider mb-0.5">Mother's Name</span>
+                      <span className="text-slate-900 font-semibold">{item.mother_name || "—"}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block text-[10px] uppercase tracking-wider mb-0.5">Gender</span>
+                      <span className="text-slate-900 font-semibold capitalize">{item.gender || "—"}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block text-[10px] uppercase tracking-wider mb-0.5">Caste / Category</span>
+                      <span className="text-slate-900 font-semibold">{item.category || "—"}</span>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <span className="text-slate-400 block text-[10px] uppercase tracking-wider mb-0.5">Address</span>
+                      <span className="text-slate-900 font-semibold block whitespace-pre-line leading-relaxed">{formatAddress(item.address)}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ── Uploaded Documents ── */}
               {(item.photo_url || item.signature_url || item.identity_proof_url) && (
                 <div className="border-t border-slate-100 pt-4">
-                  <span className="text-xs font-bold text-slate-900 block mb-3">Uploaded Documents</span>
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-3">Uploaded Documents</span>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
                     {item.photo_url && (
                       <div className="flex flex-col items-center p-3 border border-slate-100 rounded-xl bg-slate-50 gap-2">
@@ -208,7 +242,6 @@ export default function AdmissionRow({ item }: { item: Admission }) {
                         </a>
                       </div>
                     )}
-
                     {item.signature_url && (
                       <div className="flex flex-col items-center p-3 border border-slate-100 rounded-xl bg-slate-50 gap-2">
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Signature</span>
@@ -217,7 +250,6 @@ export default function AdmissionRow({ item }: { item: Admission }) {
                         </a>
                       </div>
                     )}
-
                     {item.identity_proof_url && (
                       <div className="flex flex-col items-center p-3 border border-slate-100 rounded-xl bg-slate-50 gap-2">
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Identity / Marksheet</span>
@@ -227,26 +259,6 @@ export default function AdmissionRow({ item }: { item: Admission }) {
                       </div>
                     )}
                   </div>
-                </div>
-              )}
-
-              {/* Document Verification Control */}
-              {item.flow_step === "review" && !item.document_verified && (
-                <div className="border-t border-slate-100 pt-4 flex justify-end gap-3">
-                  <button
-                    disabled={pending}
-                    onClick={() => handleVerify(false)}
-                    className="px-3.5 py-1.5 border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 rounded-xl font-bold text-xs cursor-pointer transition-colors"
-                  >
-                    Reject Documents
-                  </button>
-                  <button
-                    disabled={pending}
-                    onClick={() => handleVerify(true)}
-                    className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs cursor-pointer transition-colors"
-                  >
-                    {pending ? "Processing..." : "Approve & Verify Documents"}
-                  </button>
                 </div>
               )}
 

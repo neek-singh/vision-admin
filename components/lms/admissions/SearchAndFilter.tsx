@@ -3,7 +3,7 @@
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
 
-export default function SearchAndFilter({ currentStatus }: { currentStatus: string }) {
+export default function SearchAndFilter({ currentStatus: _currentStatus }: { currentStatus: string }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -21,17 +21,7 @@ export default function SearchAndFilter({ currentStatus }: { currentStatus: stri
     });
   };
 
-  const handleStatusFilter = (status: string) => {
-    const params = new URLSearchParams(searchParams);
-    if (status) {
-      params.set("status", status);
-    } else {
-      params.delete("status");
-    }
-    startTransition(() => {
-      router.replace(`${pathname}?${params.toString()}`);
-    });
-  };
+
 
   return (
     <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
@@ -48,27 +38,6 @@ export default function SearchAndFilter({ currentStatus }: { currentStatus: stri
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
         </div>
-      </div>
-
-      <div className="flex bg-gray-100 p-1 rounded-2xl">
-        {[
-          { label: "All", value: "" },
-          { label: "Pending", value: "pending" },
-          { label: "Approved", value: "approved" },
-          { label: "Rejected", value: "rejected" },
-        ].map((tab) => (
-          <button
-            key={tab.label}
-            onClick={() => handleStatusFilter(tab.value)}
-            className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all ${
-              currentStatus === tab.value
-                ? "bg-white text-blue-600 shadow-sm"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
       </div>
     </div>
   );
