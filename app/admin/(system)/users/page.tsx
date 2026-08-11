@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import UsersClient from "@/components/system/UsersClient";
 
-export const revalidate = 0;
+export const unstable_instant = false;
 
 async function getSupabase() {
   const cookieStore = await cookies();

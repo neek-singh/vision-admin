@@ -6,7 +6,7 @@ import fs from "fs";
 import path from "path";
 import { updateStats } from "@/app/actions/web/stats";
 
-export const revalidate = 0;
+
 
 async function getSupabase() {
   const cookieStore = await cookies();

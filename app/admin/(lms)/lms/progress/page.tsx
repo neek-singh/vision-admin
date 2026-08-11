@@ -1,7 +1,7 @@
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import ProgressTable from "@/components/lms/progress/ProgressTable";
 
-export const revalidate = 0;
+export const unstable_instant = false;
 
 export default async function LMSProgressPage() {
   const supabase = await createServerSupabaseClient();

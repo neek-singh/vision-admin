@@ -2,7 +2,7 @@ import { getImages } from "@/app/actions/web/gallery";
 import AdminGalleryClient from "@/components/web/AdminGalleryClient";
 import { Button } from "@/components/ui/Button";
 
-export const revalidate = 0;
+export const unstable_instant = false;
 
 export default async function AdminGalleryPage() {
   const images = await getImages();

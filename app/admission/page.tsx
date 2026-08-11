@@ -1,16 +1,21 @@
 import AdmissionForm from "./AdmissionForm";
 import Image from "next/image";
-import { createServerSupabaseClient } from "@/lib/supabase-server";
+import { createPublicSupabaseClient } from "@/lib/supabase-server";
+import { cacheLife } from "next/cache";
 
-export const revalidate = 3600; // Cache for 1 hour
-
-export default async function AdmissionPage() {
-  const supabase = await createServerSupabaseClient();
-  
-  const { data: courses } = await supabase
+async function getCoursesCached() {
+  "use cache";
+  cacheLife("hours");
+  const supabase = createPublicSupabaseClient();
+  const { data } = await supabase
     .from("courses")
     .select("id, title")
     .order("title");
+  return data || [];
+}
+
+export default async function AdmissionPage() {
+  const courses = await getCoursesCached();
 
   return (
     <div className="min-h-screen bg-gray-50/50 py-20">
@@ -35,7 +40,7 @@ export default async function AdmissionPage() {
         <AdmissionForm courses={courses || []} />
         
         <div className="mt-12 text-center text-sm text-gray-400 font-medium">
-          <p>© {new Date().getFullYear()} Vision Learn. All rights reserved.</p>
+          <p>© 2026 Vision Learn. All rights reserved.</p>
         </div>
       </div>
     </div>

@@ -2,10 +2,12 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import BlogForm from "@/components/web/BlogForm";
+
+export const unstable_instant = false;
 import fs from "fs";
 import path from "path";
 
-export const revalidate = 0;
+
 
 // 🔐 Server Supabase
 async function getSupabase() {

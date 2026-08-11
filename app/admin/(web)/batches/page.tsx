@@ -3,7 +3,7 @@ import Link from "next/link";
 import BatchListClient from "@/components/web/BatchListClient";
 import { Plus } from "lucide-react";
 
-export const revalidate = 0;
+export const unstable_instant = false;
 
 export default async function BatchesPage() {
   const supabase = await createServerSupabaseClient();

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/Button";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import CoursesTableClient from "@/components/lms/courses/CoursesTableClient";
 
-export const revalidate = 0;
+export const unstable_instant = false;
 
 export default async function AdminCoursesPage() {
   const supabase = await createServerSupabaseClient();

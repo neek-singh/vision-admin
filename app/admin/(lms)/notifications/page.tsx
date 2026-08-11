@@ -1,7 +1,7 @@
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import NotificationsClient from "@/components/lms/notifications/NotificationsClient";
 
-export const revalidate = 0;
+export const unstable_instant = false;
 
 export default async function AdminNotificationsPage() {
   const supabase = await createServerSupabaseClient();

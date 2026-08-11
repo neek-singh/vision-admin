@@ -3,7 +3,7 @@ import SearchAndFilter from "@/components/lms/admissions/SearchAndFilter";
 import AdmissionRow from "@/components/lms/admissions/AdmissionRow";
 import AdmissionMobileCard from "@/components/lms/admissions/AdmissionMobileCard";
 
-export const revalidate = 0;
+export const unstable_instant = false;
 
 export default async function AdminAdmissionsPage({
   searchParams,
@@ -59,27 +59,27 @@ export default async function AdminAdmissionsPage({
 
         {/* ── Stats Cards ── */}
         <div className="grid grid-cols-2 gap-3 max-w-sm">
-          <div className="bg-white rounded-2xl border border-blue-100 p-4 flex items-center gap-3 shadow-sm">
-            <div className="bg-blue-50 text-blue-600 p-2.5 rounded-xl shrink-0">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-blue-100 dark:border-blue-900/30 p-4 flex items-center gap-3 shadow-sm">
+            <div className="bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 p-2.5 rounded-xl shrink-0">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
             </div>
             <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total</p>
-              <p className="text-2xl font-extrabold text-blue-600">{totalCount}</p>
+              <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Total</p>
+              <p className="text-2xl font-extrabold text-blue-600 dark:text-blue-450">{totalCount}</p>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-violet-100 p-4 flex items-center gap-3 shadow-sm">
-            <div className="bg-violet-50 text-violet-600 p-2.5 rounded-xl shrink-0">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-violet-100 dark:border-violet-900/30 p-4 flex items-center gap-3 shadow-sm">
+            <div className="bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400 p-2.5 rounded-xl shrink-0">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </div>
             <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Today</p>
-              <p className="text-2xl font-extrabold text-violet-600">{todayCount}</p>
+              <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Today</p>
+              <p className="text-2xl font-extrabold text-violet-600 dark:text-violet-400">{todayCount}</p>
             </div>
           </div>
         </div>
@@ -98,7 +98,7 @@ export default async function AdminAdmissionsPage({
         </div>
 
         {/* ── Table (Desktop) ── */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800/80 overflow-hidden">
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>

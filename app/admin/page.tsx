@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Suspense } from "react";
 import fs from "fs";
+import { cacheLife } from "next/cache";
 import { 
   FileText, 
   Image as ImageIcon, 
@@ -21,7 +22,34 @@ import {
   Heart
 } from "lucide-react";
 
-export const revalidate = 0;
+// 🕒 Cached file system operations
+async function getBlogsCached() {
+  "use cache";
+  cacheLife("minutes");
+  const blogsFilePath = "c:\\Users\\as007\\vision-web\\features\\blog\\data\\blogs.json";
+  try {
+    if (fs.existsSync(blogsFilePath)) {
+      return JSON.parse(fs.readFileSync(blogsFilePath, "utf-8"));
+    }
+  } catch (e) {
+    console.error("Error reading blogs cached:", e);
+  }
+  return [];
+}
+
+async function getGalleryCached() {
+  "use cache";
+  cacheLife("minutes");
+  const galleryFilePath = "c:\\Users\\as007\\vision-web\\features\\gallery\\data\\gallery.json";
+  try {
+    if (fs.existsSync(galleryFilePath)) {
+      return JSON.parse(fs.readFileSync(galleryFilePath, "utf-8"));
+    }
+  } catch (e) {
+    console.error("Error reading gallery cached:", e);
+  }
+  return [];
+}
 
 // 🔐 Supabase Server Client
 async function getSupabase() {
@@ -41,27 +69,11 @@ async function getSupabase() {
 
 // 📊 Stats Section Component
 async function StatsSection({ supabase }: { supabase: any }) {
-  // Read local blog data
-  const blogsFilePath = "c:\\Users\\as007\\vision-web\\features\\blog\\data\\blogs.json";
-  let blogsList: any[] = [];
-  try {
-    if (fs.existsSync(blogsFilePath)) {
-      blogsList = JSON.parse(fs.readFileSync(blogsFilePath, "utf-8"));
-    }
-  } catch (e) {
-    console.error("Error reading blogs:", e);
-  }
+  // Read local blog data from cache
+  const blogsList = await getBlogsCached();
 
-  // Read local gallery data
-  const galleryFilePath = "c:\\Users\\as007\\vision-web\\features\\gallery\\data\\gallery.json";
-  let galleryList: any[] = [];
-  try {
-    if (fs.existsSync(galleryFilePath)) {
-      galleryList = JSON.parse(fs.readFileSync(galleryFilePath, "utf-8"));
-    }
-  } catch (e) {
-    console.error("Error reading gallery:", e);
-  }
+  // Read local gallery data from cache
+  const galleryList = await getGalleryCached();
 
   // Query Supabase for Contacts and Batches counts
   const [contacts, batches] = await Promise.all([
@@ -70,7 +82,7 @@ async function StatsSection({ supabase }: { supabase: any }) {
   ]);
 
   const totalBlogs = blogsList.length;
-  const publishedBlogs = blogsList.filter(b => b.is_published).length;
+  const publishedBlogs = blogsList.filter((b: any) => b.is_published).length;
   const draftBlogs = totalBlogs - publishedBlogs;
   
   const totalGallery = galleryList.length;
@@ -248,33 +260,15 @@ async function DashboardDetails({ supabase }: { supabase: any }) {
     .order("created_at", { ascending: false })
     .limit(4);
 
-  // 2. Read recent blogs
-  const blogsFilePath = "c:\\Users\\as007\\vision-web\\features\\blog\\data\\blogs.json";
-  let recentBlogs: any[] = [];
-  try {
-    if (fs.existsSync(blogsFilePath)) {
-      const fileData = fs.readFileSync(blogsFilePath, "utf-8");
-      const blogsList = JSON.parse(fileData);
-      // Sort by published_at or created_at descending
-      recentBlogs = blogsList
-        .sort((a: any, b: any) => new Date(b.created_at || b.published_at).getTime() - new Date(a.created_at || a.published_at).getTime())
-        .slice(0, 3);
-    }
-  } catch (e) {
-    console.error("Error reading recent blogs:", e);
-  }
+  // 2. Read recent blogs from cache
+  const blogsList = await getBlogsCached();
+  const recentBlogs = [...blogsList]
+    .sort((a: any, b: any) => new Date(b.created_at || b.published_at).getTime() - new Date(a.created_at || a.published_at).getTime())
+    .slice(0, 3);
 
-  // 3. Read recent gallery images
-  const galleryFilePath = "c:\\Users\\as007\\vision-web\\features\\gallery\\data\\gallery.json";
-  let recentGallery: any[] = [];
-  try {
-    if (fs.existsSync(galleryFilePath)) {
-      const fileData = fs.readFileSync(galleryFilePath, "utf-8");
-      recentGallery = JSON.parse(fileData).slice(0, 4);
-    }
-  } catch (e) {
-    console.error("Error reading recent gallery:", e);
-  }
+  // 3. Read recent gallery images from cache
+  const galleryList = await getGalleryCached();
+  const recentGallery = [...galleryList].slice(0, 4);
 
   return (
     <div className="space-y-6">

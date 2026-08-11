@@ -2,6 +2,8 @@ import CourseForm from "@/components/lms/courses/CourseForm";
 import { notFound } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 
+export const unstable_instant = false;
+
 export default async function EditCoursePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 

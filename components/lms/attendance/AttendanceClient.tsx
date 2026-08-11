@@ -481,23 +481,7 @@ export default function AttendanceClient({
                   ✗ Mark All Absent
                 </button>
               </div>
-              <div className="pt-3 border-t border-slate-100">
-                <button
-                  onClick={handleSyncTemplate}
-                  disabled={initializing}
-                  className="w-full py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 disabled:opacity-50 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
-                >
-                  {initializing ? (
-                    <Loader2 className="animate-spin" size={13} />
-                  ) : (
-                    <RefreshCw size={13} />
-                  )}
-                  {initializing ? "Initializing..." : "Sync Enrolled Students (Auto-Mark Absent)"}
-                </button>
-                <p className="text-[9px] text-slate-400 font-medium text-center mt-2 leading-relaxed">
-                  ℹ️ Daily attendance is initialized automatically. Use this to manually sync students enrolled today.
-                </p>
-              </div>
+
             </div>
 
             {/* Total Students */}
@@ -548,18 +532,18 @@ export default function AttendanceClient({
             />
           </div>
 
-          {/* Table */}
-          <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
+          {/* Desktop Table View */}
+          <div className="hidden md:block bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-slate-50 text-slate-400 text-[9px] uppercase font-black tracking-[0.2em] border-b border-slate-100">
+                  <tr className="bg-slate-50 dark:bg-slate-900 text-slate-400 text-[9px] uppercase font-black tracking-[0.2em] border-b border-slate-100 dark:border-slate-800">
                     <th className="px-8 py-5">Student</th>
                     <th className="px-8 py-5">Student ID</th>
                     <th className="px-8 py-5 text-center">Mark Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50">
+                <tbody className="divide-y divide-slate-50 dark:divide-slate-850">
                   {loading ? (
                     <tr>
                       <td colSpan={3} className="px-8 py-20 text-center">
@@ -575,7 +559,7 @@ export default function AttendanceClient({
                     </tr>
                   ) : (
                     filteredStudents.map((student) => (
-                      <tr key={student.id} className="hover:bg-slate-50/70 transition-colors">
+                      <tr key={student.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/20 transition-colors">
                         <td className="px-8 py-4">
                           <div className="flex items-center gap-3.5">
                             <div
@@ -583,11 +567,11 @@ export default function AttendanceClient({
                             >
                               {student.name[0]}
                             </div>
-                            <p className="font-black text-slate-900 text-sm">{student.name}</p>
+                            <p className="font-black text-slate-900 dark:text-white text-sm">{student.name}</p>
                           </div>
                         </td>
                         <td className="px-8 py-4">
-                          <span className="text-xs font-bold text-slate-400 bg-slate-50 px-3 py-1 rounded-lg">
+                          <span className="text-xs font-bold text-slate-400 dark:text-slate-550 bg-slate-50 dark:bg-slate-850 px-3 py-1 rounded-lg">
                             {student.student_id}
                           </span>
                         </td>
@@ -597,14 +581,14 @@ export default function AttendanceClient({
                               <button
                                 key={s}
                                 onClick={() => updateStatus(student.id, s)}
-                                className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
+                                className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer ${
                                   attendance[student.id] === s
                                     ? s === "present"
-                                      ? "bg-emerald-500 text-white shadow-lg shadow-emerald-100"
+                                      ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/10"
                                       : s === "late"
-                                      ? "bg-amber-500 text-white shadow-lg shadow-amber-100"
-                                      : "bg-rose-500 text-white shadow-lg shadow-rose-100"
-                                    : "bg-slate-50 text-slate-400 hover:bg-slate-100"
+                                      ? "bg-amber-500 text-white shadow-lg shadow-amber-500/10"
+                                      : "bg-rose-500 text-white shadow-lg shadow-rose-500/10"
+                                    : "bg-slate-50 dark:bg-slate-800/40 text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
                                 }`}
                               >
                                 {s}
@@ -618,6 +602,56 @@ export default function AttendanceClient({
                 </tbody>
               </table>
             </div>
+          </div>
+
+          {/* Mobile List View */}
+          <div className="md:hidden space-y-4">
+            {loading ? (
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-20 text-center border border-slate-100 dark:border-slate-800">
+                <Loader2 className="animate-spin text-indigo-600 mx-auto mb-3" size={28} />
+                <p className="text-sm font-bold text-slate-400">Loading students...</p>
+              </div>
+            ) : filteredStudents.length === 0 ? (
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 text-center text-slate-400 dark:text-slate-500 font-bold border border-slate-100 dark:border-slate-800">
+                {searchQuery ? "No students match your search." : "No students enrolled in this course."}
+              </div>
+            ) : (
+              filteredStudents.map((student) => {
+                return (
+                  <div key={student.id} className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm space-y-4">
+                    <div className="flex items-center gap-3.5">
+                      <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${getAvatarColor(student.name)} flex items-center justify-center text-white font-black text-sm shadow-sm`}>
+                        {student.name[0]}
+                      </div>
+                      <div>
+                        <h4 className="font-black text-slate-900 dark:text-white leading-tight text-sm">{student.name}</h4>
+                        <p className="text-[10px] font-bold text-slate-450 dark:text-slate-500 mt-1 uppercase tracking-wider">{student.student_id}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-2 pt-2.5 border-t border-slate-50 dark:border-slate-800">
+                      {(["present", "late", "absent"] as AttendanceStatus[]).map((s) => (
+                        <button
+                          key={s}
+                          onClick={() => updateStatus(student.id, s)}
+                          className={`py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer text-center ${
+                            attendance[student.id] === s
+                              ? s === "present"
+                                ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/10"
+                                : s === "late"
+                                ? "bg-amber-500 text-white shadow-md shadow-amber-500/10"
+                                : "bg-rose-500 text-white shadow-md shadow-rose-500/10"
+                              : "bg-slate-50 dark:bg-slate-800/40 text-slate-400 dark:text-slate-550 hover:bg-slate-100 dark:hover:bg-slate-800"
+                          }`}
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
 
           <div className="flex justify-end gap-4">

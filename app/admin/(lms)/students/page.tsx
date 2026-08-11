@@ -2,7 +2,7 @@ import { createServerSupabaseClient } from "@/lib/supabase-server";
 import StudentTable from "@/components/lms/students/StudentTable";
 import { UserPlus } from "lucide-react";
 
-export const revalidate = 0;
+export const unstable_instant = false;
 
 export default async function AdminStudentsPage({
   searchParams,
@@ -122,7 +122,7 @@ export default async function AdminStudentsPage({
   const courses = coursesData || [];
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="container mx-auto sm:px-6 lg:px-8 py-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Manage Students</h1>

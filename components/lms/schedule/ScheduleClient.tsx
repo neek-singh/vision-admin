@@ -116,6 +116,7 @@ export default function ScheduleClient({
   const [curriculum, setCurriculum] = useState<{ modules: any[], tests: any[], materials: any[] }>({ modules: [], tests: [], materials: [] });
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
+  const [mobileTab, setMobileTab] = useState<'calendar' | 'curriculum'>('calendar');
   
   // Placement Mode and Collapsible modules state
   const [placementItem, setPlacementItem] = useState<{ title: string, type: 'class' | 'test' | 'assignment' | 'project' | 'quiz', originalTitle: string } | null>(null);
@@ -303,6 +304,7 @@ export default function ScheduleClient({
 
   const startPlacement = (title: string, type: 'class' | 'test' | 'assignment' | 'project' | 'quiz', originalTitle: string) => {
     setPlacementItem({ title, type, originalTitle });
+    setMobileTab('calendar');
   };
 
   // Map of scheduled items to their database IDs for easy toggle deletion
@@ -454,13 +456,16 @@ export default function ScheduleClient({
             </div>
           </div>
 
-          <div className="flex items-center gap-3 w-full md:w-auto justify-end">
-             <div className="hidden lg:flex items-center gap-4 px-4 py-1">
-                <div className="flex bg-slate-100 dark:bg-slate-900 p-0.5 rounded-lg mr-2 border border-slate-200/40 dark:border-slate-800">
-                   <button onClick={() => setViewMode('calendar')} className={`p-1.5 rounded-md transition-all ${viewMode === 'calendar' ? 'bg-white dark:bg-slate-800 shadow-sm text-blue-600 dark:text-blue-400' : 'text-slate-405 hover:text-slate-600 dark:hover:text-slate-300'}`}><LayoutGrid size={14} /></button>
-                   <button onClick={() => setViewMode('list')} className={`p-1.5 rounded-md transition-all ${viewMode === 'list' ? 'bg-white dark:bg-slate-800 shadow-sm text-blue-600 dark:text-blue-400' : 'text-slate-405 hover:text-slate-600 dark:hover:text-slate-300'}`}><List size={14} /></button>
-                </div>
-                <div className="text-center border-r border-slate-100 dark:border-slate-800 pr-4">
+          <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
+             {/* View Mode Toggle: Always visible */}
+             <div className="flex bg-slate-100 dark:bg-slate-900 p-0.5 rounded-lg border border-slate-200/40 dark:border-slate-800">
+                <button onClick={() => setViewMode('calendar')} className={`p-1.5 rounded-md transition-all cursor-pointer ${viewMode === 'calendar' ? 'bg-white dark:bg-slate-800 shadow-sm text-blue-600 dark:text-blue-400' : 'text-slate-400 hover:text-slate-650 dark:hover:text-slate-300'}`}><LayoutGrid size={14} /></button>
+                <button onClick={() => setViewMode('list')} className={`p-1.5 rounded-md transition-all cursor-pointer ${viewMode === 'list' ? 'bg-white dark:bg-slate-800 shadow-sm text-blue-600 dark:text-blue-400' : 'text-slate-400 hover:text-slate-650 dark:hover:text-slate-300'}`}><List size={14} /></button>
+             </div>
+
+             {/* Scheduled Stats & Clear Selection: Hidden on tiny screens, flex on larger screens */}
+             <div className="hidden sm:flex items-center gap-4 border-l border-slate-200 dark:border-slate-800 pl-4 pr-1">
+                <div className="text-center pr-4 border-r border-slate-100 dark:border-slate-800">
                    <p className="text-[8px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider">Scheduled</p>
                    <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{filteredSchedules.length}</p>
                 </div>
@@ -472,13 +477,14 @@ export default function ScheduleClient({
                   Clear Selection
                 </button>
              </div>
+
              <button               onClick={() => {
-                 setFormData({...formData, title: "", description: "", type: "holiday", course_id: selectedCourseId});
-                 setShowAddModal(true);
-               }}
-              className="px-4 py-2 bg-slate-950 dark:bg-slate-900 hover:bg-blue-600 dark:hover:bg-blue-700 text-white rounded-lg font-medium text-[11px] uppercase tracking-wider transition-all flex items-center gap-2 shadow-lg cursor-pointer"
+                  setFormData({...formData, title: "", description: "", type: "holiday", course_id: selectedCourseId});
+                  setShowAddModal(true);
+                }}
+               className="px-3.5 py-2 bg-slate-950 dark:bg-slate-900 hover:bg-blue-600 dark:hover:bg-blue-700 text-white rounded-lg font-medium text-[10px] uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-lg cursor-pointer"
              >
-                <Plus size={14} /> New Entry
+                <Plus size={12} className="shrink-0" /> <span className="hidden xs:inline">New Entry</span><span className="xs:hidden">Add</span>
              </button>
           </div>
         </div>
@@ -502,11 +508,35 @@ export default function ScheduleClient({
           </div>
         )}
 
+        {/* Mobile Tab Toggle */}
+        <div className="flex lg:hidden bg-slate-100 dark:bg-slate-900 p-1 rounded-xl mb-2 border border-slate-200/50 dark:border-slate-800/80">
+          <button
+            onClick={() => setMobileTab('calendar')}
+            className={`flex-1 py-2 text-center rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+              mobileTab === 'calendar'
+                ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-450 shadow-sm'
+                : 'text-slate-505 hover:text-slate-800 dark:hover:text-slate-350'
+            }`}
+          >
+            Calendar / Schedule
+          </button>
+          <button
+            onClick={() => setMobileTab('curriculum')}
+            className={`flex-1 py-2 text-center rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+              mobileTab === 'curriculum'
+                ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-450 shadow-sm'
+                : 'text-slate-505 hover:text-slate-800 dark:hover:text-slate-350'
+            }`}
+          >
+            Curriculum / Topics
+          </button>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
           
           {/* Left Column: Entire Collapsible Curriculum Structure */}
-          <div className="lg:col-span-6 xl:col-span-6 space-y-4 lg:sticky lg:top-4">
-             <div className="bg-white dark:bg-[#0f172a] rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-[calc(100vh-180px)]">
+          <div className={`lg:col-span-6 xl:col-span-6 space-y-4 lg:sticky lg:top-4 ${mobileTab === 'curriculum' ? 'block' : 'hidden lg:block'}`}>
+             <div className="bg-white dark:bg-[#0f172a] rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-[calc(100vh-240px)] lg:h-[calc(100vh-180px)]">
                 <div className="p-3 border-b border-slate-100 dark:border-slate-800/60 space-y-2">
                    <div className="flex items-center justify-between">
                       <h2 className="text-xs font-medium text-slate-800 dark:text-slate-200 uppercase tracking-wider">Course Curriculum</h2>
@@ -923,7 +953,7 @@ export default function ScheduleClient({
           </div>
 
           {/* Right Column: Interactive Calendar or List View */}
-          <div className="lg:col-span-6 xl:col-span-6 space-y-4">
+          <div className={`lg:col-span-6 xl:col-span-6 space-y-4 ${mobileTab === 'calendar' ? 'block' : 'hidden lg:block'}`}>
              {viewMode === 'calendar' ? (
                 <div className="bg-white dark:bg-[#0f172a] rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden min-h-[430px] flex flex-col">
                    
@@ -1016,7 +1046,7 @@ export default function ScheduleClient({
                                           <h5 className="text-[7px] font-normal text-slate-800 dark:text-slate-200 truncate leading-tight flex-1">{ev.title}</h5>
                                           <button 
                                             onClick={(e) => { e.stopPropagation(); handleDelete(ev.id); }}
-                                            className="p-0.5 hover:text-rose-500 text-slate-400 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer shrink-0"
+                                            className="p-0.5 hover:text-rose-500 text-slate-400 hover:text-rose-500 md:opacity-0 md:group-hover:opacity-100 opacity-100 transition-opacity cursor-pointer shrink-0"
                                           >
                                             <Trash2 size={8} />
                                           </button>

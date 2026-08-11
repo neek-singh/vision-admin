@@ -116,14 +116,14 @@ export default function AdminActions({ id, status, phone, studentName, courseTit
                             <div className="bg-gray-50 p-4 rounded-2xl relative group">
                                 <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">Student ID</p>
                                 <p className="font-mono font-black text-blue-900">{creds.studentId}</p>
-                                <button onClick={() => handleCopy(creds.studentId)} className="absolute right-3 top-1/2 -translate-y-1/2 p-2 opacity-0 group-hover:opacity-100 transition-opacity bg-white shadow-sm rounded-lg">
+                                <button onClick={() => handleCopy(creds.studentId)} className="absolute right-3 top-1/2 -translate-y-1/2 p-2 md:opacity-0 md:group-hover:opacity-100 opacity-100 transition-opacity bg-white shadow-sm rounded-lg">
                                     <Copy size={14} className="text-blue-600" />
                                 </button>
                             </div>
                             <div className="bg-gray-50 p-4 rounded-2xl relative group">
                                 <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">Password</p>
                                 <p className="font-mono font-black text-blue-900">{creds.password}</p>
-                                <button onClick={() => handleCopy(creds.password)} className="absolute right-3 top-1/2 -translate-y-1/2 p-2 opacity-0 group-hover:opacity-100 transition-opacity bg-white shadow-sm rounded-lg">
+                                <button onClick={() => handleCopy(creds.password)} className="absolute right-3 top-1/2 -translate-y-1/2 p-2 md:opacity-0 md:group-hover:opacity-100 opacity-100 transition-opacity bg-white shadow-sm rounded-lg">
                                     <Copy size={14} className="text-blue-600" />
                                 </button>
                             </div>

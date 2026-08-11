@@ -1,7 +1,7 @@
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import FeesClient from "@/components/lms/fees/FeesClient";
 
-export const revalidate = 0;
+export const unstable_instant = false;
 
 export default async function AdminFeesPage() {
   const supabase = await createServerSupabaseClient();
@@ -41,7 +41,7 @@ export default async function AdminFeesPage() {
   const todayCollection = todayPayments?.reduce((acc, p) => acc + Number(p.amount), 0) || 0;
 
   return (
-    <div className="container mx-auto px-6 py-10">
+    <div className="container mx-auto py-6 sm:py-10">
       <div className="mb-10">
         <h1 className="text-4xl font-black text-slate-900 tracking-tight">Financial Center</h1>
         <p className="text-slate-500 font-medium mt-1">Fee collections and payment management.</p>

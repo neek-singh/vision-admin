@@ -2,7 +2,9 @@ import BatchForm from "@/components/web/BatchForm";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { notFound } from "next/navigation";
 
-export const revalidate = 0;
+export const unstable_instant = false;
+
+
 
 interface EditBatchPageProps {
   params: Promise<{ id: string }>;

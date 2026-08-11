@@ -1,7 +1,7 @@
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import ScheduleClient from "@/components/lms/schedule/ScheduleClient";
 
-export const revalidate = 0;
+export const unstable_instant = false;
 
 export default async function AdminSchedulePage() {
   const supabase = await createServerSupabaseClient();
@@ -55,7 +55,7 @@ export default async function AdminSchedulePage() {
   const allBatches = ["All Batches", ...batchesList.map(b => b.title)];
 
   return (
-    <div className="container mx-auto px-4 py-6">
+    <div className="container mx-auto py-6">
       <ScheduleClient 
         initialSchedules={combinedSchedules} 
         courses={courses || []} 

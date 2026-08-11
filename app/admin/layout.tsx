@@ -317,7 +317,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
       {/* Main Content Area */}
       <div
-        className={`flex-1 flex flex-col transition-all duration-300 ease-in-out min-h-screen
+        className={`flex-1 flex flex-col transition-all duration-300 ease-in-out min-h-screen max-w-full overflow-x-hidden
         ${isCollapsed ? "lg:ml-[84px]" : "lg:ml-[270px]"}`}
       >
         {/* Header/Navbar */}

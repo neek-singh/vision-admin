@@ -1,7 +1,7 @@
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import ExpensesClient from "@/components/lms/expenses/ExpensesClient";
 
-export const revalidate = 0;
+export const unstable_instant = false;
 
 export default async function AdminExpensesPage() {
   const supabase = await createServerSupabaseClient();
@@ -33,7 +33,7 @@ export default async function AdminExpensesPage() {
     .reduce((acc, exp) => acc + Number(exp.amount), 0);
 
   return (
-    <div className="container mx-auto px-6 py-10">
+    <div className="container mx-auto py-6 sm:py-10">
       <div className="mb-10">
         <h1 className="text-4xl font-black text-slate-900 tracking-tight">Expense Management</h1>
         <p className="text-slate-500 font-medium mt-1">Track and manage institution expenditures and cash flows.</p>

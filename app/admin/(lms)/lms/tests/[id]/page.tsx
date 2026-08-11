@@ -2,6 +2,8 @@ import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { notFound } from "next/navigation";
 import QuestionsClient from "@/components/lms/tests/QuestionsClient";
 
+export const unstable_instant = false;
+
 export default async function TestQuestionsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createServerSupabaseClient();

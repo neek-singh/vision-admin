@@ -7,7 +7,7 @@ import DeleteButton from "@/components/ui/DeleteButton";
 import fs from "fs";
 import path from "path";
 
-export const revalidate = 0;
+export const unstable_instant = false;
 
 // 🔐 Server Supabase
 async function getSupabase() {

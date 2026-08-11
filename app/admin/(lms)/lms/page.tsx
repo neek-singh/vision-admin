@@ -23,30 +23,10 @@ import { createServerSupabaseClient } from "@/lib/supabase-server";
 import Link from "next/link";
 import { Boneyard } from "@/components/ui/Boneyard";
 
-export const revalidate = 0;
+export const unstable_instant = false;
 
 // 📊 Stats Grid Component
-async function StatsGrid() {
-  const supabase = await createServerSupabaseClient();
-  
-  const [studentsCount, coursesCount, enrollmentsData, pendingAdmissions] = await Promise.all([
-    supabase.from("students").select("*", { count: "exact", head: true }),
-    supabase.from("courses").select("*", { count: "exact", head: true }),
-    supabase.from("enrollments").select("progress_percentage"),
-    supabase.from("admissions").select("*", { count: "exact", head: true }).eq("status", "pending")
-  ]);
-
-  const avg = enrollmentsData.data?.length 
-    ? Math.round(enrollmentsData.data.reduce((acc, curr) => acc + (curr.progress_percentage || 0), 0) / enrollmentsData.data.length)
-    : 0;
-
-  const stats = {
-    totalStudents: studentsCount.count || 0,
-    activeCourses: coursesCount.count || 0,
-    avgProgress: avg,
-    pendingAdmissions: pendingAdmissions.count || 0 
-  };
-
+function StatsGrid({ stats }: { stats: any }) {
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
       <StatCard 
@@ -54,7 +34,7 @@ async function StatsGrid() {
         label="Total Students" 
         value={stats.totalStudents} 
         color="bg-blue-500" 
-        subText="+4 new this week" 
+        subText={stats.newThisWeek > 0 ? `+${stats.newThisWeek} new this week` : "No new students this week"} 
       />
       <StatCard 
         icon={BookOpen} 
@@ -82,7 +62,59 @@ async function StatsGrid() {
 }
 
 // 📈 LMS Analytics Charts Component
-function LMSAnalytics() {
+function LMSAnalytics({ enrollments }: { enrollments: any[] }) {
+  // Calculate Monthly Course Enrolments (Last 6 Months)
+  const months: { name: string; year: number; month: number; count: number }[] = [];
+  const today = new Date();
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+    months.push({
+      name: d.toLocaleDateString("en-US", { month: "short" }),
+      year: d.getFullYear(),
+      month: d.getMonth(),
+      count: 0
+    });
+  }
+
+  enrollments.forEach(item => {
+    if (!item.created_at) return;
+    const d = new Date(item.created_at);
+    const m = d.getMonth();
+    const y = d.getFullYear();
+    const match = months.find(x => x.month === m && x.year === y);
+    if (match) {
+      match.count++;
+    }
+  });
+
+  const maxCount = Math.max(...months.map(m => m.count), 1);
+
+  // Calculate Completion Ranges
+  const total = enrollments.length || 0;
+  let range1 = 0; // 0-25%
+  let range2 = 0; // 26-50%
+  let range3 = 0; // 51-75%
+  let range4 = 0; // 76-100%
+
+  enrollments.forEach(item => {
+    const p = item.progress_percentage || 0;
+    if (p <= 25) range1++;
+    else if (p <= 50) range2++;
+    else if (p <= 75) range3++;
+    else range4++;
+  });
+
+  const pct1 = total ? Math.round((range1 / total) * 100) : 0;
+  const pct2 = total ? Math.round((range2 / total) * 100) : 0;
+  const pct3 = total ? Math.round((range3 / total) * 100) : 0;
+  const pct4 = total ? Math.round((range4 / total) * 100) : 0;
+
+  // Cumulative Dashoffsets for Donut Chart
+  const dashoffset4 = 100;
+  const dashoffset3 = 100 - pct4;
+  const dashoffset2 = 100 - pct4 - pct3;
+  const dashoffset1 = 100 - pct4 - pct3 - pct2;
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* Monthly Course Enrolments (Bar Chart) */}
@@ -97,49 +129,24 @@ function LMSAnalytics() {
         </div>
         
         {/* SVG Bar Chart */}
-        <div className="h-60 w-full flex items-end justify-between gap-1.5 sm:gap-3 pt-6 border-b border-slate-100 dark:border-slate-800/60 pb-1">
-          <div className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
-            <div className="w-full bg-blue-600/10 dark:bg-blue-500/5 rounded-t-2xl h-[45%] relative group hover:bg-blue-600/20 transition-all cursor-pointer">
-              <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] font-bold px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 shadow-sm">12 std</div>
-              <div className="absolute bottom-0 left-0 right-0 bg-blue-600 rounded-t-2xl h-[85%]"></div>
-            </div>
-            <span className="text-[9px] text-slate-400 dark:text-slate-500 font-bold mt-1">Jan</span>
-          </div>
-          <div className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
-            <div className="w-full bg-blue-600/10 dark:bg-blue-500/5 rounded-t-2xl h-[65%] relative group hover:bg-blue-600/20 transition-all cursor-pointer">
-              <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] font-bold px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 shadow-sm">18 std</div>
-              <div className="absolute bottom-0 left-0 right-0 bg-blue-600 rounded-t-2xl h-[90%]"></div>
-            </div>
-            <span className="text-[9px] text-slate-400 dark:text-slate-500 font-bold mt-1">Feb</span>
-          </div>
-          <div className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
-            <div className="w-full bg-blue-600/10 dark:bg-blue-500/5 rounded-t-2xl h-[55%] relative group hover:bg-blue-600/20 transition-all cursor-pointer">
-              <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] font-bold px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 shadow-sm">15 std</div>
-              <div className="absolute bottom-0 left-0 right-0 bg-blue-600 rounded-t-2xl h-[80%]"></div>
-            </div>
-            <span className="text-[9px] text-slate-400 dark:text-slate-500 font-bold mt-1">Mar</span>
-          </div>
-          <div className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
-            <div className="w-full bg-blue-600/10 dark:bg-blue-500/5 rounded-t-2xl h-[85%] relative group hover:bg-blue-600/20 transition-all cursor-pointer">
-              <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] font-bold px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 shadow-sm">24 std</div>
-              <div className="absolute bottom-0 left-0 right-0 bg-blue-600 rounded-t-2xl h-[95%]"></div>
-            </div>
-            <span className="text-[9px] text-slate-400 dark:text-slate-500 font-bold mt-1">Apr</span>
-          </div>
-          <div className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
-            <div className="w-full bg-blue-600/10 dark:bg-blue-500/5 rounded-t-2xl h-[70%] relative group hover:bg-blue-600/20 transition-all cursor-pointer">
-              <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] font-bold px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 shadow-sm">20 std</div>
-              <div className="absolute bottom-0 left-0 right-0 bg-blue-600 rounded-t-2xl h-[88%]"></div>
-            </div>
-            <span className="text-[9px] text-slate-400 dark:text-slate-500 font-bold mt-1">May</span>
-          </div>
-          <div className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
-            <div className="w-full bg-blue-600/10 dark:bg-blue-500/5 rounded-t-2xl h-[95%] relative group hover:bg-blue-600/20 transition-all cursor-pointer">
-              <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] font-bold px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 shadow-sm">26 std</div>
-              <div className="absolute bottom-0 left-0 right-0 bg-blue-600 rounded-t-2xl h-[98%]"></div>
-            </div>
-            <span className="text-[9px] text-slate-400 dark:text-slate-500 font-bold mt-1">Jun</span>
-          </div>
+        <div className="h-60 w-full flex items-end justify-between gap-2 sm:gap-4 pt-8 border-b border-slate-100 dark:border-slate-800/60 pb-1">
+          {months.map((m, idx) => {
+            const heightPct = Math.max(Math.round((m.count / maxCount) * 100), 5); // min 5% for layout structure visual height
+            return (
+              <div key={idx} className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
+                <div 
+                  className="w-full bg-blue-600/10 dark:bg-blue-500/5 rounded-t-2xl relative group hover:bg-blue-600/20 transition-all cursor-pointer"
+                  style={{ height: `${heightPct}%` }}
+                >
+                  <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] font-bold px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 shadow-sm">
+                    {m.count} std
+                  </div>
+                  <div className="absolute bottom-0 left-0 right-0 bg-blue-600 rounded-t-2xl h-full"></div>
+                </div>
+                <span className="text-[9px] text-slate-400 dark:text-slate-500 font-bold mt-1">{m.name}</span>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -153,24 +160,36 @@ function LMSAnalytics() {
         </div>
         
         <div className="flex items-center justify-center h-40 relative">
-          <svg className="w-32 h-32 transform -rotate-90" viewBox="0 0 36 36">
-            <circle cx="18" cy="18" r="15.915" fill="none" stroke="#f1f5f9" strokeWidth="3.2" className="dark:stroke-slate-800/40" />
-            
-            {/* 76-100% Progress - 50% */}
-            <circle cx="18" cy="18" r="15.915" fill="none" stroke="rgb(16, 185, 129)" strokeWidth="3.2" 
-              strokeDasharray="50 50" strokeDashoffset="100" />
-            {/* 51-75% Progress - 25% */}
-            <circle cx="18" cy="18" r="15.915" fill="none" stroke="rgb(59, 130, 246)" strokeWidth="3.2" 
-              strokeDasharray="25 75" strokeDashoffset="50" />
-            {/* 26-50% Progress - 15% */}
-            <circle cx="18" cy="18" r="15.915" fill="none" stroke="rgb(245, 158, 11)" strokeWidth="3.2" 
-              strokeDasharray="15 85" strokeDashoffset="25" />
-            {/* 0-25% Progress - 10% */}
-            <circle cx="18" cy="18" r="15.915" fill="none" stroke="rgb(239, 68, 68)" strokeWidth="3.2" 
-              strokeDasharray="10 90" strokeDashoffset="10" />
-          </svg>
+          {total > 0 ? (
+            <svg className="w-32 h-32 transform -rotate-90" viewBox="0 0 36 36">
+              <circle cx="18" cy="18" r="15.915" fill="none" stroke="#f1f5f9" strokeWidth="3.2" className="dark:stroke-slate-800/40" />
+              
+              {/* 76-100% Progress */}
+              {pct4 > 0 && (
+                <circle cx="18" cy="18" r="15.915" fill="none" stroke="rgb(16, 185, 129)" strokeWidth="3.2" 
+                  strokeDasharray={`${pct4} ${100 - pct4}`} strokeDashoffset={dashoffset4} />
+              )}
+              {/* 51-75% Progress */}
+              {pct3 > 0 && (
+                <circle cx="18" cy="18" r="15.915" fill="none" stroke="rgb(59, 130, 246)" strokeWidth="3.2" 
+                  strokeDasharray={`${pct3} ${100 - pct3}`} strokeDashoffset={dashoffset3} />
+              )}
+              {/* 26-50% Progress */}
+              {pct2 > 0 && (
+                <circle cx="18" cy="18" r="15.915" fill="none" stroke="rgb(245, 158, 11)" strokeWidth="3.2" 
+                  strokeDasharray={`${pct2} ${100 - pct2}`} strokeDashoffset={dashoffset2} />
+              )}
+              {/* 0-25% Progress */}
+              {pct1 > 0 && (
+                <circle cx="18" cy="18" r="15.915" fill="none" stroke="rgb(239, 68, 68)" strokeWidth="3.2" 
+                  strokeDasharray={`${pct1} ${100 - pct1}`} strokeDashoffset={dashoffset1} />
+              )}
+            </svg>
+          ) : (
+            <div className="w-32 h-32 rounded-full border-4 border-slate-105 dark:border-slate-800 flex items-center justify-center text-slate-350 dark:text-slate-650" />
+          )}
           <div className="absolute flex flex-col items-center justify-center">
-            <span className="text-2xl font-black text-blue-950 dark:text-white">8</span>
+            <span className="text-2xl font-black text-blue-950 dark:text-white">{total}</span>
             <span className="text-[9px] text-slate-400 font-black uppercase tracking-widest mt-0.5">Students</span>
           </div>
         </div>
@@ -179,19 +198,19 @@ function LMSAnalytics() {
         <div className="grid grid-cols-2 gap-2 text-[10px] font-bold text-slate-500 dark:text-slate-400">
           <div className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full shrink-0"></span>
-            <span>76-100% (50%)</span>
+            <span>76-100% ({pct4}%)</span>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 bg-blue-500 rounded-full shrink-0"></span>
-            <span>51-75% (25%)</span>
+            <span>51-75% ({pct3}%)</span>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 bg-amber-500 rounded-full shrink-0"></span>
-            <span>26-50% (15%)</span>
+            <span>26-50% ({pct2}%)</span>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 bg-red-500 rounded-full shrink-0"></span>
-            <span>0-25% (10%)</span>
+            <span>0-25% ({pct1}%)</span>
           </div>
         </div>
       </div>
@@ -317,6 +336,33 @@ async function PendingAdmissions() {
 
 // 🚀 MAIN PAGE
 export default async function LMSDashboard() {
+  const supabase = await createServerSupabaseClient();
+
+  const [studentsCount, coursesCount, enrollmentsRes, pendingAdmissions] = await Promise.all([
+    supabase.from("students").select("*", { count: "exact", head: true }),
+    supabase.from("courses").select("*", { count: "exact", head: true }),
+    supabase.from("enrollments").select("progress_percentage, created_at"),
+    supabase.from("admissions").select("*", { count: "exact", head: true }).eq("status", "pending")
+  ]);
+
+  const enrollments = enrollmentsRes.data || [];
+  
+  const avg = enrollments.length 
+    ? Math.round(enrollments.reduce((acc, curr) => acc + (curr.progress_percentage || 0), 0) / enrollments.length)
+    : 0;
+
+  const oneWeekAgo = new Date();
+  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+  const newThisWeek = enrollments.filter(x => x.created_at && new Date(x.created_at) >= oneWeekAgo).length;
+
+  const stats = {
+    totalStudents: studentsCount.count || 0,
+    activeCourses: coursesCount.count || 0,
+    avgProgress: avg,
+    pendingAdmissions: pendingAdmissions.count || 0,
+    newThisWeek
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -331,13 +377,9 @@ export default async function LMSDashboard() {
         </div>
       </div>
 
-      {/* Stats Grid with Suspense */}
-      <Suspense fallback={<div className="grid grid-cols-2 lg:grid-cols-4 gap-6"><Boneyard className="h-28 rounded-3xl" count={4} /></div>}>
-        <StatsGrid />
-      </Suspense>
+      <StatsGrid stats={stats} />
 
-      {/* LMS Analytics Section (Charts) */}
-      <LMSAnalytics />
+      <LMSAnalytics enrollments={enrollments} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Recent Student Activity with Suspense */}

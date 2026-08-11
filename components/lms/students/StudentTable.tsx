@@ -1005,7 +1005,7 @@ export default function StudentTable({
                     </div>
                   </div>
 
-                  <div className="pt-2 flex gap-3 flex-wrap">
+                  <div className="pt-3 grid grid-cols-2 gap-2.5">
                     {!credentialsDoneIds.has(student.id) && (
                       <button 
                         onClick={() => {
@@ -1013,30 +1013,42 @@ export default function StudentTable({
                           setGeneratedCreds(null);
                           setCredsError("");
                         }}
-                        className="flex-1 py-3 bg-amber-50/50 hover:bg-amber-50 dark:bg-amber-500/10 dark:hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 border border-amber-100/50 dark:border-amber-900/30 shadow-sm transition-all cursor-pointer"
+                        className="py-2.5 px-3 bg-amber-500/10 text-amber-700 dark:text-amber-400 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 border border-amber-500/20 shadow-sm transition-all cursor-pointer hover:bg-amber-500/25"
                       >
-                        <KeyRound size={14} className="text-amber-600 dark:text-amber-400" /> Generate Credentials
+                        <KeyRound size={12} className="text-amber-600 dark:text-amber-400 shrink-0" />
+                        <span className="truncate">Credentials</span>
                       </button>
                     )}
                     <button 
                       onClick={() => setIdCardStudent(student)}
-                      className="flex-1 py-3 bg-blue-50/50 hover:bg-blue-50 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 text-blue-700 dark:text-blue-400 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 border border-blue-100/50 dark:border-blue-900/30 shadow-sm transition-all cursor-pointer"
+                      className="py-2.5 px-3 bg-blue-500/10 text-blue-700 dark:text-blue-400 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 border border-blue-500/20 shadow-sm transition-all cursor-pointer hover:bg-blue-500/25"
                     >
-                      <IdCard size={14} className="text-blue-600 dark:text-blue-400" /> Generate ID Card
+                      <IdCard size={12} className="text-blue-600 dark:text-blue-400 shrink-0" />
+                      <span className="truncate">ID Card</span>
                     </button>
                     <button 
                       onClick={() => setCertificateStudent(student)}
-                      className="flex-1 py-3 bg-amber-50/50 hover:bg-amber-50 dark:bg-amber-500/10 dark:hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 border border-amber-100/50 dark:border-amber-900/30 shadow-sm transition-all cursor-pointer"
+                      className="py-2.5 px-3 bg-amber-500/10 text-amber-700 dark:text-amber-400 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 border border-amber-500/20 shadow-sm transition-all cursor-pointer hover:bg-amber-500/25"
                     >
-                      <Award size={14} className="text-amber-600 dark:text-amber-400" /> Generate Certificate
+                      <Award size={12} className="text-amber-600 dark:text-amber-400 shrink-0" />
+                      <span className="truncate">Certificate</span>
                     </button>
                     <button 
                       onClick={() => setEditingStudent(student)}
-                      className="flex-1 py-3 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 border border-slate-100 dark:border-slate-700 shadow-sm transition-all cursor-pointer"
+                      className="py-2.5 px-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-350 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 border border-slate-200 dark:border-slate-700 shadow-sm transition-all cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-750"
                     >
-                      <Settings size={14} className="text-slate-400" /> Manage Student
+                      <Settings size={12} className="text-slate-500 shrink-0" />
+                      <span className="truncate">Manage</span>
                     </button>
-                    <DeleteButton id={student.id} table="students" title={student.name} />
+                    <div className="col-span-2 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 mt-1 flex justify-between items-center">
+                      <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-1">Danger Zone</span>
+                      <DeleteButton 
+                        id={student.id} 
+                        table="students" 
+                        title={student.name}
+                        className="py-2 px-3.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer"
+                      />
+                    </div>
                   </div>
                 </div>
               );
