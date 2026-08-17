@@ -25,7 +25,7 @@ import {
   CalendarCheck,
   ChevronDown
 } from "lucide-react";
-import { setupStudentFee, recordPayment, deleteFeeRecord, deletePayment } from "@/app/actions/lms/fees";
+import { setupStudentFee, recordPayment, deleteFeeRecord, deletePayment, incrementStudentFee } from "@/app/actions/lms/fees";
 
 export default function FeesClient({ 
   initialFees, 
@@ -42,11 +42,14 @@ export default function FeesClient({
   const [showSetup, setShowSetup] = useState(false);
   const [showPayment, setShowPayment] = useState<any | null>(null);
   const [showHistory, setShowHistory] = useState<any | null>(null);
+  const [showIncrement, setShowIncrement] = useState<any | null>(null);
+  const [incrementAmount, setIncrementAmount] = useState<number>(0);
   
   // Search & Filter State
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all"); // all, paid, partial, due
   const [courseFilter, setCourseFilter] = useState("all");
+  const [monthFilter, setMonthFilter] = useState("all");
 
   // Setup Form State
   const [enableInstallments, setEnableInstallments] = useState(false);
@@ -137,8 +140,63 @@ export default function FeesClient({
     fee_type: "course" // "course", "registration", "exam"
   });
 
+  // Dynamically extract unique months from all fees and payments
+  const availableMonths = useMemo(() => {
+    const months = new Set<string>();
+    
+    // Add months from fee creation dates
+    initialFees.forEach(fee => {
+      if (fee.created_at) {
+        months.add(fee.created_at.substring(0, 7)); // "YYYY-MM"
+      }
+      // Add months from payments
+      fee.payments?.forEach((p: any) => {
+        if (p.payment_date) {
+          months.add(p.payment_date.substring(0, 7));
+        }
+      });
+    });
+
+    // Also ensure current month is in the list
+    const currentMonth = new Date().toISOString().substring(0, 7);
+    months.add(currentMonth);
+
+    // Convert to sorted array (descending)
+    return Array.from(months).sort().reverse();
+  }, [initialFees]);
+
+  // Dynamically compute the income for the selected month
+  const selectedMonthIncome = useMemo(() => {
+    const targetMonth = monthFilter === "all" ? new Date().toISOString().substring(0, 7) : monthFilter;
+    
+    return initialFees.reduce((acc, fee) => {
+      const monthPayments = fee.payments?.filter((p: any) => p.payment_date && p.payment_date.substring(0, 7) === targetMonth) || [];
+      const sum = monthPayments.reduce((sumAcc: number, p: any) => sumAcc + Number(p.amount), 0);
+      return acc + sum;
+    }, 0);
+  }, [initialFees, monthFilter]);
+
+  // Card headers based on selected month
+  const monthCardTitle = useMemo(() => {
+    if (monthFilter === "all") return "This Month Income";
+    const [year, month] = monthFilter.split("-");
+    const date = new Date(Number(year), Number(month) - 1, 1);
+    const monthName = date.toLocaleDateString("en-US", { month: "long" });
+    return `${monthName} Income`;
+  }, [monthFilter]);
+
+  const monthCardSub = useMemo(() => {
+    if (monthFilter === "all") return "Collected this month";
+    const [year, month] = monthFilter.split("-");
+    const date = new Date(Number(year), Number(month) - 1, 1);
+    const monthName = date.toLocaleDateString("en-US", { month: "long" });
+    return `Collected in ${monthName}`;
+  }, [monthFilter]);
+
   // Memoized Filtered Fees
   const filteredFees = useMemo(() => {
+    const targetMonth = monthFilter === "all" ? new Date().toISOString().substring(0, 7) : monthFilter;
+
     return initialFees.filter(fee => {
       const student = fee.students as any;
       const course = fee.courses as any;
@@ -149,17 +207,35 @@ export default function FeesClient({
         student?.student_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         course?.title?.toLowerCase().includes(searchTerm.toLowerCase());
 
+      // Calculate total paid and overall balance
+      const totalPaid = fee.payments?.reduce((acc: number, p: any) => acc + Number(p.amount), 0) || 0;
+      const totalPayable = Number(fee.final_fee) + Number(fee.increment_amount || 0);
+      const hasBalance = totalPayable - totalPaid > 0;
+
+      // Calculate payments made in the selected month
+      const totalPaidInMonth = fee.payments
+        ?.filter((p: any) => p.payment_date && p.payment_date.substring(0, 7) === targetMonth)
+        ?.reduce((acc: number, p: any) => acc + Number(p.amount), 0) || 0;
+
       const matchesStatus = 
         statusFilter === "all" || 
-        fee.status === statusFilter;
+        (statusFilter === "unpaid_month" 
+          ? (hasBalance && totalPaidInMonth === 0) 
+          : fee.status === statusFilter);
 
       const matchesCourse = 
         courseFilter === "all" || 
         fee.course_id === courseFilter;
 
-      return matchesSearch && matchesStatus && matchesCourse;
+      const matchesMonth =
+        statusFilter === "unpaid_month" || // bypass month check to show all unpaid students
+        monthFilter === "all" ||
+        (fee.created_at && fee.created_at.substring(0, 7) === monthFilter) ||
+        (fee.payments && fee.payments.some((p: any) => p.payment_date && p.payment_date.substring(0, 7) === monthFilter));
+
+      return matchesSearch && matchesStatus && matchesCourse && matchesMonth;
     });
-  }, [initialFees, searchTerm, statusFilter, courseFilter]);
+  }, [initialFees, searchTerm, statusFilter, courseFilter, monthFilter]);
 
   const handleSetup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -218,6 +294,24 @@ export default function FeesClient({
         fee_type: "course"
       });
       alert("Payment recorded!");
+    } else {
+      alert("Error: " + result.error);
+    }
+    setLoading(false);
+  };
+
+  const handleIncrementSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (incrementAmount <= 0) {
+      alert("Please enter a valid positive amount.");
+      return;
+    }
+    setLoading(true);
+    const result = await incrementStudentFee(showIncrement.id, incrementAmount);
+    if (result.success) {
+      setShowIncrement(null);
+      setIncrementAmount(0);
+      alert("Fee increased successfully!");
     } else {
       alert("Error: " + result.error);
     }
@@ -852,14 +946,16 @@ export default function FeesClient({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
         {/* Left Column - Stats Cards Grid */}
-        <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-3 gap-6">
-          <StatCard 
-            title="Total Collection" 
-            value={stats.totalCollection} 
-            icon={<Wallet className="text-emerald-600 dark:text-emerald-400" size={24} />} 
-            sub="Overall received fees" 
-            accentColor="emerald"
-          />
+        <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+          <div className="sm:col-span-2">
+            <StatCard 
+              title="Total Collection" 
+              value={stats.totalCollection} 
+              icon={<Wallet className="text-emerald-600 dark:text-emerald-400" size={24} />} 
+              sub="Overall received fees" 
+              accentColor="emerald"
+            />
+          </div>
           <StatCard 
             title="Total Outstanding" 
             value={stats.totalPending} 
@@ -873,6 +969,20 @@ export default function FeesClient({
             icon={<TrendingUp className="text-blue-600 dark:text-blue-400" size={24} />} 
             sub="Collected today" 
             accentColor="blue"
+          />
+          <StatCard 
+            title="This Week Income" 
+            value={stats.weeklyCollection || 0} 
+            icon={<CalendarCheck className="text-purple-600 dark:text-purple-400" size={24} />} 
+            sub="Collected this week" 
+            accentColor="purple"
+          />
+          <StatCard 
+            title={monthCardTitle} 
+            value={selectedMonthIncome} 
+            icon={<Calendar className="text-amber-600 dark:text-amber-400" size={24} />} 
+            sub={monthCardSub} 
+            accentColor="amber"
           />
         </div>
 
@@ -973,6 +1083,24 @@ export default function FeesClient({
                </select>
              </div>
 
+             {/* Month filter select */}
+             <div className="flex items-center bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-1.5 gap-2 shrink-0">
+               <span className="text-[10px] font-bold text-slate-400 dark:text-slate-550 uppercase">Month:</span>
+               <select 
+                 value={monthFilter}
+                 onChange={(e) => setMonthFilter(e.target.value)}
+                 className="bg-transparent text-xs font-bold text-slate-800 dark:text-slate-200 border-none outline-none py-0.5 cursor-pointer"
+               >
+                 <option value="all">All Months</option>
+                 {availableMonths.map(ym => {
+                   const [year, month] = ym.split("-");
+                   const date = new Date(Number(year), Number(month) - 1, 1);
+                   const formatted = date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+                   return <option key={ym} value={ym} className="dark:bg-slate-900">{formatted}</option>;
+                 })}
+               </select>
+             </div>
+
              {courseFilter !== "all" && (
                <button
                  type="button"
@@ -990,7 +1118,11 @@ export default function FeesClient({
                  { id: "all", label: "All Records" },
                  { id: "paid", label: "Fully Paid" },
                  { id: "partial", label: "Partially Paid" },
-                 { id: "due", label: "Balance Due" }
+                 { id: "due", label: "Balance Due" },
+                 { 
+                    id: "unpaid_month", 
+                    label: monthFilter === "all" ? "Unpaid This Month" : `Unpaid in ${monthCardTitle.replace(" Income", "")}` 
+                  }
                ].map(tab => (
                  <button
                    key={tab.id}
@@ -1030,20 +1162,21 @@ export default function FeesClient({
               <tbody className="divide-y divide-slate-50 dark:divide-slate-850">
                 {filteredFees.map((fee) => {
                   const totalPaid = fee.payments?.reduce((acc: number, p: any) => acc + Number(p.amount), 0) || 0;
-                  const balance = Number(fee.final_fee) - totalPaid;
+                  const balance = Number(fee.final_fee) + Number(fee.increment_amount || 0) - totalPaid;
                   return (
                     <tr key={fee.id} className="hover:bg-slate-50/40 dark:hover:bg-slate-800/40 transition-colors group">
                       <td className="px-8 py-5">
                         <div className="font-bold text-slate-900 dark:text-white text-sm">{(fee.students as any)?.name}</div>
-                        <div className="text-[10px] font-mono font-semibold text-slate-400 dark:text-slate-550 uppercase tracking-widest mt-0.5">{(fee.students as any)?.student_id}</div>
+                        <div className="text-[10px] font-mono font-semibold text-slate-400 dark:text-slate-555 uppercase tracking-widest mt-0.5">{(fee.students as any)?.student_id}</div>
                       </td>
                       <td className="px-8 py-5 text-xs font-bold text-slate-655 dark:text-slate-300">{(fee.courses as any)?.title || "N/A"}</td>
                       <td className="px-8 py-5">
-                        <div className="text-sm font-black text-slate-900 dark:text-slate-100">₹{fee.final_fee.toLocaleString()}</div>
-                        {fee.discount > 0 && <div className="text-[9px] font-semibold text-rose-500">Disc: ₹{fee.discount.toLocaleString()}</div>}
+                        <div className="text-sm font-black text-slate-900 dark:text-slate-100">₹{(Number(fee.final_fee) + Number(fee.increment_amount || 0)).toLocaleString()}</div>
+                        {fee.discount > 0 && <div className="text-[9px] font-semibold text-rose-500">Disc: -₹{fee.discount.toLocaleString()}</div>}
+                        {fee.increment_amount > 0 && <div className="text-[9px] font-bold text-amber-500">Extra: +₹{fee.increment_amount.toLocaleString()}</div>}
                       </td>
-                      <td className="px-8 py-5 text-emerald-600 dark:text-emerald-450 font-black text-sm">₹{totalPaid.toLocaleString()}</td>
-                      <td className={`px-8 py-5 font-black text-sm ${balance > 0 ? 'text-rose-600 dark:text-rose-455' : 'text-slate-400 dark:text-slate-550'}`}>₹{balance.toLocaleString()}</td>
+                      <td className="px-8 py-5 text-emerald-600 dark:text-emerald-455 font-black text-sm">₹{totalPaid.toLocaleString()}</td>
+                      <td className={`px-8 py-5 font-black text-sm ${balance > 0 ? 'text-rose-600 dark:text-rose-455' : 'text-slate-400 dark:text-slate-555'}`}>₹{balance.toLocaleString()}</td>
                       <td className="px-8 py-5">
                         <StatusBadge status={fee.status} />
                       </td>
@@ -1067,6 +1200,13 @@ export default function FeesClient({
                             title="Add Payment"
                            >
                              <Plus size={18} className="stroke-[3]" />
+                           </button>
+                           <button 
+                            onClick={() => setShowIncrement(fee)}
+                            className="p-2 text-slate-400 hover:text-amber-500 hover:bg-slate-105 dark:hover:bg-slate-800 rounded-xl transition-all cursor-pointer"
+                            title="Increase Fee"
+                           >
+                             <ArrowUpRight size={18} />
                            </button>
                            <button 
                             onClick={() => setShowHistory(fee)}
@@ -1101,7 +1241,7 @@ export default function FeesClient({
           ) : (
             filteredFees.map((fee) => {
               const totalPaid = fee.payments?.reduce((acc: number, p: any) => acc + Number(p.amount), 0) || 0;
-              const balance = Number(fee.final_fee) - totalPaid;
+              const balance = Number(fee.final_fee) + Number(fee.increment_amount || 0) - totalPaid;
               return (
                 <div key={fee.id} className="p-6 space-y-4">
                   <div className="flex justify-between items-start">
@@ -1120,7 +1260,9 @@ export default function FeesClient({
                       </div>
                       <div className="text-right">
                         <span className="text-[9px] font-bold text-slate-400 dark:text-slate-550 uppercase tracking-widest block mb-1">Final Fee</span>
-                        <p className="text-sm font-black text-slate-900 dark:text-slate-100">₹{fee.final_fee.toLocaleString()}</p>
+                        <p className="text-sm font-black text-slate-900 dark:text-slate-100">₹{(Number(fee.final_fee) + Number(fee.increment_amount || 0)).toLocaleString()}</p>
+                        {fee.discount > 0 && <span className="text-[9px] font-semibold text-rose-500 block">Disc: -₹{fee.discount.toLocaleString()}</span>}
+                        {fee.increment_amount > 0 && <span className="text-[9px] font-bold text-amber-500 block">Extra: +₹{fee.increment_amount.toLocaleString()}</span>}
                       </div>
                     </div>
                     <div className="flex justify-between pt-3 border-t border-slate-200/40 dark:border-slate-800/80">
@@ -1129,7 +1271,7 @@ export default function FeesClient({
                         <p className="text-sm font-black text-emerald-600 dark:text-emerald-400">₹{totalPaid.toLocaleString()}</p>
                       </div>
                       <div className="text-right">
-                        <span className="text-[9px] font-bold text-rose-450 uppercase tracking-widest block mb-1">Balance Due</span>
+                        <span className="text-[9px] font-bold text-rose-455 uppercase tracking-widest block mb-1">Balance Due</span>
                         <p className={`text-sm font-black ${balance > 0 ? 'text-rose-600 dark:text-rose-455' : 'text-slate-400 dark:text-slate-500'}`}>₹{balance.toLocaleString()}</p>
                       </div>
                     </div>
@@ -1150,11 +1292,18 @@ export default function FeesClient({
                           });
                         }}
                         disabled={fee.status === 'paid'}
-                        className="flex-1 py-3 bg-blue-50 hover:bg-blue-100/50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 disabled:opacity-30 cursor-pointer"
+                        className="flex-1 py-3 bg-blue-50 hover:bg-blue-100/50 dark:bg-blue-955/40 text-blue-600 dark:text-blue-400 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 disabled:opacity-30 cursor-pointer"
                       >
                         <Plus size={14} className="stroke-[3]" /> Add Payment
                       </button>
                       <div className="flex items-center gap-2">
+                        <button 
+                          onClick={() => setShowIncrement(fee)}
+                          className="p-3 text-slate-400 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all border border-slate-100 dark:border-slate-800 cursor-pointer"
+                          title="Increase Fee"
+                        >
+                          <ArrowUpRight size={16} />
+                        </button>
                         <button 
                           onClick={() => setShowHistory(fee)}
                           className="p-3 text-slate-400 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all border border-slate-100 dark:border-slate-800 cursor-pointer"
@@ -1209,7 +1358,14 @@ export default function FeesClient({
                         onChange={(e) => setSetupData({...setupData, student_id: e.target.value})}
                       >
                         <option value="">Choose Student...</option>
-                        {students.map(s => <option key={s.id} value={s.id} className="dark:bg-slate-900">{s.name} ({s.student_id})</option>)}
+                        {students
+                          .filter(s => !initialFees.some(f => f.student_id === s.id))
+                          .map(s => (
+                            <option key={s.id} value={s.id} className="dark:bg-slate-900">
+                              {s.name} ({s.student_id})
+                            </option>
+                          ))
+                        }
                       </select>
                    </div>
                    <div className="space-y-2">
@@ -1688,6 +1844,67 @@ export default function FeesClient({
         </div>
       )}
 
+      {/* Increment Modal */}
+      {showIncrement && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-300">
+             <div className="px-8 py-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50 shrink-0">
+               <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                 <ArrowUpRight size={20} className="text-amber-500" /> Increase Course Fee
+               </h3>
+               <button 
+                 onClick={() => {
+                   setShowIncrement(null);
+                   setIncrementAmount(0);
+                 }} 
+                 className="p-2 hover:bg-slate-105 rounded-lg cursor-pointer"
+               >
+                 <X size={18} className="text-slate-900 dark:text-white" />
+               </button>
+             </div>
+             
+             <form onSubmit={handleIncrementSubmit} className="p-8 space-y-6">
+                <div className="space-y-1">
+                   <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                     Student: <span className="font-bold text-slate-900 dark:text-white">{(showIncrement.students as any)?.name}</span>
+                   </p>
+                   <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                     Course: <span className="font-bold text-slate-900 dark:text-white">{(showIncrement.courses as any)?.title}</span>
+                   </p>
+                   <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                     Current Billing Fee: <span className="font-bold text-slate-900 dark:text-white">₹{(Number(showIncrement.final_fee) + Number(showIncrement.increment_amount || 0)).toLocaleString()}</span>
+                   </p>
+                </div>
+
+                <div className="space-y-2">
+                   <label className="text-[10px] font-bold text-slate-400 dark:text-slate-550 uppercase tracking-widest">Increment Amount (₹)</label>
+                   <input 
+                     required 
+                     type="number" 
+                     min="1"
+                     className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 outline-none font-bold text-sm text-slate-900 dark:text-slate-100 focus:border-blue-500" 
+                     value={incrementAmount || ""} 
+                     onChange={(e) => setIncrementAmount(Number(e.target.value))}
+                     placeholder="Enter amount to increase"
+                   />
+                </div>
+
+                <button 
+                  type="submit" 
+                  disabled={loading}
+                  className="w-full py-4 bg-amber-500 hover:bg-amber-600 active:scale-98 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-amber-500/10"
+                >
+                  {loading ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <>Confirm Fee Increase</>
+                  )}
+                </button>
+             </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
@@ -1698,6 +1915,7 @@ function StatCard({ title, value, icon, sub, accentColor }: any) {
     rose: "bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-450 border border-rose-100/30 dark:border-rose-900/20",
     blue: "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-100/30 dark:border-blue-900/20",
     purple: "bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 border border-purple-100/30 dark:border-purple-900/20",
+    amber: "bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-100/30 dark:border-amber-900/20",
   };
 
   const formattedValue = typeof value === 'number' ? `₹${value.toLocaleString()}` : value;

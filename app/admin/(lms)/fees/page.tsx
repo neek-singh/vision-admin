@@ -15,7 +15,7 @@ export default async function AdminFeesPage() {
       courses (id, title),
       payments (id, amount, payment_date, payment_mode, transaction_id, registration_fee, course_fee, exam_fee)
     `)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: true });
 
   // 2. Fetch students & courses for setup
   const { data: students } = await supabase.from("students").select("id, name, student_id").order("name");
@@ -29,16 +29,34 @@ export default async function AdminFeesPage() {
 
   const totalPending = fees?.reduce((acc, f) => {
     const paid = f.payments?.reduce((pAcc: number, p: any) => pAcc + Number(p.amount), 0) || 0;
-    return acc + (Number(f.final_fee) - paid);
+    return acc + (Number(f.final_fee) + Number(f.increment_amount || 0) - paid);
   }, 0) || 0;
   
-  const today = new Date().toISOString().split('T')[0];
-  const { data: todayPayments } = await supabase
-    .from("payments")
-    .select("amount")
-    .gte("payment_date", today);
-    
-  const todayCollection = todayPayments?.reduce((acc, p) => acc + Number(p.amount), 0) || 0;
+  // Calculate Today, Weekly and Monthly Collections
+  const allPayments = fees?.flatMap(f => f.payments || []) || [];
+  
+  // Format dates in local timezone
+  const now = new Date();
+  const todayStr = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+  const currentMonthPrefix = todayStr.substring(0, 7);
+  
+  const currentDayOfWeek = now.getDay();
+  const distanceToMonday = currentDayOfWeek === 0 ? 6 : currentDayOfWeek - 1;
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - distanceToMonday);
+  const startOfWeekStr = new Date(monday.getTime() - monday.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+
+  const todayCollection = allPayments
+    .filter((p: any) => p.payment_date === todayStr)
+    .reduce((acc, p) => acc + Number(p.amount), 0);
+
+  const weeklyCollection = allPayments
+    .filter((p: any) => p.payment_date && p.payment_date >= startOfWeekStr && p.payment_date <= todayStr)
+    .reduce((acc, p) => acc + Number(p.amount), 0);
+
+  const monthlyCollection = allPayments
+    .filter((p: any) => p.payment_date && p.payment_date.startsWith(currentMonthPrefix))
+    .reduce((acc, p) => acc + Number(p.amount), 0);
 
   return (
     <div className="container mx-auto py-6 sm:py-10">
@@ -54,7 +72,9 @@ export default async function AdminFeesPage() {
         stats={{
           totalCollection,
           totalPending,
-          todayCollection
+          todayCollection,
+          weeklyCollection,
+          monthlyCollection
         }}
       />
     </div>

@@ -83,11 +83,11 @@ export async function recordPayment(data: {
   const totalPaid = allPayments?.reduce((acc, p) => acc + Number(p.amount), 0) || 0;
 
   // 3. Update fee status
-  const { data: fee } = await supabase.from("fees").select("final_fee").eq("id", data.fee_id).single();
+  const { data: fee } = await supabase.from("fees").select("final_fee, increment_amount").eq("id", data.fee_id).single();
   if (fee) {
-    const finalFee = Number(fee.final_fee);
+    const totalPayable = Number(fee.final_fee) + Number(fee.increment_amount || 0);
     let newStatus = 'partial';
-    if (totalPaid >= finalFee) newStatus = 'paid';
+    if (totalPaid >= totalPayable) newStatus = 'paid';
     else if (totalPaid === 0) newStatus = 'due';
 
     await supabase.from("fees").update({
@@ -202,11 +202,11 @@ export async function deletePayment(paymentId: string, feeId: string) {
   const totalPaid = allPayments?.reduce((acc, p) => acc + Number(p.amount), 0) || 0;
 
   // 3. Update fee status
-  const { data: fee } = await supabase.from("fees").select("final_fee").eq("id", feeId).single();
+  const { data: fee } = await supabase.from("fees").select("final_fee, increment_amount").eq("id", feeId).single();
   if (fee) {
-    const finalFee = Number(fee.final_fee);
+    const totalPayable = Number(fee.final_fee) + Number(fee.increment_amount || 0);
     let newStatus = 'partial';
-    if (totalPaid >= finalFee) newStatus = 'paid';
+    if (totalPaid >= totalPayable) newStatus = 'paid';
     else if (totalPaid === 0) newStatus = 'due';
 
     await supabase.from("fees").update({
@@ -235,6 +235,51 @@ export async function deletePayment(paymentId: string, feeId: string) {
       }
     }
   }
+
+  revalidatePath("/admin/fees");
+  return { success: true };
+}
+
+export async function incrementStudentFee(feeId: string, incrementAmount: number) {
+  const supabase = await createServerSupabaseClient();
+
+  // 1. Get current fee details
+  const { data: fee, error: getError } = await supabase
+    .from("fees")
+    .select("final_fee, increment_amount")
+    .eq("id", feeId)
+    .single();
+
+  if (getError || !fee) return { error: getError?.message || "Fee record not found" };
+
+  const newIncrement = Number(fee.increment_amount || 0) + Number(incrementAmount);
+
+  // 2. Update increment_amount in database
+  const { error: updateError } = await supabase
+    .from("fees")
+    .update({ increment_amount: newIncrement })
+    .eq("id", feeId);
+
+  if (updateError) return { error: updateError.message };
+
+  // 3. Recalculate status (since increment_amount has changed, we need to check if the status needs to update)
+  // Fetch total paid
+  const { data: allPayments } = await supabase
+    .from("payments")
+    .select("amount")
+    .eq("fee_id", feeId);
+
+  const totalPaid = allPayments?.reduce((acc, p) => acc + Number(p.amount), 0) || 0;
+  const totalPayable = Number(fee.final_fee) + newIncrement;
+
+  let newStatus = 'partial';
+  if (totalPaid >= totalPayable) newStatus = 'paid';
+  else if (totalPaid === 0) newStatus = 'due';
+
+  await supabase
+    .from("fees")
+    .update({ status: newStatus })
+    .eq("id", feeId);
 
   revalidatePath("/admin/fees");
   return { success: true };
