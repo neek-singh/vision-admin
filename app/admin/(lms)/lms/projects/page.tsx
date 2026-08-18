@@ -1,7 +1,7 @@
 import { createServerSupabaseClient } from "@/lib/supabase-server";
-import AssignmentsClient from "@/components/lms/assignments/AssignmentsClient";
+import ProjectsClient from "@/components/lms/projects/ProjectsClient";
 
-export default async function AssignmentsAdminPage() {
+export default async function ProjectsAdminPage() {
   const supabase = await createServerSupabaseClient();
   
   const { data: courses } = await supabase
@@ -9,7 +9,8 @@ export default async function AssignmentsAdminPage() {
     .select("id, title")
     .order("title");
 
-  const { data: assignments } = await supabase
+  // Keep querying 'assignments' table under the hood
+  const { data: projects } = await supabase
     .from("assignments")
     .select(`
       *,
@@ -29,12 +30,12 @@ export default async function AssignmentsAdminPage() {
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Assignments</h1>
-          <p className="text-sm text-slate-500 font-medium">Create tasks and track student submissions.</p>
+          <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Projects</h1>
+          <p className="text-sm text-slate-500 font-medium">Create projects and track student submissions.</p>
         </div>
       </div>
 
-      <AssignmentsClient courses={courses || []} initialAssignments={assignments || []} availableBatches={batchNames} />
+      <ProjectsClient courses={courses || []} initialProjects={projects || []} availableBatches={batchNames} />
     </div>
   );
 }

@@ -54,7 +54,7 @@ const navGroups = [
       { href: "/admin/lms/content", label: "Course Curriculum", icon: FileText },
       { href: "/admin/lms/tests", label: "Manage Tests", icon: ClipboardList },
       { href: "/admin/lms/materials", label: "Notes & Materials", icon: FileText },
-      { href: "/admin/lms/assignments", label: "Assignments", icon: PenTool },
+      { href: "/admin/lms/projects", label: "Projects", icon: PenTool },
       { href: "/admin/lms/attendance", label: "Daily Attendance", icon: CheckCircle2 },
       { href: "/admin/schedule", label: "Academic Schedule", icon: Calendar },
       { href: "/admin/lms/calendar", label: "Calendar & Events", icon: Calendar },

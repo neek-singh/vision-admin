@@ -93,7 +93,7 @@ export default function NotificationsClient({
               <input 
                 required
                 type="text"
-                placeholder="e.g. New Assignment Uploaded"
+                placeholder="e.g. New Project Uploaded"
                 className="w-full px-5 py-3 rounded-2xl bg-slate-50 border border-slate-100 outline-none focus:ring-4 focus:ring-indigo-100 transition-all font-bold text-slate-700"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}

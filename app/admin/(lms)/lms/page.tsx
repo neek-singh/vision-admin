@@ -410,8 +410,8 @@ export default async function LMSDashboard() {
               <Link href="/admin/lms/materials" className="w-full flex items-center gap-2.5 p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 hover:bg-amber-100/70 dark:hover:bg-amber-950/40 transition-all font-bold text-xs hover:scale-[1.01]">
                 <BookOpen size={16} /> Notes & Materials
               </Link>
-              <Link href="/admin/lms/assignments" className="w-full flex items-center gap-2.5 p-3 rounded-2xl bg-indigo-50 dark:bg-indigo-950/20 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-100/70 dark:hover:bg-indigo-950/40 transition-all font-bold text-xs hover:scale-[1.01]">
-                <ClipboardList size={16} /> Assignments Manager
+              <Link href="/admin/lms/projects" className="w-full flex items-center gap-2.5 p-3 rounded-2xl bg-indigo-50 dark:bg-indigo-950/20 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-100/70 dark:hover:bg-indigo-950/40 transition-all font-bold text-xs hover:scale-[1.01]">
+                <ClipboardList size={16} /> Projects Manager
               </Link>
               <Link href="/admin/schedule" className="w-full flex items-center gap-2.5 p-3 rounded-2xl bg-sky-50 dark:bg-sky-950/20 text-sky-700 dark:text-sky-400 hover:bg-sky-100/70 dark:hover:bg-sky-950/40 transition-all font-bold text-xs hover:scale-[1.01]">
                 <Calendar size={16} /> Manage Class Schedule
