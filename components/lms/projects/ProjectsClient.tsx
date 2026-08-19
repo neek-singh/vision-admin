@@ -14,7 +14,8 @@ import {
   Pencil,
   ExternalLink,
   CheckCircle2,
-  Clock as ClockIcon
+  Clock as ClockIcon,
+  Copy
 } from "lucide-react";
 
 const shortenCourseName = (name: string) => {
@@ -57,7 +58,44 @@ const getCategoryStyle = (cat: string) => {
   }
 };
 
-export default function ProjectsClient({ courses, initialProjects, availableBatches = [] }: { courses: any[], initialProjects: any[], availableBatches?: string[] }) {
+const getDueDatesList = (savedDate?: string) => {
+  const list = [];
+  const now = new Date();
+  
+  for (let i = 1; i <= 5; i++) {
+    const d = new Date();
+    d.setDate(now.getDate() + i);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const dateStr = `${yyyy}-${mm}-${dd}`;
+    
+    const labelDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', weekday: 'short' });
+    let label = labelDate;
+    if (i === 1) {
+      label = `${labelDate} (Tomorrow)`;
+    } else if (i === 5) {
+      label = `${labelDate} (5 Days)`;
+    }
+    
+    list.push({ value: dateStr, label });
+  }
+  
+  if (savedDate) {
+    const exists = list.some(item => item.value === savedDate);
+    if (!exists) {
+      const d = new Date(savedDate);
+      if (!isNaN(d.getTime())) {
+        const labelDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', weekday: 'short' });
+        list.unshift({ value: savedDate, label: `${labelDate} (Saved)` });
+      }
+    }
+  }
+  
+  return list;
+};
+
+export default function ProjectsClient({ courses, initialProjects, availableBatches = [] }: { courses: any[], initialProjects: any[], availableBatches?: any[] }) {
   const router = useRouter();
   const [isAdding, setIsAdding] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -65,8 +103,18 @@ export default function ProjectsClient({ courses, initialProjects, availableBatc
   const [viewingSubmissions, setViewingSubmissions] = useState<string | null>(null);
   const [submissions, setSubmissions] = useState<any[]>([]);
   const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(false);
+  const [isCourseDropdownOpen, setIsCourseDropdownOpen] = useState(false);
+  const getDefaultDueDate = () => {
+    const d = new Date();
+    d.setDate(d.getDate() + 5);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
   const [formData, setFormData] = useState({
-    course_id: "",
+    course_ids: [] as string[],
     batch: "",
     title: "",
     description: "",
@@ -78,12 +126,101 @@ export default function ProjectsClient({ courses, initialProjects, availableBatc
   const [savingGradeId, setSavingGradeId] = useState<string | null>(null);
   const [selectedCourseFilter, setSelectedCourseFilter] = useState("all");
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("all");
+  const [selectedDateFilter, setSelectedDateFilter] = useState("all");
+  const [isDuplicating, setIsDuplicating] = useState<string | null>(null);
+
+  // Scheduling State
+  const [isScheduling, setIsScheduling] = useState(false);
+  const [isSubmittingSchedule, setIsSubmittingSchedule] = useState(false);
+  const [schedulingProject, setSchedulingProject] = useState<any | null>(null);
+  const [isBatchDropdownOpen, setIsBatchDropdownOpen] = useState(false);
+  const [scheduleForm, setScheduleForm] = useState({
+    course_id: "",
+    batches: [] as string[],
+    due_date: ""
+  });
 
   const filteredProjects = initialProjects.filter(project => {
-    const matchesCourse = selectedCourseFilter === "all" || project.course_id === selectedCourseFilter;
+    const projectCourseIds = project.assignment_courses?.map((ac: any) => ac.course_id) || [];
+    const matchesCourse = selectedCourseFilter === "all" || projectCourseIds.includes(selectedCourseFilter);
     const matchesCategory = selectedCategoryFilter === "all" || project.category === selectedCategoryFilter;
-    return matchesCourse && matchesCategory;
+    
+    let matchesDate = true;
+    const now = new Date();
+    if (selectedDateFilter === "scheduled") {
+      matchesDate = project.due_date !== null;
+    } else if (selectedDateFilter === "unscheduled") {
+      matchesDate = project.due_date === null;
+    } else if (selectedDateFilter === "upcoming") {
+      matchesDate = project.due_date !== null && new Date(project.due_date) >= now;
+    } else if (selectedDateFilter === "overdue") {
+      matchesDate = project.due_date !== null && new Date(project.due_date) < now;
+    }
+
+    return matchesCourse && matchesCategory && matchesDate;
   });
+
+  const handleOpenSchedule = (project: any) => {
+    setSchedulingProject(project);
+    const assignedCourses = project.assignment_courses?.map((ac: any) => ac.course_id) || [];
+    let formattedDate = "";
+    
+    if (project.due_date) {
+      const d = new Date(project.due_date);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      formattedDate = `${yyyy}-${mm}-${dd}`;
+    } else {
+      // Default to 5 days ahead (Date 5)
+      const d = new Date();
+      d.setDate(d.getDate() + 5);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      formattedDate = `${yyyy}-${mm}-${dd}`;
+    }
+
+    setScheduleForm({
+      course_id: assignedCourses[0] || "",
+      batches: project.batches || [],
+      due_date: formattedDate
+    });
+    setIsScheduling(true);
+  };
+
+  const handleCloseSchedule = () => {
+    setIsScheduling(false);
+    setSchedulingProject(null);
+    setScheduleForm({ course_id: "", batches: [], due_date: "" });
+    setIsBatchDropdownOpen(false);
+  };
+
+  const handleScheduleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!schedulingProject) return;
+    setIsSubmittingSchedule(true);
+
+    try {
+      const { error } = await supabase
+        .from("assignments")
+        .update({
+          course_id: scheduleForm.course_id || null,
+          batches: scheduleForm.batches.length > 0 ? scheduleForm.batches : null,
+          due_date: scheduleForm.due_date ? new Date(`${scheduleForm.due_date}T18:00:00`).toISOString() : null
+        })
+        .eq("id", schedulingProject.id);
+
+      if (error) throw error;
+      handleCloseSchedule();
+      router.refresh();
+    } catch (err) {
+      console.error("Error scheduling project:", err);
+      alert("Failed to schedule project");
+    } finally {
+      setIsSubmittingSchedule(false);
+    }
+  };
 
   const fetchSubmissions = async (assignmentId: string) => {
     setIsLoadingSubmissions(true);
@@ -161,12 +298,17 @@ export default function ProjectsClient({ courses, initialProjects, availableBatc
   };
 
   const handleEdit = (project: any) => {
-    const formattedDate = project.due_date 
-      ? new Date(project.due_date).toISOString().slice(0, 16) 
-      : "";
+    let formattedDate = "";
+    if (project.due_date) {
+      const d = new Date(project.due_date);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      formattedDate = `${yyyy}-${mm}-${dd}`;
+    }
     
     setFormData({
-      course_id: project.course_id || "",
+      course_ids: project.assignment_courses?.map((ac: any) => ac.course_id) || [],
       batch: project.batch || "",
       title: project.title,
       description: project.description || "",
@@ -181,24 +323,31 @@ export default function ProjectsClient({ courses, initialProjects, availableBatc
   const closeForm = () => {
     setIsAdding(false);
     setEditingId(null);
-    setFormData({ course_id: "", batch: "", title: "", description: "", due_date: "", category: "", is_published: true });
+    setIsCourseDropdownOpen(false);
+    setFormData({ course_ids: [], batch: "", title: "", description: "", due_date: "", category: "", is_published: true });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (editingId && formData.course_ids.length === 0) {
+      alert("Please select at least one course.");
+      return;
+    }
     setIsSubmitting(true);
 
     try {
       const payload = {
-        course_id: formData.course_id || null,
+        course_id: formData.course_ids[0] || null,
         title: formData.title,
         description: formData.description || null,
         due_date: (formData.due_date && !isNaN(Date.parse(formData.due_date))) 
-          ? new Date(formData.due_date).toISOString() 
+          ? new Date(`${formData.due_date}T18:00:00`).toISOString() 
           : null,
         category: formData.category || null,
         is_published: formData.is_published
       };
+
+      let assignmentId = editingId;
 
       if (editingId) {
         const { error } = await supabase
@@ -206,18 +355,40 @@ export default function ProjectsClient({ courses, initialProjects, availableBatc
           .update(payload)
           .eq("id", editingId);
         if (error) throw error;
+
+        // Delete old associations
+        const { error: deleteRelError } = await supabase
+          .from("assignment_courses")
+          .delete()
+          .eq("assignment_id", editingId);
+        if (deleteRelError) throw deleteRelError;
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("assignments")
-          .insert([payload]);
+          .insert([payload])
+          .select()
+          .single();
         if (error) throw error;
+        assignmentId = data.id;
+      }
+
+      // Insert new associations
+      if (assignmentId && formData.course_ids.length > 0) {
+        const relationPayload = formData.course_ids.map(cId => ({
+          assignment_id: assignmentId,
+          course_id: cId
+        }));
+        const { error: relError } = await supabase
+          .from("assignment_courses")
+          .insert(relationPayload);
+        if (relError) throw relError;
       }
 
       closeForm();
       router.refresh();
     } catch (err) {
-      console.error("Error adding project:", err);
-      alert("Failed to add project");
+      console.error("Error saving project:", err);
+      alert("Failed to save project");
     } finally {
       setIsSubmitting(false);
     }
@@ -248,6 +419,53 @@ export default function ProjectsClient({ courses, initialProjects, availableBatc
     } catch (err) {
       console.error("Error deleting project:", err);
       alert("Failed to delete project");
+    }
+  };
+
+  const handleDuplicate = async (project: any) => {
+    setIsDuplicating(project.id);
+    try {
+      const { data: newProject, error: insertError } = await supabase
+        .from("assignments")
+        .insert([{
+          title: project.title,
+          description: project.description,
+          category: project.category,
+          is_published: project.is_published,
+          course_id: project.course_id,
+          batches: null,
+          due_date: null
+        }])
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+
+      const courseIds = project.assignment_courses?.map((ac: any) => ac.course_id) || [];
+      if (courseIds.length > 0) {
+        const relationPayload = courseIds.map((cId: string) => ({
+          assignment_id: newProject.id,
+          course_id: cId
+        }));
+        const { error: relError } = await supabase
+          .from("assignment_courses")
+          .insert(relationPayload);
+        if (relError) throw relError;
+      }
+
+      router.refresh();
+
+      const projectToSchedule = {
+        ...newProject,
+        assignment_courses: courseIds.map((cId: string) => ({ course_id: cId }))
+      };
+      
+      handleOpenSchedule(projectToSchedule);
+    } catch (err) {
+      console.error("Error duplicating project:", err);
+      alert("Failed to duplicate project");
+    } finally {
+      setIsDuplicating(null);
     }
   };
 
@@ -290,6 +508,21 @@ export default function ProjectsClient({ courses, initialProjects, availableBatc
               ))}
             </select>
           </div>
+
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest shrink-0">Filter by Date:</label>
+            <select 
+              value={selectedDateFilter}
+              onChange={(e) => setSelectedDateFilter(e.target.value)}
+              className="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-indigo-500 transition-all text-xs font-bold text-slate-700 dark:text-slate-350"
+            >
+              <option value="all">All Dates</option>
+              <option value="scheduled">Scheduled</option>
+              <option value="unscheduled">Not Scheduled</option>
+              <option value="upcoming">Upcoming</option>
+              <option value="overdue">Overdue</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -302,20 +535,79 @@ export default function ProjectsClient({ courses, initialProjects, availableBatc
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div className="space-y-4">
-                <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Target Course</label>
-                  <select 
-                    required
-                    value={formData.course_id}
-                    onChange={(e) => setFormData({...formData, course_id: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 transition-all text-sm font-bold text-black"
-                  >
-                    <option value="">Select a course...</option>
-                    {courses.map(course => (
-                      <option key={course.id} value={course.id}>{course.title}</option>
-                    ))}
-                  </select>
-                </div>
+                {editingId && (
+                  <div className="relative">
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Target Courses</label>
+                    <div 
+                      onClick={() => setIsCourseDropdownOpen(!isCourseDropdownOpen)}
+                      className="min-h-[42px] w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus-within:border-indigo-500 transition-all text-sm font-bold text-black cursor-pointer flex flex-wrap gap-2 items-center justify-between"
+                    >
+                      <div className="flex flex-wrap gap-1.5">
+                        {formData.course_ids.length === 0 ? (
+                          <span className="text-slate-400 font-medium">Select courses...</span>
+                        ) : (
+                          formData.course_ids.map(cId => {
+                            const course = courses.find(c => c.id === cId);
+                            return (
+                              <span 
+                                key={cId} 
+                                className="inline-flex items-center gap-1.5 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-650 dark:text-indigo-400 px-2.5 py-1 rounded-lg text-xs font-black uppercase tracking-wider border border-indigo-100 dark:border-indigo-950/30"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setFormData({
+                                    ...formData,
+                                    course_ids: formData.course_ids.filter(id => id !== cId)
+                                  });
+                                }}
+                              >
+                                {shortenCourseName(course?.title)}
+                                <X size={10} className="stroke-[3]" />
+                              </span>
+                            );
+                          })
+                        )}
+                      </div>
+                      <span className="text-slate-455 ml-auto pl-2 text-xs">▼</span>
+                    </div>
+
+                    {isCourseDropdownOpen && (
+                      <>
+                        <div className="fixed inset-0 z-10" onClick={() => setIsCourseDropdownOpen(false)} />
+                        <div className="absolute left-0 right-0 mt-2 bg-white border border-slate-200 rounded-2xl shadow-xl z-20 max-h-60 overflow-y-auto p-3 space-y-1 animate-in slide-in-from-top-2 duration-150">
+                          {courses.map(course => {
+                            const isSelected = formData.course_ids.includes(course.id);
+                            return (
+                              <label 
+                                key={course.id}
+                                className="flex items-center gap-3 px-3 py-2 hover:bg-slate-50 rounded-xl cursor-pointer text-xs font-bold text-slate-700 select-none transition-colors"
+                              >
+                                <input 
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => {
+                                    if (isSelected) {
+                                      setFormData({
+                                        ...formData,
+                                        course_ids: formData.course_ids.filter(id => id !== course.id)
+                                      });
+                                    } else {
+                                      setFormData({
+                                        ...formData,
+                                        course_ids: [...formData.course_ids, course.id]
+                                      });
+                                    }
+                                  }}
+                                  className="w-4 h-4 rounded text-indigo-600 border-slate-300 focus:ring-indigo-500 cursor-pointer"
+                                />
+                                {course.title}
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
                 <div>
                   <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Project Title</label>
                   <input 
@@ -351,6 +643,19 @@ export default function ProjectsClient({ courses, initialProjects, availableBatc
                     onChange={(e) => setFormData({...formData, description: e.target.value})}
                     className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 transition-all text-sm font-bold text-black" 
                   />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Due Date (Sets to 6 PM)</label>
+                  <select 
+                    value={formData.due_date}
+                    onChange={(e) => setFormData({...formData, due_date: e.target.value})}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 transition-all text-sm font-bold text-black" 
+                  >
+                    <option value="">No Due Date</option>
+                    {getDueDatesList(formData.due_date).map(item => (
+                      <option key={item.value} value={item.value}>{item.label}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
@@ -398,10 +703,10 @@ export default function ProjectsClient({ courses, initialProjects, availableBatc
 
                   {/* Course Name */}
                   <span 
-                    title={(project.courses as any)?.title} 
+                    title={project.assignment_courses?.map((ac: any) => ac.courses?.title).filter(Boolean).join(", ")} 
                     className="text-[9px] font-black text-indigo-500 dark:text-indigo-400 uppercase tracking-widest leading-none truncate max-w-[150px] sm:max-w-[200px]"
                   >
-                    {shortenCourseName((project.courses as any)?.title)}
+                    {project.assignment_courses?.map((ac: any) => shortenCourseName(ac.courses?.title)).filter(Boolean).join(", ") || "No Course"}
                   </span>
 
                   {/* Category (if present) */}
@@ -415,11 +720,11 @@ export default function ProjectsClient({ courses, initialProjects, availableBatc
                   )}
 
                   {/* Batch (if present) */}
-                  {project.batch && (
+                  {project.batches && project.batches.length > 0 && (
                     <>
                       <span className="text-slate-300 dark:text-slate-700 hidden sm:inline">•</span>
                       <span className="px-1.5 py-0.5 bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 rounded text-[7px] font-black uppercase tracking-widest border border-indigo-100 dark:border-indigo-950/40 leading-none">
-                        {project.batch}
+                        {project.batches.join(", ")}
                       </span>
                     </>
                   )}
@@ -464,6 +769,25 @@ export default function ProjectsClient({ courses, initialProjects, availableBatc
                   View All Submissions
                 </button>
                 <div className="flex items-center gap-0.5 border-l border-slate-200 dark:border-slate-800 pl-2">
+                  <button 
+                    onClick={() => handleOpenSchedule(project)}
+                    className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-lg transition-all mr-1"
+                    title="Schedule Project"
+                  >
+                    <CalendarIcon size={15} />
+                  </button>
+                  <button 
+                    disabled={isDuplicating === project.id}
+                    onClick={() => handleDuplicate(project)}
+                    className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-55 dark:hover:bg-blue-950/30 rounded-lg transition-all mr-1 disabled:opacity-50"
+                    title="Duplicate Project"
+                  >
+                    {isDuplicating === project.id ? (
+                      <Loader2 size={15} className="animate-spin" />
+                    ) : (
+                      <Copy size={15} />
+                    )}
+                  </button>
                   <button 
                     onClick={() => handleEdit(project)}
                     className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 rounded-lg transition-all"
@@ -606,6 +930,192 @@ export default function ProjectsClient({ courses, initialProjects, availableBatc
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Schedule Project Modal */}
+      {isScheduling && schedulingProject && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <h3 className="font-bold text-slate-900">Schedule Project</h3>
+              <button onClick={handleCloseSchedule} className="p-1.5 hover:bg-slate-100 rounded-lg"><X size={18} /></button>
+            </div>
+            <form onSubmit={handleScheduleSubmit} className="p-6 space-y-4">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Project Title</label>
+                  <input 
+                    type="text" 
+                    readOnly
+                    value={schedulingProject.title}
+                    className="w-full px-4 py-2.5 bg-slate-100 border border-slate-200 rounded-xl outline-none text-sm font-bold text-slate-500 cursor-not-allowed" 
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Target Course</label>
+                  <select 
+                    required
+                    value={scheduleForm.course_id}
+                    onChange={(e) => {
+                      setScheduleForm({
+                        ...scheduleForm,
+                        course_id: e.target.value,
+                        batches: []
+                      });
+                    }}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 transition-all text-sm font-bold text-black"
+                  >
+                    <option value="">Select a course...</option>
+                    {schedulingProject.assignment_courses?.filter((ac: any) => ac.courses).map((ac: any) => (
+                      <option key={ac.course_id} value={ac.course_id}>{ac.courses.title}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="relative">
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Target Batches</label>
+                  <div 
+                    onClick={() => {
+                      if (scheduleForm.course_id) {
+                        setIsBatchDropdownOpen(!isBatchDropdownOpen);
+                      }
+                    }}
+                    className={`w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus-within:border-indigo-500 transition-all text-sm font-bold text-black flex items-center min-h-[46px] ${
+                      scheduleForm.course_id ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'
+                    }`}
+                  >
+                    <div className="flex flex-wrap gap-1.5 flex-1 max-h-32 overflow-y-auto pr-2 custom-scrollbar">
+                      {scheduleForm.batches.length === 0 ? (
+                        <span className="text-slate-400">Select batches...</span>
+                      ) : (
+                        scheduleForm.batches.map(batchName => (
+                          <span 
+                            key={batchName} 
+                            className="inline-flex items-center gap-1 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-650 dark:text-indigo-400 px-2 py-0.5 rounded-lg text-xs font-black uppercase tracking-wider border border-indigo-100 dark:border-indigo-950/30"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setScheduleForm({
+                                ...scheduleForm,
+                                batches: scheduleForm.batches.filter(b => b !== batchName)
+                              });
+                            }}
+                          >
+                            {batchName}
+                            <X size={10} className="stroke-[3]" />
+                          </span>
+                        ))
+                      )}
+                    </div>
+                    <span className="text-slate-400 ml-auto pl-2 text-xs">▼</span>
+                  </div>
+
+                  {isBatchDropdownOpen && (
+                    <>
+                      <div className="fixed inset-0 z-10" onClick={() => setIsBatchDropdownOpen(false)} />
+                      <div className="absolute left-0 right-0 mt-2 bg-white border border-slate-200 rounded-2xl shadow-xl z-20 max-h-60 overflow-y-auto p-3 space-y-1 animate-in slide-in-from-top-2 duration-150">
+                        {(() => {
+                          const courseBatches = availableBatches.filter((b: any) => b.course_id === scheduleForm.course_id);
+                          const allSelected = courseBatches.length > 0 && courseBatches.every((b: any) => scheduleForm.batches.includes(b.title));
+                          return (
+                            <label className="flex items-center gap-3 px-3 py-2 hover:bg-slate-50 rounded-xl cursor-pointer text-xs font-bold text-indigo-655 select-none border-b border-slate-100 pb-2 mb-1.5">
+                              <input 
+                                type="checkbox"
+                                checked={allSelected}
+                                onChange={() => {
+                                  if (allSelected) {
+                                    setScheduleForm({
+                                      ...scheduleForm,
+                                      batches: []
+                                    });
+                                  } else {
+                                    setScheduleForm({
+                                      ...scheduleForm,
+                                      batches: courseBatches.map((b: any) => b.title)
+                                    });
+                                  }
+                                }}
+                                className="w-4 h-4 rounded text-indigo-600 border-slate-300 focus:ring-indigo-500 cursor-pointer"
+                              />
+                              All Batches
+                            </label>
+                          );
+                        })()}
+
+                        {availableBatches
+                          .filter((b: any) => b.course_id === scheduleForm.course_id)
+                          .map((batch: any) => {
+                            const isSelected = scheduleForm.batches.includes(batch.title);
+                            return (
+                              <label 
+                                key={batch.id}
+                                className="flex items-center gap-3 px-3 py-2 hover:bg-slate-50 rounded-xl cursor-pointer text-xs font-bold text-slate-700 select-none transition-colors"
+                              >
+                                <input 
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => {
+                                    if (isSelected) {
+                                      setScheduleForm({
+                                        ...scheduleForm,
+                                        batches: scheduleForm.batches.filter(b => b !== batch.title)
+                                      });
+                                    } else {
+                                      setScheduleForm({
+                                        ...scheduleForm,
+                                        batches: [...scheduleForm.batches, batch.title]
+                                      });
+                                    }
+                                  }}
+                                  className="w-4 h-4 rounded text-indigo-600 border-slate-300 focus:ring-indigo-500 cursor-pointer"
+                                />
+                                {batch.title}
+                              </label>
+                            );
+                          })
+                        }
+                      </div>
+                    </>
+                  )}
+                  {!scheduleForm.course_id && (
+                    <p className="text-[10px] text-amber-600 font-bold mt-1">Please select a course first to view its batches.</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Due Date (Sets to 6 PM)</label>
+                  <select 
+                    value={scheduleForm.due_date}
+                    onChange={(e) => setScheduleForm({...scheduleForm, due_date: e.target.value})}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 transition-all text-sm font-bold text-black" 
+                  >
+                    <option value="">No Due Date</option>
+                    {getDueDatesList(scheduleForm.due_date).map(item => (
+                      <option key={item.value} value={item.value}>{item.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="pt-4 flex gap-3">
+                <button 
+                  type="button"
+                  onClick={handleCloseSchedule}
+                  className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl transition-all"
+                >
+                  Cancel
+                </button>
+                <button 
+                  disabled={isSubmittingSchedule}
+                  className="flex-[2] py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20"
+                >
+                  {isSubmittingSchedule ? <Loader2 className="animate-spin" size={18} /> : <CalendarIcon size={18} />}
+                  Schedule Project
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

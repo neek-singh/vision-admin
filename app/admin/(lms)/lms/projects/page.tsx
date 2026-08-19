@@ -14,17 +14,18 @@ export default async function ProjectsAdminPage() {
     .from("assignments")
     .select(`
       *,
-      courses(title),
+      assignment_courses(
+        course_id,
+        courses(title)
+      ),
       submissions:submissions(count)
     `)
     .order("created_at", { ascending: false });
 
   const { data: batchesData } = await supabase
     .from("batches")
-    .select("title")
+    .select("id, title, course_id")
     .order("title");
-
-  const batchNames = batchesData?.map(b => b.title) || [];
 
   return (
     <div className="p-6 space-y-6">
@@ -35,7 +36,7 @@ export default async function ProjectsAdminPage() {
         </div>
       </div>
 
-      <ProjectsClient courses={courses || []} initialProjects={projects || []} availableBatches={batchNames} />
+      <ProjectsClient courses={courses || []} initialProjects={projects || []} availableBatches={batchesData || []} />
     </div>
   );
 }
