@@ -15,7 +15,9 @@ import {
   ExternalLink,
   CheckCircle2,
   Clock as ClockIcon,
-  Copy
+  Copy,
+  FileText,
+  Link as LinkIcon
 } from "lucide-react";
 
 const shortenCourseName = (name: string) => {
@@ -864,18 +866,96 @@ export default function ProjectsClient({ courses, initialProjects, availableBatc
                             </td>
                             <td className="px-6 py-4">
                               <div className="space-y-2">
-                                <a 
-                                  href={sub.content_url} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1.5 text-indigo-600 hover:text-indigo-800 text-[11px] font-bold underline break-all"
-                                >
-                                  <ExternalLink size={12} className="shrink-0" />
-                                  Open Work
-                                </a>
-                                <div className="flex items-center gap-1.5 text-slate-400">
-                                   <ClockIcon size={10} className="text-slate-400 shrink-0" />
-                                   <span className="text-[9px] font-bold">{new Date(sub.submitted_at).toLocaleDateString()} {new Date(sub.submitted_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                {(() => {
+                                  let isJson = false;
+                                  let parsedData: any = null;
+                                  try {
+                                    if (sub.content_url && sub.content_url.startsWith("{")) {
+                                      parsedData = JSON.parse(sub.content_url);
+                                      isJson = true;
+                                    }
+                                  } catch (e) {
+                                    isJson = false;
+                                  }
+
+                                  if (isJson && parsedData) {
+                                    return (
+                                      <div className="space-y-3">
+                                        {parsedData.notes && (
+                                          <div className="bg-slate-50 border border-slate-100 rounded-xl p-2.5 text-[11px] text-slate-700 font-medium whitespace-pre-wrap max-w-xs">
+                                            <p className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest mb-1">Student Notes</p>
+                                            {parsedData.notes}
+                                          </div>
+                                        )}
+                                        {parsedData.files && parsedData.files.length > 0 && (
+                                          <div className="space-y-1">
+                                            <p className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest">Deliverables</p>
+                                            <div className="flex flex-col gap-1">
+                                              {parsedData.files.map((file: any, fIdx: number) => (
+                                                <a 
+                                                  key={fIdx}
+                                                  href={file.url}
+                                                  target="_blank"
+                                                  rel="noopener noreferrer"
+                                                  className="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-800 text-[10px] font-bold underline truncate max-w-[200px]"
+                                                >
+                                                  <FileText size={10} className="shrink-0" />
+                                                  {file.name}
+                                                </a>
+                                              ))}
+                                            </div>
+                                          </div>
+                                        )}
+                                        {parsedData.links && parsedData.links.length > 0 && (
+                                          <div className="space-y-1">
+                                            <p className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest">Links</p>
+                                            <div className="flex flex-col gap-1">
+                                              {parsedData.links.map((link: string, lIdx: number) => (
+                                                <a 
+                                                  key={lIdx}
+                                                  href={link}
+                                                  target="_blank"
+                                                  rel="noopener noreferrer"
+                                                  className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-[10px] font-bold underline truncate max-w-[200px]"
+                                                >
+                                                  <LinkIcon size={10} className="shrink-0" />
+                                                  {link}
+                                                </a>
+                                              ))}
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  }
+
+                                  if (sub.content_url) {
+                                    return (
+                                      <a 
+                                        href={sub.content_url} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1.5 text-indigo-600 hover:text-indigo-800 text-[11px] font-bold underline break-all"
+                                      >
+                                        <ExternalLink size={12} className="shrink-0" />
+                                        Open Work
+                                      </a>
+                                    );
+                                  }
+
+                                  return <span className="text-xs text-slate-400 font-bold italic">No work attached</span>;
+                                })()}
+
+                                <div className="flex flex-wrap items-center gap-2 mt-2 pt-1 border-t border-slate-100/50">
+                                  <div className="flex items-center gap-1.5 text-slate-400">
+                                    <ClockIcon size={9} className="shrink-0" />
+                                    <span className="text-[9px] font-bold">{new Date(sub.submitted_at).toLocaleDateString()} {new Date(sub.submitted_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                  </div>
+                                  <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border ${
+                                    sub.status === 'draft' ? 'bg-amber-50 text-amber-700 border-amber-100/50' : 'bg-emerald-50 text-emerald-700 border-emerald-100/50'
+                                  }`}>
+                                    {sub.status || 'submitted'}
+                                  </span>
                                 </div>
                               </div>
                             </td>
