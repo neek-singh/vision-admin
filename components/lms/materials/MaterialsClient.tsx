@@ -15,21 +15,31 @@ import {
   Pencil,
   Code,
   CheckCircle2,
-  BookOpen as BookOpenIcon
+  BookOpen as BookOpenIcon,
+  GraduationCap
 } from "lucide-react";
 
-export default function MaterialsClient({ courses, initialMaterials, availableBatches = [] }: { courses: any[], initialMaterials: any[], availableBatches?: string[] }) {
+export default function MaterialsClient({ courses, initialMaterials, availableBatches = [] }: { courses: any[], initialMaterials: any[], availableBatches?: any[] }) {
   const router = useRouter();
   const [isAdding, setIsAdding] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lessons, setLessons] = useState<any[]>([]);
   const [isLoadingLessons, setIsLoadingLessons] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [selectedCourseFilter, setSelectedCourseFilter] = useState("all");
+  
+  // Custom states for assigning courses & batches
+  const [assigningMaterial, setAssigningMaterial] = useState<any>(null);
+  const [assignFormData, setAssignFormData] = useState({
+    course_id: "",
+    batch: ""
+  });
+  const [isAssignSubmitting, setIsAssignSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     course_id: "",
     batch: "",
     title: "",
-    type: "pdf",
+    type: "word",
     content_url: "",
     file_size: "",
     duration: "",
@@ -81,7 +91,7 @@ export default function MaterialsClient({ courses, initialMaterials, availableBa
   const closeForm = () => {
     setIsAdding(false);
     setEditingId(null);
-    setFormData({ course_id: "", batch: "", title: "", type: "pdf", content_url: "", file_size: "", duration: "", code_content: "", lesson_id: "", is_published: true });
+    setFormData({ course_id: "", batch: "", title: "", type: "word", content_url: "", file_size: "", duration: "", code_content: "", lesson_id: "", is_published: true });
     setLessons([]);
   };
 
@@ -90,9 +100,10 @@ export default function MaterialsClient({ courses, initialMaterials, availableBa
     setIsSubmitting(true);
 
     try {
-      const { lesson_id, batch, ...rest } = formData;
+      const { lesson_id, batch, course_id, ...rest } = formData;
       const payload = {
         ...rest,
+        course_id: course_id || null,
         batches: batch ? [batch] : null
       };
       
@@ -147,6 +158,39 @@ export default function MaterialsClient({ courses, initialMaterials, availableBa
     }
   };
 
+  const handleAssignSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!assigningMaterial) return;
+    setIsAssignSubmitting(true);
+
+    try {
+      const { course_id, batch } = assignFormData;
+      const payload = {
+        course_id: course_id || null,
+        batches: batch ? [batch] : null
+      };
+
+      const { error } = await supabase
+        .from("materials")
+        .update(payload)
+        .eq("id", assigningMaterial.id);
+
+      if (error) throw error;
+
+      setAssigningMaterial(null);
+      router.refresh();
+    } catch (err: any) {
+      console.error("Error assigning material:", err);
+      alert(`Failed to assign material: ${err.message || "Unknown error"}`);
+    } finally {
+      setIsAssignSubmitting(false);
+    }
+  };
+
+  const filteredMaterials = selectedCourseFilter === "all"
+    ? initialMaterials
+    : initialMaterials.filter(m => m.course_id === selectedCourseFilter);
+
   return (
     <div className="space-y-6">
       {isAdding && (
@@ -158,66 +202,6 @@ export default function MaterialsClient({ courses, initialMaterials, availableBa
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1 scrollbar-hide">
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Link to Course</label>
-                    <select 
-                      required
-                      value={formData.course_id}
-                      onChange={(e) => {
-                        const newCourseId = e.target.value;
-                        setFormData({...formData, course_id: newCourseId, lesson_id: ""});
-                        fetchLessons(newCourseId);
-                      }}
-                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-black"
-                    >
-                      <option value="">Select a course...</option>
-                      {courses.map(course => (
-                        <option key={course.id} value={course.id}>{course.title}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Target Batch</label>
-                    <select 
-                      value={formData.batch}
-                      onChange={(e) => setFormData({...formData, batch: e.target.value})}
-                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-black"
-                    >
-                      <option value="">All Batches</option>
-                      {availableBatches.map(batch => (
-                        <option key={batch} value={batch}>{batch}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {formData.course_id && (
-                  <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5 flex items-center justify-between">
-                      Select Lesson
-                      {isLoadingLessons && <Loader2 className="animate-spin text-blue-500" size={10} />}
-                    </label>
-                    <select 
-                      value={formData.lesson_id}
-                      onChange={(e) => {
-                        const lessonId = e.target.value;
-                        const lesson = lessons.find(l => l.id === lessonId);
-                        setFormData({
-                          ...formData, 
-                          lesson_id: lessonId,
-                          title: lesson ? `${lesson.title} - ${formData.type.toUpperCase()} Notes` : formData.title
-                        });
-                      }}
-                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-black"
-                    >
-                      <option value="">Select a lesson...</option>
-                      {lessons.map(lesson => (
-                        <option key={lesson.id} value={lesson.id}>{lesson.title}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
                 <div>
                   <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Material Title</label>
                   <input 
@@ -229,59 +213,34 @@ export default function MaterialsClient({ courses, initialMaterials, availableBa
                     className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-black" 
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Type</label>
-                    <select 
-                      value={formData.type}
-                      onChange={(e) => setFormData({...formData, type: e.target.value})}
-                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-black"
-                    >
-                      <option value="pdf">PDF Document</option>
-                      <option value="video">Video Lecture</option>
-                      <option value="link">External Link</option>
-                      <option value="note">Note / Content</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">
-                      {formData.type === 'video' ? 'Duration' : formData.type === 'note' ? 'Reading Time' : 'File Size'}
-                    </label>
-                    <input 
-                      type="text" 
-                      value={formData.type === 'video' ? formData.duration : formData.type === 'note' ? formData.duration : formData.file_size}
-                      onChange={(e) => setFormData({...formData, [formData.type === 'video' ? 'duration' : formData.type === 'note' ? 'duration' : 'file_size']: e.target.value})}
-                      placeholder={formData.type === 'video' ? "e.g. 15:20" : formData.type === 'note' ? "e.g. 5 Mins" : "e.g. 2.4 MB"}
-                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-black" 
-                    />
-                  </div>
+
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Type (Category)</label>
+                  <select 
+                    value={formData.type}
+                    onChange={(e) => setFormData({...formData, type: e.target.value})}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-black"
+                  >
+                    <option value="word">Word</option>
+                    <option value="excel">Excel</option>
+                    <option value="powerpoint">PowerPoint</option>
+                    <option value="onenote">OneNote</option>
+                    <option value="canva">Canva</option>
+                    <option value="notion">Notion</option>
+                  </select>
                 </div>
 
-                {formData.type === 'note' ? (
-                  <div>
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Article / Note Content</label>
-                    <textarea 
-                      required
-                      rows={10}
-                      value={formData.code_content}
-                      onChange={(e) => setFormData({...formData, code_content: e.target.value, content_url: 'note'})}
-                      placeholder="Type your notes here... You can use headings and paragraphs."
-                      className="w-full px-6 py-4 bg-slate-900 border border-slate-700 rounded-2xl outline-none focus:border-blue-500 transition-all text-sm text-slate-100 leading-relaxed resize-none shadow-inner" 
-                    />
-                  </div>
-                ) : (
-                  <div>
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Content URL</label>
-                    <input 
-                      required
-                      type="url" 
-                      value={formData.content_url}
-                      onChange={(e) => setFormData({...formData, content_url: e.target.value})}
-                      placeholder="https://..."
-                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-black" 
-                    />
-                  </div>
-                )}
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Content URL</label>
+                  <input 
+                    required
+                    type="url" 
+                    value={formData.content_url}
+                    onChange={(e) => setFormData({...formData, content_url: e.target.value})}
+                    placeholder="https://..."
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-black" 
+                  />
+                </div>
               </div>
 
               <div className="pt-4 flex gap-3">
@@ -305,6 +264,32 @@ export default function MaterialsClient({ courses, initialMaterials, availableBa
         </div>
       )}
 
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <button 
+          onClick={() => setIsAdding(true)}
+          className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20 shrink-0 w-fit active:scale-95 flex items-center justify-center gap-1.5"
+        >
+          <Plus size={18} />
+          Add Material
+        </button>
+
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-black text-slate-400 uppercase tracking-widest shrink-0">Filter by Course:</label>
+            <select 
+              value={selectedCourseFilter}
+              onChange={(e) => setSelectedCourseFilter(e.target.value)}
+              className="px-4 py-2 bg-white border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-xs font-bold text-slate-700"
+            >
+              <option value="all">All Courses</option>
+              {courses.map(course => (
+                <option key={course.id} value={course.id}>{course.title}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
       <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
         <table className="w-full text-left border-collapse">
           <thead>
@@ -316,19 +301,25 @@ export default function MaterialsClient({ courses, initialMaterials, availableBa
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
-            {initialMaterials.map((material) => (
+            {filteredMaterials.map((material) => (
               <tr key={material.id} className="hover:bg-slate-50/50 transition-colors">
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                      material.type === 'pdf' ? 'bg-red-50 text-red-600' : 
-                      material.type === 'video' ? 'bg-blue-50 text-blue-600' : 
-                      (material.type === 'note' || material.type === 'code') ? 'bg-amber-50 text-amber-600' :
-                      'bg-emerald-50 text-emerald-600'
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${
+                      material.type === 'word' ? 'bg-blue-50 text-blue-600 border-blue-100/50' : 
+                      material.type === 'excel' ? 'bg-emerald-50 text-emerald-600 border-emerald-100/50' : 
+                      material.type === 'powerpoint' ? 'bg-orange-50 text-orange-600 border-orange-100/50' : 
+                      material.type === 'onenote' ? 'bg-purple-50 text-purple-600 border-purple-100/50' : 
+                      material.type === 'canva' ? 'bg-pink-50 text-pink-600 border-pink-100/50' : 
+                      material.type === 'notion' ? 'bg-slate-100 text-slate-700 border-slate-200/50' : 
+                      'bg-slate-50 text-slate-500 border-slate-100/50'
                     }`}>
-                      {material.type === 'pdf' ? <FileText size={18} /> : 
-                       material.type === 'video' ? <Video size={18} /> : 
-                       (material.type === 'note' || material.type === 'code') ? <BookOpenIcon size={18} /> :
+                      {material.type === 'word' ? <FileText size={18} /> : 
+                       material.type === 'excel' ? <FileText size={18} /> : 
+                       material.type === 'powerpoint' ? <FileText size={18} /> : 
+                       material.type === 'onenote' ? <FileText size={18} /> : 
+                       material.type === 'canva' ? <FileText size={18} /> : 
+                       material.type === 'notion' ? <FileText size={18} /> : 
                        <LinkIcon size={18} />}
                     </div>
                     <div>
@@ -355,6 +346,19 @@ export default function MaterialsClient({ courses, initialMaterials, availableBa
                 <td className="px-6 py-4 text-right">
                   <div className="flex items-center justify-end gap-2">
                     <button 
+                      onClick={() => {
+                        setAssigningMaterial(material);
+                        setAssignFormData({
+                          course_id: material.course_id || "",
+                          batch: material.batches?.[0] || ""
+                        });
+                      }}
+                      className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
+                      title="Assign Course/Batch"
+                    >
+                      <GraduationCap size={18} />
+                    </button>
+                    <button 
                       onClick={() => handleEdit(material)}
                       className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
                     >
@@ -378,6 +382,77 @@ export default function MaterialsClient({ courses, initialMaterials, availableBa
           </tbody>
         </table>
       </div>
+
+      {assigningMaterial && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md flex flex-col border border-slate-100 animate-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <h3 className="font-bold text-slate-900">Assign Course & Batch</h3>
+              <button 
+                onClick={() => setAssigningMaterial(null)} 
+                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleAssignSubmit} className="p-6 space-y-4">
+              <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 mb-2">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Material Title</p>
+                <p className="font-bold text-slate-800 text-sm mt-1">{assigningMaterial.title}</p>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Link to Course</label>
+                <select 
+                  value={assignFormData.course_id}
+                  onChange={(e) => setAssignFormData({...assignFormData, course_id: e.target.value})}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-black"
+                >
+                  <option value="">Not Assigned (General)</option>
+                  {courses.map(course => (
+                    <option key={course.id} value={course.id}>{course.title}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Target Batch</label>
+                <select 
+                  value={assignFormData.batch}
+                  onChange={(e) => setAssignFormData({...assignFormData, batch: e.target.value})}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-black"
+                >
+                  <option value="">All Batches</option>
+                  {(availableBatches as any[])
+                    .filter(batch => !assignFormData.course_id || batch.course_id === assignFormData.course_id)
+                    .map(batch => (
+                      <option key={batch.title} value={batch.title}>{batch.title}</option>
+                    ))
+                  }
+                </select>
+              </div>
+
+              <div className="pt-4 flex gap-3">
+                <button 
+                  type="button"
+                  onClick={() => setAssigningMaterial(null)}
+                  className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl transition-all text-sm"
+                >
+                  Cancel
+                </button>
+                <button 
+                  disabled={isAssignSubmitting}
+                  className="flex-[2] py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 text-sm"
+                >
+                  {isAssignSubmitting ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle2 size={18} />}
+                  Save Assignment
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -19,10 +19,10 @@ export default async function MaterialsAdminPage() {
 
   const { data: batchesData } = await supabase
     .from("batches")
-    .select("title")
+    .select("title, course_id")
     .order("title");
 
-  const batchNames = batchesData?.map(b => b.title) || [];
+  const batchesList = batchesData || [];
 
   return (
     <div className="p-6 space-y-6">
@@ -33,7 +33,7 @@ export default async function MaterialsAdminPage() {
         </div>
       </div>
 
-      <MaterialsClient courses={courses || []} initialMaterials={materials || []} availableBatches={batchNames} />
+      <MaterialsClient courses={courses || []} initialMaterials={materials || []} availableBatches={batchesList} />
     </div>
   );
 }
