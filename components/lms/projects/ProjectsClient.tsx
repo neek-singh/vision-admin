@@ -1042,6 +1042,7 @@ export default function ProjectsClient({ courses, initialProjects, availableBatc
                               <input
                                 type="text"
                                 placeholder="e.g. A+, 90/100"
+                                list="score-options"
                                 value={state.score}
                                 onChange={(e) => setGradingState({
                                   ...gradingState,
@@ -1056,15 +1057,16 @@ export default function ProjectsClient({ courses, initialProjects, availableBatc
                               )}
                             </td>
                             <td className="px-6 py-4">
-                              <textarea
-                                rows={2}
+                              <input
+                                type="text"
                                 placeholder="Feedback for student..."
+                                list="feedback-options"
                                 value={state.feedback}
                                 onChange={(e) => setGradingState({
                                   ...gradingState,
                                   [sub.id]: { ...state, feedback: e.target.value }
                                 })}
-                                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 transition-all text-xs font-bold text-black resize-none"
+                                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 transition-all text-xs font-bold text-black"
                               />
                             </td>
                             <td className="px-6 py-4 text-right">
@@ -1278,6 +1280,31 @@ export default function ProjectsClient({ courses, initialProjects, availableBatc
           </div>
         </div>
       )}
+      <datalist id="score-options">
+        <option value="A+" />
+        <option value="A" />
+        <option value="B" />
+        <option value="C" />
+        <option value="10/10" />
+        <option value="9/10" />
+        <option value="8/10" />
+        <option value="7/10" />
+        <option value="6/10" />
+        <option value="5/10" />
+        <option value="Passed" />
+        <option value="Failed" />
+        <option value="Excellent" />
+        <option value="Good" />
+      </datalist>
+
+      <datalist id="feedback-options">
+        <option value="Excellent work! Keep it up." />
+        <option value="Very good submission. Well done!" />
+        <option value="Good effort! Clean and well implemented." />
+        <option value="Good job! All requirements are met." />
+        <option value="Needs improvement. Please review and resubmit." />
+        <option value="Incomplete submission. Please complete the pending tasks." />
+      </datalist>
     </div>
   );
 }

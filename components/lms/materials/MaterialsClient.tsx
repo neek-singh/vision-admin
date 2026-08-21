@@ -227,6 +227,8 @@ export default function MaterialsClient({ courses, initialMaterials, availableBa
                     <option value="onenote">OneNote</option>
                     <option value="canva">Canva</option>
                     <option value="notion">Notion</option>
+                    <option value="windows">Windows</option>
+                    <option value="notes">Notes</option>
                   </select>
                 </div>
 
@@ -312,6 +314,8 @@ export default function MaterialsClient({ courses, initialMaterials, availableBa
                       material.type === 'onenote' ? 'bg-purple-50 text-purple-600 border-purple-100/50' : 
                       material.type === 'canva' ? 'bg-pink-50 text-pink-600 border-pink-100/50' : 
                       material.type === 'notion' ? 'bg-slate-100 text-slate-700 border-slate-200/50' : 
+                      material.type === 'windows' ? 'bg-sky-50 text-sky-600 border-sky-100/50' : 
+                      material.type === 'notes' ? 'bg-amber-50 text-amber-600 border-amber-100/50' : 
                       'bg-slate-50 text-slate-500 border-slate-100/50'
                     }`}>
                       {material.type === 'word' ? <FileText size={18} /> : 
@@ -320,6 +324,8 @@ export default function MaterialsClient({ courses, initialMaterials, availableBa
                        material.type === 'onenote' ? <FileText size={18} /> : 
                        material.type === 'canva' ? <FileText size={18} /> : 
                        material.type === 'notion' ? <FileText size={18} /> : 
+                       material.type === 'windows' ? <FileText size={18} /> : 
+                       material.type === 'notes' ? <BookOpenIcon size={18} /> : 
                        <LinkIcon size={18} />}
                     </div>
                     <div>
