@@ -17,7 +17,8 @@ import {
   Clock as ClockIcon,
   Copy,
   FileText,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Laptop
 } from "lucide-react";
 
 const shortenCourseName = (name: string) => {
@@ -29,6 +30,46 @@ const shortenCourseName = (name: string) => {
   if (upper === "BASIC COMPUTER COURSE") return "BCC";
   if (upper === "BASIC COMPUTER FOR BEGINNER" || upper === "BASIC COMPUTER  FOR BEGINNER") return "BCB";
   return name.length > 25 ? name.slice(0, 22) + "..." : name;
+};
+
+const getAppUri = (url: string) => {
+  if (!url) return null;
+  const lowerUrl = url.toLowerCase();
+  
+  // Word documents
+  if (lowerUrl.includes('.docx') || lowerUrl.includes('.doc')) {
+    return {
+      scheme: `ms-word:ofe|u|${url}`,
+      label: "Open in MS Word App"
+    };
+  }
+  
+  // Excel spreadsheets
+  if (lowerUrl.includes('.xlsx') || lowerUrl.includes('.xls') || lowerUrl.includes('.csv')) {
+    return {
+      scheme: `ms-excel:ofe|u|${url}`,
+      label: "Open in MS Excel App"
+    };
+  }
+  
+  // PowerPoint presentations
+  if (lowerUrl.includes('.pptx') || lowerUrl.includes('.ppt')) {
+    return {
+      scheme: `ms-powerpoint:ofe|u|${url}`,
+      label: "Open in MS PowerPoint App"
+    };
+  }
+  
+  // Notion
+  if (lowerUrl.includes('notion.so')) {
+    const notionScheme = url.replace(/^https?:\/\//i, 'notion://');
+    return {
+      scheme: notionScheme,
+      label: "Open in Notion App"
+    };
+  }
+  
+  return null;
 };
 
 const getCategoryStyle = (cat: string) => {
@@ -891,18 +932,31 @@ export default function ProjectsClient({ courses, initialProjects, availableBatc
                                           <div className="space-y-1">
                                             <p className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest">Deliverables</p>
                                             <div className="flex flex-col gap-1">
-                                              {parsedData.files.map((file: any, fIdx: number) => (
-                                                <a 
-                                                  key={fIdx}
-                                                  href={file.url}
-                                                  target="_blank"
-                                                  rel="noopener noreferrer"
-                                                  className="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-800 text-[10px] font-bold underline truncate max-w-[200px]"
-                                                >
-                                                  <FileText size={10} className="shrink-0" />
-                                                  {file.name}
-                                                </a>
-                                              ))}
+                                              {parsedData.files.map((file: any, fIdx: number) => {
+                                                const appOption = getAppUri(file.url);
+                                                return (
+                                                  <div key={fIdx} className="flex flex-col gap-0.5">
+                                                    <a 
+                                                      href={file.url}
+                                                      target="_blank"
+                                                      rel="noopener noreferrer"
+                                                      className="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-800 text-[10px] font-bold underline truncate max-w-[200px]"
+                                                    >
+                                                      <FileText size={10} className="shrink-0" />
+                                                      {file.name} (Web)
+                                                    </a>
+                                                    {appOption && (
+                                                      <a 
+                                                        href={appOption.scheme}
+                                                        className="inline-flex items-center gap-1 text-slate-500 hover:text-slate-700 text-[9px] font-semibold truncate max-w-[200px] pl-3.5"
+                                                      >
+                                                        <Laptop size={9} className="shrink-0 text-slate-400" />
+                                                        {appOption.label}
+                                                      </a>
+                                                    )}
+                                                  </div>
+                                                );
+                                              })}
                                             </div>
                                           </div>
                                         )}
@@ -910,18 +964,31 @@ export default function ProjectsClient({ courses, initialProjects, availableBatc
                                           <div className="space-y-1">
                                             <p className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest">Links</p>
                                             <div className="flex flex-col gap-1">
-                                              {parsedData.links.map((link: string, lIdx: number) => (
-                                                <a 
-                                                  key={lIdx}
-                                                  href={link}
-                                                  target="_blank"
-                                                  rel="noopener noreferrer"
-                                                  className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-[10px] font-bold underline truncate max-w-[200px]"
-                                                >
-                                                  <LinkIcon size={10} className="shrink-0" />
-                                                  {link}
-                                                </a>
-                                              ))}
+                                              {parsedData.links.map((link: string, lIdx: number) => {
+                                                const appOption = getAppUri(link);
+                                                return (
+                                                  <div key={lIdx} className="flex flex-col gap-0.5">
+                                                    <a 
+                                                      href={link}
+                                                      target="_blank"
+                                                      rel="noopener noreferrer"
+                                                      className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-[10px] font-bold underline truncate max-w-[200px]"
+                                                    >
+                                                      <LinkIcon size={10} className="shrink-0" />
+                                                      {link} (Web)
+                                                    </a>
+                                                    {appOption && (
+                                                      <a 
+                                                        href={appOption.scheme}
+                                                        className="inline-flex items-center gap-1 text-slate-500 hover:text-slate-700 text-[9px] font-semibold truncate max-w-[200px] pl-3.5"
+                                                      >
+                                                        <Laptop size={9} className="shrink-0 text-slate-400" />
+                                                        {appOption.label}
+                                                      </a>
+                                                    )}
+                                                  </div>
+                                                );
+                                              })}
                                             </div>
                                           </div>
                                         )}
@@ -930,16 +997,28 @@ export default function ProjectsClient({ courses, initialProjects, availableBatc
                                   }
 
                                   if (sub.content_url) {
+                                    const appOption = getAppUri(sub.content_url);
                                     return (
-                                      <a 
-                                        href={sub.content_url} 
-                                        target="_blank" 
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-1.5 text-indigo-600 hover:text-indigo-800 text-[11px] font-bold underline break-all"
-                                      >
-                                        <ExternalLink size={12} className="shrink-0" />
-                                        Open Work
-                                      </a>
+                                      <div className="flex flex-col gap-1">
+                                        <a 
+                                          href={sub.content_url} 
+                                          target="_blank" 
+                                          rel="noopener noreferrer"
+                                          className="inline-flex items-center gap-1.5 text-indigo-600 hover:text-indigo-800 text-[11px] font-bold underline break-all"
+                                        >
+                                          <ExternalLink size={12} className="shrink-0" />
+                                          Open Work (Browser)
+                                        </a>
+                                        {appOption && (
+                                          <a 
+                                            href={appOption.scheme}
+                                            className="inline-flex items-center gap-1.5 text-slate-500 hover:text-slate-700 text-[11px] font-bold underline break-all"
+                                          >
+                                            <Laptop size={12} className="shrink-0 text-slate-400" />
+                                            {appOption.label}
+                                          </a>
+                                        )}
+                                      </div>
                                     );
                                   }
 
