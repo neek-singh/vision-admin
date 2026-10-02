@@ -43,4 +43,7 @@ next-env.d.ts
 # custom ignores
 /data_old/
 /public/gallery_old/
+scratch/
+supabase/.temp/
 
+.gsd-graph/

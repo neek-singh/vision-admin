@@ -1,4 +1,4 @@
-# VISION ADMIN — PROJECT BRAIN
+# VISION ADMIN â€” PROJECT BRAIN
 > Last updated: 2026-07-01 | Auto-audit: har session me changes compare karo aur update karo
 
 ---
@@ -23,20 +23,20 @@
 ## 2. TECH STACK
 
 ```
-Next.js 16 (App Router)  →  Server Actions + RSC
-Supabase                 →  Auth (OTP + Password + Google OAuth) + DB + RLS
-Tailwind CSS v4          →  Styling (NO shadcn/ui — custom components only)
-Lucide React v1.14       →  Icons
-Cloudinary               →  Image/File storage (next-cloudinary)
-Web Push                 →  Push notifications
-bcryptjs                 →  Password hashing
-jsqr                     →  QR code scanning (attendance)
+Next.js 16 (App Router)  â†’  Server Actions + RSC
+Supabase                 â†’  Auth (OTP + Password + Google OAuth) + DB + RLS
+Tailwind CSS v4          â†’  Styling (NO shadcn/ui â€” custom components only)
+Lucide React v1.14       â†’  Icons
+Cloudinary               â†’  Image/File storage (next-cloudinary)
+Web Push                 â†’  Push notifications
+bcryptjs                 â†’  Password hashing
+jsqr                     â†’  QR code scanning (attendance)
 ```
 
 ### Fonts (Google Fonts)
-- `Geist` → `--font-geist-sans`
-- `Geist Mono` → `--font-geist-mono`
-- `Outfit` → `--font-outfit`
+- `Geist` â†’ `--font-geist-sans`
+- `Geist Mono` â†’ `--font-geist-mono`
+- `Outfit` â†’ `--font-outfit`
 
 ---
 
@@ -44,117 +44,117 @@ jsqr                     →  QR code scanning (attendance)
 
 ```
 vision-admin/
-├── app/
-│   ├── layout.tsx              # Root layout (fonts, metadata, globals.css)
-│   ├── page.tsx                # Root redirect
-│   ├── globals.css             # Global styles
-│   ├── admin/
-│   │   ├── layout.tsx          # Admin shell (Sidebar + Header + theme) [CLIENT ~17KB]
-│   │   ├── page.tsx            # Admin Dashboard (Web mode) [~24KB]
-│   │   ├── loading.tsx         # Loading skeleton
-│   │   ├── (lms)/              # LMS route group
-│   │   │   ├── admissions/     # Enquiry admissions
-│   │   │   ├── courses/        # Course management
-│   │   │   ├── fees/           # Fees management
-│   │   │   ├── lms/            # LMS sub-pages
-│   │   │   │   ├── content/    # Course curriculum
-│   │   │   │   ├── batch-content/ # Batch-wise content
-│   │   │   │   ├── tests/      # Tests management
-│   │   │   │   ├── materials/  # Notes & PDFs
-│   │   │   │   ├── projects/   # Projects
-│   │   │   │   ├── attendance/ # Daily attendance (QR-based)
-│   │   │   │   ├── chats/      # LMS chat
-│   │   │   │   └── analytics/  # LMS analytics
-│   │   │   ├── notifications/  # Push notifications
-│   │   │   ├── schedule/       # Academic schedule
-│   │   │   └── students/       # Student management
-│   │   ├── (system)/
-│   │   │   └── users/          # Admin user management
-│   │   └── (web)/              # Website CMS route group
-│   │       ├── analytics/      # Web analytics
-│   │       ├── batches/        # Course batches (website)
-│   │       ├── blogs/          # Blog management
-│   │       ├── chats/          # Web chat
-│   │       ├── contacts/       # General enquiries
-│   │       ├── gallery/        # Image gallery
-│   │       └── stats/          # Website stats
-│   ├── actions/                # Server Actions
-│   │   ├── lms/
-│   │   │   ├── admin.ts        # Admin CRUD (4.7KB)
-│   │   │   ├── admissions.ts   # Admission actions
-│   │   │   ├── attendance.ts   # Attendance actions
-│   │   │   ├── courses.ts      # Course CRUD (3.6KB)
-│   │   │   ├── fees.ts         # Fee management (5.3KB)
-│   │   │   ├── notifications.ts# Push notification send
-│   │   │   ├── push.ts         # Web push helpers
-│   │   │   ├── schedule.ts     # Schedule CRUD (3KB)
-│   │   │   └── student-auth.ts # Student login/signup
-│   │   ├── system/
-│   │   │   └── auth.ts         # System auth actions
-│   │   └── web/
-│   │       ├── batches.ts      # Public batch actions
-│   │       ├── blogs.ts        # Blog CRUD
-│   │       ├── contact.ts      # Contact form handler
-│   │       ├── gallery.ts      # Gallery CRUD (3.6KB)
-│   │       └── stats.ts        # Stats tracker
-│   ├── api/
-│   │   ├── cron/               # Cron jobs (Vercel)
-│   │   └── students/           # Student REST endpoints
-│   ├── auth/                   # Auth callback handler
-│   ├── admission/              # Public admission form
-│   ├── login/                  # Admin login page
-│   └── student/
-│       ├── dashboard/          # Student portal dashboard
-│       └── login/              # Student login
-├── components/
-│   ├── lms/                    # LMS-specific components
-│   │   ├── admin/              # Admin LMS components
-│   │   ├── admissions/         # Admission UI
-│   │   ├── projects/           # Project components
-│   │   ├── attendance/         # Attendance UI (QR scanner)
-│   │   ├── calendar/           # Calendar/schedule UI
-│   │   ├── content/            # Curriculum content UI
-│   │   ├── courses/            # Course cards/forms
-│   │   ├── fees/               # Fee table/forms
-│   │   ├── materials/          # Notes UI
-│   │   ├── notifications/      # Notification sender UI
-│   │   ├── schedule/           # Schedule UI
-│   │   ├── student/            # Student portal components
-│   │   ├── students/           # Student management UI
-│   │   └── tests/              # Test/quiz UI
-│   ├── system/
-│   │   ├── UserRoleManager.tsx # Role assignment component
-│   │   └── UsersClient.tsx     # Admin users table (18KB)
-│   ├── ui/                     # Reusable base components (NO shadcn)
-│   │   ├── Badge.tsx           # Status badges
-│   │   ├── Boneyard.tsx        # Skeleton loader
-│   │   ├── Button.tsx          # Primary button
-│   │   ├── Card.tsx            # Card wrapper
-│   │   ├── DeleteButton.tsx    # Confirm-delete button
-│   │   ├── Modal.tsx           # Modal dialog
-│   │   └── MultiSelect.tsx     # Multi-select dropdown
-│   └── web/                    # Website CMS components
-│       ├── AdminGalleryClient.tsx # Gallery manager
-│       ├── BatchForm.tsx        # Batch form (9KB)
-│       ├── BatchListClient.tsx  # Batch list UI
-│       └── BlogForm.tsx         # Blog editor (6.3KB)
-├── lib/
-│   ├── supabase.ts             # Browser Supabase client (singleton export `supabase`)
-│   ├── supabase-browser.ts     # Alt browser client
-│   ├── supabase-server.ts      # Server-side Supabase client (async fn)
-│   ├── auth.ts                 # AuthServices object (OTP, password, google, role)
-│   └── utils.ts                # Utility helpers
-├── supabase/
-│   ├── migration_phase1.sql    # Main schema (10KB)
-│   ├── add_category.sql        # courses.category
-│   ├── add_chapters.sql        # Chapter system
-│   ├── add_course_level.sql    # courses.level
-│   ├── attendance_qr_migration.sql  # QR attendance
-│   └── auto_attendance_migration.sql
-├── BRAIN.md                    # THIS FILE
-├── next.config.ts              # Next.js config (images: Cloudinary whitelist)
-├── package.json                # Dependencies
-└── public/                     # Static assets
+â”œâ”€â”€ app/
+â”‚   â”œâ”€â”€ layout.tsx              # Root layout (fonts, metadata, globals.css)
+â”‚   â”œâ”€â”€ page.tsx                # Root redirect
+â”‚   â”œâ”€â”€ globals.css             # Global styles
+â”‚   â”œâ”€â”€ admin/
+â”‚   â”‚   â”œâ”€â”€ layout.tsx          # Admin shell (Sidebar + Header + theme) [CLIENT ~17KB]
+â”‚   â”‚   â”œâ”€â”€ page.tsx            # Admin Dashboard (Web mode) [~24KB]
+â”‚   â”‚   â”œâ”€â”€ loading.tsx         # Loading skeleton
+â”‚   â”‚   â”œâ”€â”€ (lms)/              # LMS route group
+â”‚   â”‚   â”‚   â”œâ”€â”€ admissions/     # Enquiry admissions
+â”‚   â”‚   â”‚   â”œâ”€â”€ courses/        # Course management
+â”‚   â”‚   â”‚   â”œâ”€â”€ fees/           # Fees management
+â”‚   â”‚   â”‚   â”œâ”€â”€ lms/            # LMS sub-pages
+â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€ content/    # Course curriculum
+â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€ batch-content/ # Batch-wise content
+â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€ tests/      # Tests management
+â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€ materials/  # Notes & PDFs
+â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€ projects/   # Projects
+â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€ attendance/ # Daily attendance (QR-based)
+â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€ chats/      # LMS chat
+â”‚   â”‚   â”‚   â”‚   â””â”€â”€ analytics/  # LMS analytics
+â”‚   â”‚   â”‚   â”œâ”€â”€ notifications/  # Push notifications
+â”‚   â”‚   â”‚   â”œâ”€â”€ schedule/       # Academic schedule
+â”‚   â”‚   â”‚   â””â”€â”€ students/       # Student management
+â”‚   â”‚   â”œâ”€â”€ (system)/
+â”‚   â”‚   â”‚   â””â”€â”€ users/          # Admin user management
+â”‚   â”‚   â””â”€â”€ (web)/              # Website CMS route group
+â”‚   â”‚       â”œâ”€â”€ analytics/      # Web analytics
+â”‚   â”‚       â”œâ”€â”€ batches/        # Course batches (website)
+â”‚   â”‚       â”œâ”€â”€ blogs/          # Blog management
+â”‚   â”‚       â”œâ”€â”€ chats/          # Web chat
+â”‚   â”‚       â”œâ”€â”€ contacts/       # General enquiries
+â”‚   â”‚       â”œâ”€â”€ gallery/        # Image gallery
+â”‚   â”‚       â””â”€â”€ stats/          # Website stats
+â”‚   â”œâ”€â”€ actions/                # Server Actions
+â”‚   â”‚   â”œâ”€â”€ lms/
+â”‚   â”‚   â”‚   â”œâ”€â”€ admin.ts        # Admin CRUD (4.7KB)
+â”‚   â”‚   â”‚   â”œâ”€â”€ admissions.ts   # Admission actions
+â”‚   â”‚   â”‚   â”œâ”€â”€ attendance.ts   # Attendance actions
+â”‚   â”‚   â”‚   â”œâ”€â”€ courses.ts      # Course CRUD (3.6KB)
+â”‚   â”‚   â”‚   â”œâ”€â”€ fees.ts         # Fee management (5.3KB)
+â”‚   â”‚   â”‚   â”œâ”€â”€ notifications.ts# Push notification send
+â”‚   â”‚   â”‚   â”œâ”€â”€ push.ts         # Web push helpers
+â”‚   â”‚   â”‚   â”œâ”€â”€ schedule.ts     # Schedule CRUD (3KB)
+â”‚   â”‚   â”‚   â””â”€â”€ student-auth.ts # Student login/signup
+â”‚   â”‚   â”œâ”€â”€ system/
+â”‚   â”‚   â”‚   â””â”€â”€ auth.ts         # System auth actions
+â”‚   â”‚   â””â”€â”€ web/
+â”‚   â”‚       â”œâ”€â”€ batches.ts      # Public batch actions
+â”‚   â”‚       â”œâ”€â”€ blogs.ts        # Blog CRUD
+â”‚   â”‚       â”œâ”€â”€ contact.ts      # Contact form handler
+â”‚   â”‚       â”œâ”€â”€ gallery.ts      # Gallery CRUD (3.6KB)
+â”‚   â”‚       â””â”€â”€ stats.ts        # Stats tracker
+â”‚   â”œâ”€â”€ api/
+â”‚   â”‚   â”œâ”€â”€ cron/               # Cron jobs (Vercel)
+â”‚   â”‚   â””â”€â”€ students/           # Student REST endpoints
+â”‚   â”œâ”€â”€ auth/                   # Auth callback handler
+â”‚   â”œâ”€â”€ admission/              # Public admission form
+â”‚   â”œâ”€â”€ login/                  # Admin login page
+â”‚   â””â”€â”€ student/
+â”‚       â”œâ”€â”€ dashboard/          # Student portal dashboard
+â”‚       â””â”€â”€ login/              # Student login
+â”œâ”€â”€ components/
+â”‚   â”œâ”€â”€ lms/                    # LMS-specific components
+â”‚   â”‚   â”œâ”€â”€ admin/              # Admin LMS components
+â”‚   â”‚   â”œâ”€â”€ admissions/         # Admission UI
+â”‚   â”‚   â”œâ”€â”€ projects/           # Project components
+â”‚   â”‚   â”œâ”€â”€ attendance/         # Attendance UI (QR scanner)
+â”‚   â”‚   â”œâ”€â”€ calendar/           # Calendar/schedule UI
+â”‚   â”‚   â”œâ”€â”€ content/            # Curriculum content UI
+â”‚   â”‚   â”œâ”€â”€ courses/            # Course cards/forms
+â”‚   â”‚   â”œâ”€â”€ fees/               # Fee table/forms
+â”‚   â”‚   â”œâ”€â”€ materials/          # Notes UI
+â”‚   â”‚   â”œâ”€â”€ notifications/      # Notification sender UI
+â”‚   â”‚   â”œâ”€â”€ schedule/           # Schedule UI
+â”‚   â”‚   â”œâ”€â”€ student/            # Student portal components
+â”‚   â”‚   â”œâ”€â”€ students/           # Student management UI
+â”‚   â”‚   â””â”€â”€ tests/              # Test/quiz UI
+â”‚   â”œâ”€â”€ system/
+â”‚   â”‚   â”œâ”€â”€ UserRoleManager.tsx # Role assignment component
+â”‚   â”‚   â””â”€â”€ UsersClient.tsx     # Admin users table (18KB)
+â”‚   â”œâ”€â”€ ui/                     # Reusable base components (NO shadcn)
+â”‚   â”‚   â”œâ”€â”€ Badge.tsx           # Status badges
+â”‚   â”‚   â”œâ”€â”€ Boneyard.tsx        # Skeleton loader
+â”‚   â”‚   â”œâ”€â”€ Button.tsx          # Primary button
+â”‚   â”‚   â”œâ”€â”€ Card.tsx            # Card wrapper
+â”‚   â”‚   â”œâ”€â”€ DeleteButton.tsx    # Confirm-delete button
+â”‚   â”‚   â”œâ”€â”€ Modal.tsx           # Modal dialog
+â”‚   â”‚   â””â”€â”€ MultiSelect.tsx     # Multi-select dropdown
+â”‚   â””â”€â”€ web/                    # Website CMS components
+â”‚       â”œâ”€â”€ AdminGalleryClient.tsx # Gallery manager
+â”‚       â”œâ”€â”€ BatchForm.tsx        # Batch form (9KB)
+â”‚       â”œâ”€â”€ BatchListClient.tsx  # Batch list UI
+â”‚       â””â”€â”€ BlogForm.tsx         # Blog editor (6.3KB)
+â”œâ”€â”€ lib/
+â”‚   â”œâ”€â”€ supabase.ts             # Browser Supabase client (singleton export `supabase`)
+â”‚   â”œâ”€â”€ supabase-browser.ts     # Alt browser client
+â”‚   â”œâ”€â”€ supabase-server.ts      # Server-side Supabase client (async fn)
+â”‚   â”œâ”€â”€ auth.ts                 # AuthServices object (OTP, password, google, role)
+â”‚   â””â”€â”€ utils.ts                # Utility helpers
+â”œâ”€â”€ supabase/
+â”‚   â”œâ”€â”€ migration_phase1.sql    # Main schema (10KB)
+â”‚   â”œâ”€â”€ add_category.sql        # courses.category
+â”‚   â”œâ”€â”€ add_chapters.sql        # Chapter system
+â”‚   â”œâ”€â”€ add_course_level.sql    # courses.level
+â”‚   â”œâ”€â”€ attendance_qr_migration.sql  # QR attendance
+â”‚   â””â”€â”€ auto_attendance_migration.sql
+â”œâ”€â”€ BRAIN.md                    # THIS FILE
+â”œâ”€â”€ next.config.ts              # Next.js config (images: Cloudinary whitelist)
+â”œâ”€â”€ package.json                # Dependencies
+â””â”€â”€ public/                     # Static assets
 ```
 
 ---
@@ -166,7 +166,7 @@ vision-admin/
 | Table | Purpose | Key Columns |
 |-------|---------|-------------|
 | `profiles` | Auth user profiles | `id`, `role` (admin/student) |
-| `students` | Student records | `id`, `name`, `email`, `batch_id`→batches |
+| `students` | Student records | `id`, `name`, `email`, `batch_id`â†’batches |
 | `courses` | Course catalog | `id`, `title`, `category`, `level` |
 | `batches` | Course batches | `id`, `title`, `course_id`, `start_date`, `end_date`, `status`, `max_seats`, `available_seats` |
 | `enrollments` | Student-Course mapping | `student_id`, `course_id`, `batch_id`, `last_lesson_id` |
@@ -197,7 +197,7 @@ ALTER TABLE <table> ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow all for authenticated" ON <table> FOR ALL TO authenticated USING (true);
 CREATE POLICY "Allow all for anon" ON <table> FOR ALL TO anon USING (true);
 ```
-> NOTE: Permissive RLS — tighten later in production
+> NOTE: Permissive RLS â€” tighten later in production
 
 ---
 
@@ -213,9 +213,9 @@ CREATE POLICY "Allow all for anon" ON <table> FOR ALL TO anon USING (true);
 
 ### Auth Flow
 ```
-/login → AdminLogin → OTP → /auth/callback?type=admin → /admin
-/student/login → Password/Google → /auth/callback → /student/dashboard
-Middleware: checks session + role → redirects if unauthorized
+/login â†’ AdminLogin â†’ OTP â†’ /auth/callback?type=admin â†’ /admin
+/student/login â†’ Password/Google â†’ /auth/callback â†’ /student/dashboard
+Middleware: checks session + role â†’ redirects if unauthorized
 ```
 
 ### AuthServices (lib/auth.ts)
@@ -234,11 +234,11 @@ AuthServices.signOut()
 
 ## 6. ADMIN LAYOUT & NAVIGATION
 
-**File:** `app/admin/layout.tsx` (CLIENT component — has sidebar + header)
+**File:** `app/admin/layout.tsx` (CLIENT component â€” has sidebar + header)
 
 ### Sidebar Nav Groups
 ```
-Core:          Dashboard (→/admin or →/admin/lms based on mode)
+Core:          Dashboard (â†’/admin or â†’/admin/lms based on mode)
 Vision Learn:  LMS Dashboard, Enquiry Admissions, Manage Students,
                Add Student, Manage Courses, Course Curriculum,
                Batch Content, Manage Tests, Notes & Materials,
@@ -259,8 +259,8 @@ else
 ```
 
 ### localStorage Keys
-- `admin_theme` → `"light"` | `"dark"`
-- `sidebar_collapsed` → `"true"` | `"false"`
+- `admin_theme` â†’ `"light"` | `"dark"`
+- `sidebar_collapsed` â†’ `"true"` | `"false"`
 
 ### Sidebar Dimensions
 - Expanded desktop: `270px`
@@ -271,7 +271,7 @@ else
 
 ## 7. UI COMPONENT GUIDE
 
-> ❌ NO shadcn/ui — use these custom components
+> âŒ NO shadcn/ui â€” use these custom components
 
 | Component | Import Path | Notes |
 |-----------|-------------|-------|
@@ -341,18 +341,18 @@ NEXT_PUBLIC_SITE_URL=               # https://admin.visionitinstitute.com
 
 ## 10. GOTCHAS & RULES
 
-1. **Next.js 16** — Breaking changes from v14/v15. Read `node_modules/next/dist/docs/` before new features
-2. **NO shadcn** — Only `components/ui/` custom components
-3. **Tailwind v4** — No `tailwind.config.js`, uses `@tailwindcss/postcss` plugin
-4. **Admin layout = CLIENT** — No `"use server"` or server imports in `app/admin/layout.tsx`
-5. **Two dashboard pages** — `/admin` (Web mode) and `/admin/lms` (LMS mode)
-6. **Cloudinary whitelist** — Only `res.cloudinary.com` in `next.config.ts`
-7. **`data_old`** — Old static JSON, not production
-8. **`scratch/`** — Dev scripts only (e.g., `cleanup.js`)
+1. **Next.js 16** â€” Breaking changes from v14/v15. Read `node_modules/next/dist/docs/` before new features
+2. **NO shadcn** â€” Only `components/ui/` custom components
+3. **Tailwind v4** â€” No `tailwind.config.js`, uses `@tailwindcss/postcss` plugin
+4. **Admin layout = CLIENT** â€” No `"use server"` or server imports in `app/admin/layout.tsx`
+5. **Two dashboard pages** â€” `/admin` (Web mode) and `/admin/lms` (LMS mode)
+6. **Cloudinary whitelist** â€” Only `res.cloudinary.com` in `next.config.ts`
+7. **`data_old`** â€” Old static JSON, not production
+8. **`scratch/`** â€” Dev scripts only (e.g., `cleanup.js`)
 9. **Supabase client types**:
    - Browser: `import { supabase } from '@/lib/supabase'`
    - Server: `const supabase = await createServerClient()` from `@/lib/supabase-server`
-10. **student vs students** — `components/lms/student/` = student portal, `components/lms/students/` = admin student management
+10. **student vs students** â€” `components/lms/student/` = student portal, `components/lms/students/` = admin student management
 
 ---
 
@@ -362,9 +362,9 @@ NEXT_PUBLIC_SITE_URL=               # https://admin.visionitinstitute.com
 
 | Date | Change |
 |------|--------|
-| 2026-07-01 | BRAIN.md created — full initial project scan |
+| 2026-07-01 | BRAIN.md created â€” full initial project scan |
 | 2026-07-01 | Credentials flow changed: registration me password remove kiya, Student Management me "Generate Credentials" button + modal add kiya. New API: `POST /api/students/credentials` |
-| 2026-07-02 | `LessonFormModal.tsx`: Block Builder (Header/Para/Image/List blocks) ko replace kiya ek simple contentEditable Rich Text Editor se. Toolbar: B, I, U, H2, Para, • List, 1. List, Image. Backward compatible: purana THEORY_BLOCKS_JSON data load hote waqt HTML me convert ho jata hai. Added custom Tab support (4 spaces), -> to →, => to ⇒, --- to divider, Notion/ChatGPT smart paste cleanup (links auto-converted to inline images), Full Screen toggle mode, and bulk MCQ/Quiz questions importer. |
+| 2026-07-02 | `LessonFormModal.tsx`: Block Builder (Header/Para/Image/List blocks) ko replace kiya ek simple contentEditable Rich Text Editor se. Toolbar: B, I, U, H2, Para, â€¢ List, 1. List, Image. Backward compatible: purana THEORY_BLOCKS_JSON data load hote waqt HTML me convert ho jata hai. Added custom Tab support (4 spaces), -> to â†’, => to â‡’, --- to divider, Notion/ChatGPT smart paste cleanup (links auto-converted to inline images), Full Screen toggle mode, and bulk MCQ/Quiz questions importer. |
 | 2026-07-02 | `LessonPreviewModal.tsx`: Added rich-content container styling (H2 headings, custom lists, images, colors, font-weights, blocks comments removal) to ensure that previews for theory classes, assignments, and projects display HTML formatting identically to the editor. |
 | 2026-07-03 | `LessonFormModal.tsx`, `LessonPreviewModal.tsx`, `globals.css`: Dark themed the "Edit Theory Lesson" modal and "Admin Preview" modal. Fixed the black text issue inside the dark editor/viewer by creating a `.dark-modal` target in `globals.css` that forces white/light colors for all heading, paragraph, list, strong, and span elements. |
 | 2026-07-03 | Fixed contrast issues in the admin panel inputs, detail panels, filters, and summary elements by replacing typo `slate-955` classes with `slate-950` in `FeesClient.tsx`, `chats/page.tsx`, `UsersClient.tsx`, and `analytics/page.tsx`. |
@@ -380,8 +380,24 @@ NEXT_PUBLIC_SITE_URL=               # https://admin.visionitinstitute.com
 
 ## HOW TO USE
 
-- **Session start**: Sirf yahi file padho — project scan skip karo
+- **Session start**: Sirf yahi file padho â€” project scan skip karo
 - **Nayi feature**: Structure + Audit Log update karo
 - **Schema change**: Section 4 update karo
 - **Naya component**: Section 7 me add karo
 - **Changes audit**: `git diff --stat HEAD` chala ke BRAIN se compare karo
+
+---
+
+## 📋 AUDIT UPDATE (2026-10-01) — GSD Core Session
+
+### Newly Documented Features (were in code, not in brain):
+
+| Feature | Route | Status |
+|---------|-------|--------|
+| **Expenses Module** | `/admin/(lms)/expenses/` | ✅ Working — tracks institute expenses |
+| **LMS Progress Page** | `/admin/lms/progress/` | ✅ Working — individual student progress view |
+| **Admin Delete & Message API** | `/api/admin/delete/` | ✅ Working — secure deletion & message handling for contacts/admissions |
+| **Web Chats Client** | `/admin/(web)/chats/` | ✅ Working — real-time web inquiry & message management |
+| **Unauthorized Fallback** | `/unauthorized/` | ✅ Working — role-based protection redirect screen |
+
+> Updated by: GSD Core cross-project sync & audit session

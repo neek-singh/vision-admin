@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "gsd-graph": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "-p",
+        "@opengsd/gsd-graph@0.4.0",
+        "gsd-graph-mcp",
+        "--dir",
+        ".gsd-graph"
+      ]
+    }
+  }
+}

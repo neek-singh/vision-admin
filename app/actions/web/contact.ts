@@ -2,6 +2,25 @@
 
 import { revalidatePath } from "next/cache";
 import { supabase } from "@/lib/supabase";
+import { createServerSupabaseClient } from "@/lib/supabase-server";
+
+export async function deleteContact(id: string) {
+  try {
+    const supabaseServer = await createServerSupabaseClient();
+    const { error } = await supabaseServer
+      .from("contacts")
+      .delete()
+      .eq("id", id);
+
+    if (error) throw error;
+
+    revalidatePath("/admin/contacts");
+    return { success: true };
+  } catch (e: any) {
+    console.error("Failed to delete contact:", e);
+    return { error: e.message || "Failed to delete contact" };
+  }
+}
 
 export async function submitContactForm(formData: FormData) {
   const name = (formData.get("name") as string)?.trim();
