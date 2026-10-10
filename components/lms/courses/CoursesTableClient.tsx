@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Button } from "@/components/ui/Button";
+import { Search, X, Pencil, Clock, Users, BookOpen } from "lucide-react";
 import DeleteButton from "@/components/ui/DeleteButton";
 
 type Course = {
@@ -32,10 +32,13 @@ export default function CoursesTableClient({ initialCourses }: { initialCourses:
 
   // Search and category filter matching
   const filteredCourses = initialCourses.filter((course) => {
+    const q = searchTerm.trim().toLowerCase();
     const matchesSearch =
-      course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      course.course_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (course.category && course.category.toLowerCase().includes(searchTerm.toLowerCase()));
+      !q ||
+      course.title.toLowerCase().includes(q) ||
+      course.course_code.toLowerCase().includes(q) ||
+      (course.category && course.category.toLowerCase().includes(q)) ||
+      (course.duration && course.duration.toLowerCase().includes(q));
 
     const matchesCategory =
       selectedCategory === "All" || course.category === selectedCategory;
@@ -43,202 +46,307 @@ export default function CoursesTableClient({ initialCourses }: { initialCourses:
     return matchesSearch && matchesCategory;
   });
 
-  return (
-    <div className="space-y-6">
-      {/* Search and Filters Bar */}
-      <div className="flex flex-col sm:flex-row gap-4 bg-white dark:bg-[#0f172a] p-4 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm">
-        {/* Search Input */}
-        <div className="relative flex-1">
-          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
-            </svg>
-          </div>
-          <input
-            type="text"
-            id="course-search-input"
-            placeholder="Search by title, code or category..."
-            className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm transition-all text-slate-800 dark:text-slate-100"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          {searchTerm && (
-            <button
-              onClick={() => setSearchTerm("")}
-              className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 focus:outline-none"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 6 6 18" /><path d="m6 6 12 12" />
-              </svg>
-            </button>
-          )}
-        </div>
+  const hasDiscount = (c: Course) => !!c.discount_fee && c.discount_fee > 0;
 
-        {/* Category Dropdown */}
-        <div className="sm:w-64">
-          <select
-            id="course-category-select"
-            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 appearance-none cursor-pointer"
-            style={{ backgroundImage: `url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3E%3C/svg%3E")`, backgroundPosition: 'right 0.75rem center', backgroundSize: '1.25rem', backgroundRepeat: 'no-repeat', paddingRight: '2.5rem' }}
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-          >
-            <option value="All">All Categories</option>
-            {categoriesList.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
-              </option>
-            ))}
-          </select>
+  // Category badge color helper
+  const getCategoryColor = (cat?: string) => {
+    if (!cat) return "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700";
+    const lower = cat.toLowerCase();
+    if (lower.includes("ai") || lower.includes("intelligence")) {
+      return "bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300 border-violet-200/70 dark:border-violet-800/40";
+    }
+    if (lower.includes("data") || lower.includes("analytics")) {
+      return "bg-cyan-50 text-cyan-700 dark:bg-cyan-950/40 dark:text-cyan-300 border-cyan-200/70 dark:border-cyan-800/40";
+    }
+    if (lower.includes("office") || lower.includes("productivity")) {
+      return "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200/70 dark:border-amber-800/40";
+    }
+    if (lower.includes("cyber") || lower.includes("security") || lower.includes("hacking")) {
+      return "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border-rose-200/70 dark:border-rose-800/40";
+    }
+    if (lower.includes("web") || lower.includes("programming") || lower.includes("development")) {
+      return "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-200/70 dark:border-emerald-800/40";
+    }
+    if (lower.includes("diploma") || lower.includes("certificate")) {
+      return "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border-blue-200/70 dark:border-blue-800/40";
+    }
+    return "bg-slate-50 text-slate-700 dark:bg-slate-800/60 dark:text-slate-300 border-slate-200 dark:border-slate-700";
+  };
+
+  return (
+    <div className="space-y-3.5">
+      
+      {/* ── Search and Filter Toolbar ── */}
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xs border border-slate-200/80 dark:border-slate-800 p-2.5 sm:p-3 space-y-2.5 transition-colors">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+          
+          {/* Search bar */}
+          <div className="relative w-full sm:max-w-xs">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
+            <input
+              type="text"
+              id="course-search-input"
+              placeholder="Search by name, category, duration..."
+              className="w-full pl-8 pr-7 py-1.5 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => setSearchTerm("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                aria-label="Clear search"
+              >
+                <X size={12} />
+              </button>
+            )}
+          </div>
+
+          {/* Category Filter & Counter */}
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+            <select
+              id="course-category-select"
+              className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 focus:outline-none focus:border-blue-500 text-xs text-slate-700 dark:text-slate-300 cursor-pointer"
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+            >
+              <option value="All">All Categories ({initialCourses.length})</option>
+              {categoriesList.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
+            </select>
+
+            <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500 whitespace-nowrap">
+              {filteredCourses.length} {filteredCourses.length === 1 ? "course" : "courses"}
+            </span>
+          </div>
+
         </div>
       </div>
 
-      {/* Courses List */}
-      <div className="bg-white dark:bg-[#0f172a] rounded-3xl shadow-sm border border-gray-100 dark:border-slate-800 overflow-hidden">
+      {/* ── Table Container ── */}
+      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs overflow-hidden">
+        
         {/* Desktop Table View */}
         <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="bg-slate-50/50 dark:bg-slate-900/30 text-slate-500 dark:text-slate-400 border-b border-gray-100 dark:border-slate-800/50">
-                <th className="px-6 py-4 font-medium text-xs tracking-wider">Course Title</th>
-                <th className="px-6 py-4 font-medium text-xs tracking-wider">Category</th>
-                <th className="px-6 py-4 font-medium text-xs tracking-wider">Duration</th>
-                <th className="px-6 py-4 font-medium text-xs tracking-wider text-center">Students</th>
-                <th className="px-6 py-4 font-medium text-xs tracking-wider">Fee</th>
-                <th className="px-6 py-4 font-medium text-xs tracking-wider text-right">Actions</th>
+              <tr className="bg-slate-50/75 dark:bg-slate-950/40 text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800/80 text-[10px] font-bold uppercase tracking-wider">
+                <th className="px-3.5 py-2.5 w-72">Course Name</th>
+                <th className="px-3.5 py-2.5 w-52">Category</th>
+                <th className="px-3.5 py-2.5 w-40">Duration</th>
+                <th className="px-3.5 py-2.5 w-32 text-center">Enrolled</th>
+                <th className="px-3.5 py-2.5 w-36 text-right">Fees</th>
+                <th className="px-3.5 py-2.5 text-right w-24">Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
               {filteredCourses.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-16 text-center text-slate-500 font-medium">
-                    <div className="flex flex-col items-center justify-center space-y-3">
-                      <div className="w-12 h-12 bg-gray-50 dark:bg-slate-900 rounded-2xl flex items-center justify-center border border-gray-100 dark:border-slate-800">
-                        <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
+                  <td colSpan={6} className="px-4 py-12 text-center">
+                    <div className="flex flex-col items-center justify-center max-w-sm mx-auto text-center">
+                      <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mb-2">
+                        <BookOpen size={16} />
                       </div>
-                      <p className="text-sm">No courses found matching your filters.</p>
+                      <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                        No courses found
+                      </p>
+                      <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+                        Try adjusting your search criteria or category filter.
+                      </p>
+                      {(searchTerm || selectedCategory !== "All") && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSearchTerm("");
+                            setSelectedCategory("All");
+                          }}
+                          className="mt-3 px-3 py-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-lg transition-colors cursor-pointer"
+                        >
+                          Clear Filters
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
               ) : (
-                filteredCourses.map((course) => (
-                  <tr key={course.id} className="border-b border-gray-50 dark:border-slate-900 hover:bg-slate-50/50 dark:hover:bg-slate-900/10 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col">
-                        <span className="font-medium text-slate-800 dark:text-slate-200 text-sm leading-snug">{course.title}</span>
-                        <span className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">{course.course_code}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      {course.category ? (
-                        <span className="px-2.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-medium rounded-full border border-slate-200/40 dark:border-slate-700/40">
-                          {course.category}
-                        </span>
-                      ) : (
-                        <span className="text-slate-400 dark:text-slate-500 italic text-xs font-medium">Unassigned</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="px-2.5 py-0.5 bg-blue-50/80 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 rounded-full text-xs font-medium border border-blue-100/50 dark:border-blue-900/30">
-                        {course.duration}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <span className="px-2.5 py-0.5 bg-emerald-50/80 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 rounded-full text-xs font-medium border border-emerald-100/50 dark:border-emerald-900/30">
-                        {course.enrollments?.[0]?.count || 0} enrolled
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      {course.discount_fee && course.discount_fee > 0 ? (
-                        <div className="flex items-baseline gap-1.5">
-                          <span className="font-medium text-emerald-600 text-sm">₹{course.discount_fee}</span>
-                          <span className="text-[11px] text-slate-400 line-through">₹{course.fee}</span>
+                filteredCourses.map((course) => {
+                  const enrolledCount = course.enrollments?.[0]?.count || 0;
+
+                  return (
+                    <tr 
+                      key={course.id} 
+                      className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors group"
+                    >
+                      {/* 1. Course Name */}
+                      <td className="px-3.5 py-3">
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate">
+                            {course.title}
+                          </p>
+                          {course.course_code && (
+                            <span className="inline-block mt-0.5 text-[10px] font-mono text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800/80 px-1.5 py-0.2 rounded border border-slate-200/50 dark:border-slate-800">
+                              {course.course_code}
+                            </span>
+                          )}
                         </div>
-                      ) : (
-                        <span className="font-medium text-slate-800 dark:text-slate-200 text-sm">₹{course.fee}</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex justify-end gap-5 items-center">
-                        <Link 
-                          href={`/admin/courses/${course.id}/edit`} 
-                          className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium text-sm transition-colors"
-                        >
-                          Edit
-                        </Link>
-                        <DeleteButton id={course.id} table="courses" title={course.title} />
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+
+                      {/* 2. Category */}
+                      <td className="px-3.5 py-3">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${getCategoryColor(course.category)}`}>
+                          {course.category || "Unassigned"}
+                        </span>
+                      </td>
+
+                      {/* 3. Duration */}
+                      <td className="px-3.5 py-3">
+                        <div className="inline-flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300 font-medium">
+                          <Clock size={12} className="text-slate-400 shrink-0" />
+                          <span>{course.duration || "Self Paced"}</span>
+                        </div>
+                      </td>
+
+                      {/* 4. Enrolled */}
+                      <td className="px-3.5 py-3 text-center">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700">
+                          <Users size={11} className="text-slate-400" />
+                          <span>{enrolledCount} enrolled</span>
+                        </span>
+                      </td>
+
+                      {/* 5. Fees */}
+                      <td className="px-3.5 py-3 text-right">
+                        <div className="whitespace-nowrap">
+                          {hasDiscount(course) ? (
+                            <div className="flex flex-col items-end">
+                              <span className="text-xs font-bold text-slate-900 dark:text-white">
+                                ₹{Number(course.discount_fee).toLocaleString("en-IN")}
+                              </span>
+                              <span className="text-[10px] text-slate-400 line-through">
+                                ₹{Number(course.fee).toLocaleString("en-IN")}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-xs font-bold text-slate-900 dark:text-white">
+                              {course.fee ? `₹${Number(course.fee).toLocaleString("en-IN")}` : "Free"}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* 6. Actions */}
+                      <td className="px-3.5 py-3 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Link
+                            href={`/admin/courses/${course.id}/edit`}
+                            className="p-1 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer"
+                            title="Edit Course"
+                          >
+                            <Pencil size={13} />
+                          </Link>
+                          <DeleteButton
+                            id={course.id}
+                            table="courses"
+                            title={course.title}
+                            showText={false}
+                            className="p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-slate-800 rounded-md transition-colors disabled:opacity-50 cursor-pointer"
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
 
-        {/* Mobile Card View */}
-        <div className="md:hidden divide-y divide-gray-100 dark:divide-slate-850">
+        {/* Mobile View Cards */}
+        <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800/80">
           {filteredCourses.length === 0 ? (
-            <div className="px-6 py-16 text-center text-slate-500 font-medium">
+            <div className="p-6 text-center text-xs text-slate-400">
               No courses found.
             </div>
           ) : (
-            filteredCourses.map((course) => (
-              <div key={course.id} className="p-5 space-y-4">
-                <div className="flex justify-between items-start gap-4">
-                  <div className="flex flex-col min-w-0">
-                    <h4 className="font-medium text-slate-800 dark:text-slate-200 text-base leading-tight break-words">{course.title}</h4>
-                    <div className="flex flex-wrap gap-1.5 mt-2">
-                      <span className="px-2 py-0.5 bg-blue-50/80 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 rounded-full text-[10px] font-medium border border-blue-100/40">
-                        {course.duration}
-                      </span>
-                      {course.category && (
-                        <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-full text-[10px] font-medium border border-slate-200/40">
-                          {course.category}
-                        </span>
+            filteredCourses.map((course) => {
+              const enrolledCount = course.enrollments?.[0]?.count || 0;
+
+              return (
+                <div key={course.id} className="p-3.5 space-y-2.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="font-bold text-xs text-slate-900 dark:text-white leading-tight">
+                        {course.title}
+                      </p>
+                      {course.course_code && (
+                        <p className="text-[10px] font-mono text-slate-400 mt-0.5">
+                          {course.course_code}
+                        </p>
+                      )}
+                    </div>
+                    
+                    <div className="text-right shrink-0">
+                      {hasDiscount(course) ? (
+                        <>
+                          <p className="text-xs font-bold text-slate-900 dark:text-white">
+                            ₹{Number(course.discount_fee).toLocaleString("en-IN")}
+                          </p>
+                          <p className="text-[10px] text-slate-400 line-through">
+                            ₹{Number(course.fee).toLocaleString("en-IN")}
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-xs font-bold text-slate-900 dark:text-white">
+                          {course.fee ? `₹${Number(course.fee).toLocaleString("en-IN")}` : "Free"}
+                        </p>
                       )}
                     </div>
                   </div>
-                </div>
 
-                <div className="flex items-center justify-between pt-1">
-                  <div className="flex flex-col">
-                    <p className="text-[10px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-0.5">Fee Structure</p>
-                    {course.discount_fee && course.discount_fee > 0 ? (
-                      <div className="flex items-baseline gap-1.5">
-                        <span className="font-medium text-emerald-600 text-base">₹{course.discount_fee}</span>
-                        <span className="text-xs text-slate-400 line-through">₹{course.fee}</span>
-                      </div>
-                    ) : (
-                      <span className="font-medium text-slate-800 dark:text-slate-200 text-base">₹{course.fee}</span>
-                    )}
-                  </div>
-                  <div className="text-right">
-                    <p className="text-[10px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-0.5">Students</p>
-                    <span className="px-2 py-0.5 bg-emerald-50/80 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 rounded-full text-[10px] font-medium border border-emerald-100/40">
-                      {course.enrollments?.[0]?.count || 0} active
+                  <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
+                    <span className={`px-2 py-0.5 rounded-full font-semibold border ${getCategoryColor(course.category)}`}>
+                      {course.category || "General"}
+                    </span>
+
+                    <span className="inline-flex items-center gap-1 text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
+                      <Clock size={10} />
+                      <span>{course.duration || "N/A"}</span>
+                    </span>
+
+                    <span className="inline-flex items-center gap-1 text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
+                      <Users size={10} />
+                      <span>{enrolledCount} enrolled</span>
                     </span>
                   </div>
-                </div>
 
-                <div className="pt-4 flex gap-3 border-t border-slate-100 dark:border-slate-800/60">
-                  <Link 
-                    href={`/admin/courses/${course.id}/edit`} 
-                    className="flex-1 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-medium text-center transition-colors"
-                  >
-                    Edit Course
-                  </Link>
-                  <div className="flex-1">
-                    <DeleteButton id={course.id} table="courses" title={course.title} />
+                  <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/80">
+                    <Link
+                      href={`/admin/courses/${course.id}/edit`}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 rounded-lg"
+                    >
+                      <Pencil size={11} />
+                      <span>Edit</span>
+                    </Link>
+                    <DeleteButton
+                      id={course.id}
+                      table="courses"
+                      title={course.title}
+                      showText={false}
+                      className="p-1 text-slate-400 hover:text-rose-600 rounded-md"
+                    />
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
+
       </div>
+
     </div>
   );
 }

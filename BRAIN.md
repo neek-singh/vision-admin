@@ -246,7 +246,7 @@ Vision Learn:  LMS Dashboard, Enquiry Admissions, Manage Students,
                Notifications, Fees Management, LMS Chats, LMS Analytics
 Vision Web:    Batches, General Enquiries, Blogs, Gallery,
                Website Stats, Web Chats, Web Analytics
-System:        Admin Users
+System:        Manage Users
 ```
 
 ### Mode Switching Logic

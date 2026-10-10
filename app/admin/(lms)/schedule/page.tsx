@@ -55,7 +55,11 @@ export default async function AdminSchedulePage() {
   const allBatches = ["All Batches", ...batchesList.map(b => b.title)];
 
   return (
-    <div className="container mx-auto py-6">
+    <div className="container mx-auto px-6 lg:px-8 py-10 max-w-screen-xl space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold text-slate-900 dark:text-white tracking-tight">Academic Schedule</h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Plan and manage course lessons, tests, and events on the calendar.</p>
+      </div>
       <ScheduleClient 
         initialSchedules={combinedSchedules} 
         courses={courses || []} 

@@ -17,12 +17,10 @@ export default async function AttendancePage() {
     .order("title");
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-100 pb-6">
-        <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Attendance Management</h1>
-          <p className="text-slate-500 font-medium text-sm mt-1">Mark and manage daily student attendance records.</p>
-        </div>
+    <div className="container mx-auto px-6 lg:px-8 py-10 max-w-5xl space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold text-slate-900 dark:text-white tracking-tight">Attendance</h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Mark and manage daily student attendance records.</p>
       </div>
 
       <AttendanceClient initialCourses={courses || []} initialBatches={batches || []} />

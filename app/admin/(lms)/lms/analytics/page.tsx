@@ -26,7 +26,7 @@ export default async function LMSAnalyticsPage() {
     supabase.from("students").select("*", { count: "exact", head: true }),
     supabase.from("attendance").select("status"),
     supabase.from("test_results").select("score, total_questions"),
-    supabase.from("fees").select("final_fee, payments(amount)"),
+    supabase.from("fees").select("final_fee, payments(amount), students(status, is_deleted)"),
     supabase.from("enrollments").select("created_at, progress_percentage, courses(title)")
   ]);
 
@@ -51,13 +51,18 @@ export default async function LMSAnalyticsPage() {
   const fees = feesRes.data || [];
   let totalFinalFee = 0;
   let totalCollected = 0;
-  fees.forEach(f => {
-    totalFinalFee += Number(f.final_fee || 0);
+  fees.forEach((f: any) => {
+    const isDropoutOrDeleted = f.students?.status === "dropped_out" || f.students?.is_deleted;
     const paid = f.payments?.reduce((acc: number, p: any) => acc + Number(p.amount || 0), 0) || 0;
     totalCollected += paid;
+    if (!isDropoutOrDeleted) {
+      totalFinalFee += Number(f.final_fee || 0);
+    } else {
+      totalFinalFee += paid; // only count realized collection for departed students
+    }
   });
   const feeCollectionRate = totalFinalFee ? Math.round((totalCollected / totalFinalFee) * 1000) / 10 : 82.4;
-  const feePending = totalFinalFee - totalCollected;
+  const feePending = Math.max(0, totalFinalFee - totalCollected);
 
   const enrollments = enrollmentsRes.data || [];
 

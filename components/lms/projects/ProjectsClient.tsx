@@ -514,76 +514,72 @@ export default function ProjectsClient({ courses, initialProjects, availableBatc
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Toolbar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <select 
+            value={selectedCourseFilter}
+            onChange={(e) => setSelectedCourseFilter(e.target.value)}
+            className="px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none focus:border-slate-400 dark:focus:border-slate-600 transition-colors text-sm text-slate-700 dark:text-slate-300 cursor-pointer max-w-[14rem]"
+          >
+            <option value="all" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">All courses</option>
+            {courses.map(course => (
+              <option key={course.id} value={course.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{course.title}</option>
+            ))}
+          </select>
+
+          <select 
+            value={selectedCategoryFilter}
+            onChange={(e) => setSelectedCategoryFilter(e.target.value)}
+            className="px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none focus:border-slate-400 dark:focus:border-slate-600 transition-colors text-sm text-slate-700 dark:text-slate-300 cursor-pointer"
+          >
+            <option value="all" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">All categories</option>
+            {["Word", "Excel", "PowerPoint", "OneNote", "Notion", "ChatGPT", "Gemini", "Claude", "Web", "Canva"].map(cat => (
+              <option key={cat} value={cat} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{cat}</option>
+            ))}
+          </select>
+
+          <select 
+            value={selectedDateFilter}
+            onChange={(e) => setSelectedDateFilter(e.target.value)}
+            className="px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none focus:border-slate-400 dark:focus:border-slate-600 transition-colors text-sm text-slate-700 dark:text-slate-300 cursor-pointer"
+          >
+            <option value="all" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">All dates</option>
+            <option value="scheduled" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Scheduled</option>
+            <option value="unscheduled" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Not Scheduled</option>
+            <option value="upcoming" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Upcoming</option>
+            <option value="overdue" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Overdue</option>
+          </select>
+        </div>
+
         <button 
           onClick={() => setIsAdding(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20 shrink-0 w-fit"
+          className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-200 text-white dark:text-slate-900 rounded-lg text-sm font-medium transition-colors w-fit cursor-pointer shrink-0"
         >
-          <Plus size={18} />
-          New Project
+          <Plus size={14} />
+          New project
         </button>
-
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2">
-            <label className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest shrink-0">Filter by Course:</label>
-            <select 
-              value={selectedCourseFilter}
-              onChange={(e) => setSelectedCourseFilter(e.target.value)}
-              className="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-indigo-500 transition-all text-xs font-bold text-slate-700 dark:text-slate-350"
-            >
-              <option value="all">All Courses</option>
-              {courses.map(course => (
-                <option key={course.id} value={course.id}>{course.title}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <label className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest shrink-0">Filter by Category:</label>
-            <select 
-              value={selectedCategoryFilter}
-              onChange={(e) => setSelectedCategoryFilter(e.target.value)}
-              className="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-indigo-500 transition-all text-xs font-bold text-slate-700 dark:text-slate-350"
-            >
-              <option value="all">All Categories</option>
-              {["Word", "Excel", "PowerPoint", "OneNote", "Notion", "ChatGPT", "Gemini", "Claude", "Web", "Canva"].map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <label className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest shrink-0">Filter by Date:</label>
-            <select 
-              value={selectedDateFilter}
-              onChange={(e) => setSelectedDateFilter(e.target.value)}
-              className="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-indigo-500 transition-all text-xs font-bold text-slate-700 dark:text-slate-350"
-            >
-              <option value="all">All Dates</option>
-              <option value="scheduled">Scheduled</option>
-              <option value="unscheduled">Not Scheduled</option>
-              <option value="upcoming">Upcoming</option>
-              <option value="overdue">Overdue</option>
-            </select>
-          </div>
-        </div>
       </div>
+
+      <p className="text-xs text-slate-400 dark:text-slate-500 px-1 -mb-3">
+        {filteredProjects.length} {filteredProjects.length === 1 ? "project" : "projects"}
+      </p>
 
       {isAdding && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <h3 className="font-bold text-slate-900">{editingId ? 'Edit Project' : 'Create Project'}</h3>
-              <button onClick={closeForm} className="p-1.5 hover:bg-slate-100 rounded-lg"><X size={18} /></button>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-lg overflow-hidden border border-slate-100 dark:border-slate-800 animate-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <h3 className="font-semibold text-slate-900 dark:text-white">{editingId ? 'Edit Project' : 'Create Project'}</h3>
+              <button onClick={closeForm} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"><X size={18} /></button>
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div className="space-y-4">
                 {editingId && (
                   <div className="relative">
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Target Courses</label>
+                    <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Target Courses</label>
                     <div 
                       onClick={() => setIsCourseDropdownOpen(!isCourseDropdownOpen)}
-                      className="min-h-[42px] w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus-within:border-indigo-500 transition-all text-sm font-bold text-black cursor-pointer flex flex-wrap gap-2 items-center justify-between"
+                      className="min-h-[38px] w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none focus-within:border-slate-400 dark:focus-within:border-slate-600 transition-colors text-sm text-slate-900 dark:text-slate-100 cursor-pointer flex flex-wrap gap-2 items-center justify-between"
                     >
                       <div className="flex flex-wrap gap-1.5">
                         {formData.course_ids.length === 0 ? (
@@ -616,13 +612,13 @@ export default function ProjectsClient({ courses, initialProjects, availableBatc
                     {isCourseDropdownOpen && (
                       <>
                         <div className="fixed inset-0 z-10" onClick={() => setIsCourseDropdownOpen(false)} />
-                        <div className="absolute left-0 right-0 mt-2 bg-white border border-slate-200 rounded-2xl shadow-xl z-20 max-h-60 overflow-y-auto p-3 space-y-1 animate-in slide-in-from-top-2 duration-150">
+                        <div className="absolute left-0 right-0 mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-20 max-h-60 overflow-y-auto p-2 space-y-0.5 animate-in slide-in-from-top-2 duration-150">
                           {courses.map(course => {
                             const isSelected = formData.course_ids.includes(course.id);
                             return (
                               <label 
                                 key={course.id}
-                                className="flex items-center gap-3 px-3 py-2 hover:bg-slate-50 rounded-xl cursor-pointer text-xs font-bold text-slate-700 select-none transition-colors"
+                                className="flex items-center gap-3 px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer text-xs font-medium text-slate-700 dark:text-slate-300 select-none transition-colors"
                               >
                                 <input 
                                   type="checkbox"
@@ -652,51 +648,51 @@ export default function ProjectsClient({ courses, initialProjects, availableBatc
                   </div>
                 )}
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Project Title</label>
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Project Title</label>
                   <input 
                     required
                     type="text" 
                     placeholder="e.g. Portfolio Website"
                     value={formData.title}
                     onChange={(e) => setFormData({...formData, title: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 transition-all text-sm font-bold text-black" 
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none focus:border-slate-400 dark:focus:border-slate-600 transition-colors text-sm text-slate-900 dark:text-slate-100" 
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Project Category</label>
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Project Category</label>
                   <select 
                     required
                     value={formData.category}
                     onChange={(e) => setFormData({...formData, category: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 transition-all text-sm font-bold text-black"
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none focus:border-slate-400 dark:focus:border-slate-600 transition-colors text-sm text-slate-900 dark:text-slate-100"
                   >
                     <option value="">Select a category...</option>
                     {["Word", "Excel", "PowerPoint", "OneNote", "Notion", "ChatGPT", "Gemini", "Claude", "Web", "Canva"].map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
+                      <option key={cat} value={cat} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{cat}</option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Project URL / Link</label>
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Project URL / Link</label>
                   <input 
                     required
                     type="url"
                     placeholder="https://example.com/project-guidelines"
                     value={formData.description}
                     onChange={(e) => setFormData({...formData, description: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 transition-all text-sm font-bold text-black" 
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none focus:border-slate-400 dark:focus:border-slate-600 transition-colors text-sm text-slate-900 dark:text-slate-100" 
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Due Date (Sets to 6 PM)</label>
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Due Date (Sets to 6 PM)</label>
                   <select 
                     value={formData.due_date}
                     onChange={(e) => setFormData({...formData, due_date: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 transition-all text-sm font-bold text-black" 
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none focus:border-slate-400 dark:focus:border-slate-600 transition-colors text-sm text-slate-900 dark:text-slate-100" 
                   >
                     <option value="">No Due Date</option>
                     {getDueDatesList(formData.due_date).map(item => (
-                      <option key={item.value} value={item.value}>{item.label}</option>
+                      <option key={item.value} value={item.value} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{item.label}</option>
                     ))}
                   </select>
                 </div>
@@ -706,13 +702,13 @@ export default function ProjectsClient({ courses, initialProjects, availableBatc
                 <button 
                   type="button"
                   onClick={closeForm}
-                  className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl transition-all"
+                  className="flex-1 py-2.5 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium rounded-lg transition-colors text-sm"
                 >
                   Cancel
                 </button>
                 <button 
                   disabled={isSubmitting}
-                  className="flex-[2] py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20"
+                  className="flex-[2] py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-200 text-white dark:text-slate-900 font-medium rounded-lg transition-colors flex items-center justify-center gap-2 text-sm"
                 >
                   {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : <PenTool size={18} />}
                   {editingId ? 'Update Project' : 'Create Project'}
@@ -723,106 +719,81 @@ export default function ProjectsClient({ courses, initialProjects, availableBatc
         </div>
       )}
 
-      <div className="flex flex-col gap-4">
-        {filteredProjects.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 px-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl text-center shadow-sm">
-            <p className="text-slate-400 dark:text-slate-500 font-bold text-sm">No projects found for the selected course.</p>
-          </div>
-        ) : (
-          filteredProjects.map((project) => (
-            <div key={project.id} className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800/80 shadow-sm hover:shadow-md transition-all group flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div className="flex items-center gap-3 min-w-0 flex-1">
-                <div className="w-8 h-8 bg-indigo-50 dark:bg-indigo-950/30 rounded-lg flex items-center justify-center text-indigo-650 dark:text-indigo-400 shrink-0">
-                  <PenTool size={16} />
-                </div>
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0 text-sm font-semibold flex-1">
-                  {/* Title */}
-                  <h3 className="text-sm font-medium text-slate-900 dark:text-white leading-tight truncate max-w-[180px] sm:max-w-[350px] md:max-w-[450px]" title={project.title}>
-                    {project.title}
-                  </h3>
+      {/* Projects List */}
+      {filteredProjects.length === 0 ? (
+        <div className="py-16 text-center text-sm text-slate-500 dark:text-slate-400">
+          No projects found for the selected filters.
+        </div>
+      ) : (
+        <ul className="divide-y divide-slate-100 dark:divide-slate-800/80 border-y border-slate-100 dark:border-slate-800/80">
+          {filteredProjects.map((project) => {
+            const courseTitles = project.assignment_courses?.map((ac: any) => ac.courses?.title).filter(Boolean).join(", ");
+            const batchNames = project.batches?.join(", ");
+            const subCount = project.submissions?.[0]?.count || 0;
 
-                  {/* Bullet */}
-                  <span className="text-slate-300 dark:text-slate-700 hidden sm:inline">•</span>
-
-                  {/* Course Name */}
-                  <span 
-                    title={project.assignment_courses?.map((ac: any) => ac.courses?.title).filter(Boolean).join(", ")} 
-                    className="text-[9px] font-black text-indigo-500 dark:text-indigo-400 uppercase tracking-widest leading-none truncate max-w-[150px] sm:max-w-[200px]"
-                  >
-                    {project.assignment_courses?.map((ac: any) => shortenCourseName(ac.courses?.title)).filter(Boolean).join(", ") || "No Course"}
-                  </span>
-
-                  {/* Category (if present) */}
-                  {project.category && (
-                    <>
-                      <span className="text-slate-300 dark:text-slate-700 hidden sm:inline">•</span>
-                      <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border leading-none ${getCategoryStyle(project.category)}`}>
+            return (
+              <li
+                key={project.id}
+                className="group flex flex-col md:flex-row md:items-center gap-3 md:gap-4 py-3.5 px-2 -mx-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors"
+              >
+                {/* Title and metadata */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
+                      {project.title}
+                    </p>
+                    {project.category && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 capitalize shrink-0">
                         {project.category}
                       </span>
-                    </>
-                  )}
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                    {[
+                      courseTitles || "No Course",
+                      batchNames,
+                      project.due_date ? `Due ${new Date(project.due_date).toLocaleDateString()}` : "No due date"
+                    ].filter(Boolean).join(" · ")}
+                  </p>
+                </div>
 
-                  {/* Batch (if present) */}
-                  {project.batches && project.batches.length > 0 && (
-                    <>
-                      <span className="text-slate-300 dark:text-slate-700 hidden sm:inline">•</span>
-                      <span className="px-1.5 py-0.5 bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 rounded text-[7px] font-black uppercase tracking-widest border border-indigo-100 dark:border-indigo-950/40 leading-none">
-                        {project.batches.join(", ")}
-                      </span>
-                    </>
-                  )}
-
-                  {/* Open Project Link Button */}
+                {/* Submissions button & reference link */}
+                <div className="flex items-center gap-2.5 shrink-0 pl-1 md:pl-0">
                   {project.description && (
-                    <>
-                      <span className="text-slate-300 dark:text-slate-700 hidden sm:inline">•</span>
-                      <a 
-                        href={project.description} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-[10px] text-indigo-600 dark:text-indigo-400 hover:text-indigo-855 dark:hover:text-indigo-300 font-bold hover:underline bg-indigo-50/50 dark:bg-indigo-950/20 px-2 py-0.5 rounded-lg border border-indigo-100/30 dark:border-indigo-950/40 leading-none"
-                      >
-                        <ExternalLink size={10} className="shrink-0" />
-                        Open Link
-                      </a>
-                    </>
+                    <a
+                      href={project.description}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 inline-flex items-center gap-1 transition-colors px-1 py-1"
+                      title="Open project reference link"
+                    >
+                      <ExternalLink size={13} />
+                      Link
+                    </a>
                   )}
 
-                  {/* Due Date (if present) */}
-                  {project.due_date && (
-                    <>
-                      <span className="text-slate-300 dark:text-slate-700 hidden sm:inline">•</span>
-                      <span className="text-[9px] text-slate-400 dark:text-slate-500 font-bold flex items-center gap-1 leading-none">
-                        Due: {new Date(project.due_date).toLocaleDateString()}
-                      </span>
-                    </>
-                  )}
+                  <button
+                    onClick={() => handleViewSubmissions(project.id)}
+                    className="text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Users size={13} className="text-slate-400" />
+                    <span>{subCount} {subCount === 1 ? 'submission' : 'submissions'}</span>
+                  </button>
                 </div>
-              </div>
 
-              <div className="flex flex-wrap items-center gap-3 shrink-0 sm:self-center">
-                <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/40 px-2.5 py-1.5 rounded-xl border border-slate-100 dark:border-slate-800/60 leading-none">
-                  <Users size={12} className="text-indigo-500 dark:text-indigo-400 shrink-0" />
-                  Submissions: {project.submissions?.[0]?.count || 0}
-                </div>
-                <button 
-                  onClick={() => handleViewSubmissions(project.id)}
-                  className="py-2 px-3.5 bg-slate-900 dark:bg-slate-850 hover:bg-indigo-600 dark:hover:bg-indigo-700 text-white text-[10px] font-black rounded-lg transition-all"
-                >
-                  View All Submissions
-                </button>
-                <div className="flex items-center gap-0.5 border-l border-slate-200 dark:border-slate-800 pl-2">
-                  <button 
+                {/* Actions */}
+                <div className="flex items-center gap-0.5 md:opacity-0 md:group-hover:opacity-100 md:focus-within:opacity-100 transition-opacity shrink-0 pl-1 md:pl-0">
+                  <button
                     onClick={() => handleOpenSchedule(project)}
-                    className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-lg transition-all mr-1"
+                    className="p-2 text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-md transition-colors cursor-pointer"
                     title="Schedule Project"
                   >
                     <CalendarIcon size={15} />
                   </button>
-                  <button 
+                  <button
                     disabled={isDuplicating === project.id}
                     onClick={() => handleDuplicate(project)}
-                    className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-55 dark:hover:bg-blue-950/30 rounded-lg transition-all mr-1 disabled:opacity-50"
+                    className="p-2 text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-md transition-colors cursor-pointer disabled:opacity-50"
                     title="Duplicate Project"
                   >
                     {isDuplicating === project.id ? (
@@ -831,45 +802,47 @@ export default function ProjectsClient({ courses, initialProjects, availableBatc
                       <Copy size={15} />
                     )}
                   </button>
-                  <button 
+                  <button
                     onClick={() => handleEdit(project)}
-                    className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 rounded-lg transition-all"
+                    className="p-2 text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-md transition-colors cursor-pointer"
+                    title="Edit"
                   >
                     <Pencil size={15} />
                   </button>
-                  <button 
+                  <button
                     onClick={() => handleDelete(project.id)}
-                    className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-all"
+                    className="p-2 text-slate-400 hover:text-red-600 rounded-md transition-colors cursor-pointer"
+                    title="Delete"
                   >
                     <Trash2 size={15} />
                   </button>
                 </div>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
 
       {/* Submissions Modal */}
       {viewingSubmissions && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-4xl overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-300">
-            <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-4xl overflow-hidden border border-slate-100 dark:border-slate-800 animate-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
               <div className="flex items-center gap-4">
-                 <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-200">
+                 <div className="w-9 h-9 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center text-slate-700 dark:text-slate-300">
                     <Users size={24} />
                  </div>
                  <div>
-                    <h3 className="text-xl font-black text-slate-900 leading-none mb-1">Student Submissions</h3>
+                    <h3 className="text-base font-semibold text-slate-900 dark:text-white leading-none mb-1">Student Submissions</h3>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                       {initialProjects.find(p => p.id === viewingSubmissions)?.title}
                     </p>
                  </div>
               </div>
-              <button onClick={() => setViewingSubmissions(null)} className="p-2 hover:bg-slate-100 rounded-xl transition-all"><X size={24} /></button>
+              <button onClick={() => setViewingSubmissions(null)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"><X size={24} /></button>
             </div>
 
-            <div className="p-8 max-h-[60vh] overflow-y-auto scrollbar-hide">
+            <div className="p-6 max-h-[60vh] overflow-y-auto">
               {isLoadingSubmissions ? (
                 <div className="flex flex-col items-center justify-center py-20 gap-4">
                   <Loader2 className="animate-spin text-indigo-600" size={40} />
@@ -883,10 +856,10 @@ export default function ProjectsClient({ courses, initialProjects, availableBatc
                   <p className="text-slate-400 font-bold">No submissions received yet.</p>
                 </div>
               ) : (
-                <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+                <div className="rounded-xl border border-slate-100 dark:border-slate-800 overflow-hidden">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="bg-slate-50 text-slate-400 text-[9px] uppercase font-black tracking-[0.2em] border-b border-slate-100">
+                      <tr className="bg-slate-50/50 dark:bg-slate-900/50 text-slate-400 dark:text-slate-500 text-xs font-medium border-b border-slate-100 dark:border-slate-800">
                         <th className="px-6 py-4 w-1/4">Student</th>
                         <th className="px-6 py-4 w-1/5">Work / Date</th>
                         <th className="px-6 py-4 w-1/6">Score / Grade</th>
@@ -894,14 +867,14 @@ export default function ProjectsClient({ courses, initialProjects, availableBatc
                         <th className="px-6 py-4 text-right w-1/6">Action</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-50">
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                       {submissions.map((sub) => {
                         const state = gradingState[sub.id] || { score: "", feedback: "" };
                         return (
-                          <tr key={sub.id} className="hover:bg-slate-50/50 transition-colors align-top">
+                          <tr key={sub.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors align-top">
                             <td className="px-6 py-4">
                               <div>
-                                <p className="font-black text-slate-900 text-sm">{(sub.students as any)?.name}</p>
+                                <p className="font-medium text-slate-900 dark:text-slate-100 text-sm">{(sub.students as any)?.name}</p>
                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{(sub.students as any)?.student_id}</p>
                               </div>
                             </td>
@@ -1048,7 +1021,7 @@ export default function ProjectsClient({ courses, initialProjects, availableBatc
                                   ...gradingState,
                                   [sub.id]: { ...state, score: e.target.value }
                                 })}
-                                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 transition-all text-xs font-bold text-black"
+                                className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none focus:border-slate-400 dark:focus:border-slate-600 transition-colors text-xs text-slate-900 dark:text-slate-100"
                               />
                               {sub.graded_at && (
                                 <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest mt-1 block">
@@ -1066,14 +1039,14 @@ export default function ProjectsClient({ courses, initialProjects, availableBatc
                                   ...gradingState,
                                   [sub.id]: { ...state, feedback: e.target.value }
                                 })}
-                                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 transition-all text-xs font-bold text-black"
+                                className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none focus:border-slate-400 dark:focus:border-slate-600 transition-colors text-xs text-slate-900 dark:text-slate-100"
                               />
                             </td>
                             <td className="px-6 py-4 text-right">
                               <button
                                 disabled={savingGradeId === sub.id}
                                 onClick={() => handleSaveGrade(sub.id)}
-                                className="inline-flex items-center gap-1 px-4 py-2 bg-slate-900 text-white text-[10px] font-black rounded-xl hover:bg-indigo-600 transition-all shadow-md shadow-indigo-100 disabled:opacity-50"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-200 text-white dark:text-slate-900 text-xs font-medium rounded-lg transition-colors disabled:opacity-50"
                               >
                                 {savingGradeId === sub.id ? (
                                   <Loader2 size={12} className="animate-spin shrink-0" />
@@ -1098,25 +1071,25 @@ export default function ProjectsClient({ courses, initialProjects, availableBatc
       {/* Schedule Project Modal */}
       {isScheduling && schedulingProject && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <h3 className="font-bold text-slate-900">Schedule Project</h3>
-              <button onClick={handleCloseSchedule} className="p-1.5 hover:bg-slate-100 rounded-lg"><X size={18} /></button>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-lg overflow-hidden border border-slate-100 dark:border-slate-800 animate-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <h3 className="font-semibold text-slate-900 dark:text-white">Schedule Project</h3>
+              <button onClick={handleCloseSchedule} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"><X size={18} /></button>
             </div>
             <form onSubmit={handleScheduleSubmit} className="p-6 space-y-4">
               <div className="space-y-4">
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Project Title</label>
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Project Title</label>
                   <input 
                     type="text" 
                     readOnly
                     value={schedulingProject.title}
-                    className="w-full px-4 py-2.5 bg-slate-100 border border-slate-200 rounded-xl outline-none text-sm font-bold text-slate-500 cursor-not-allowed" 
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-500 cursor-not-allowed" 
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Target Course</label>
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Target Course</label>
                   <select 
                     required
                     value={scheduleForm.course_id}
@@ -1127,24 +1100,24 @@ export default function ProjectsClient({ courses, initialProjects, availableBatc
                         batches: []
                       });
                     }}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 transition-all text-sm font-bold text-black"
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none focus:border-slate-400 dark:focus:border-slate-600 transition-colors text-sm text-slate-900 dark:text-slate-100"
                   >
                     <option value="">Select a course...</option>
                     {schedulingProject.assignment_courses?.filter((ac: any) => ac.courses).map((ac: any) => (
-                      <option key={ac.course_id} value={ac.course_id}>{ac.courses.title}</option>
+                      <option key={ac.course_id} value={ac.course_id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{ac.courses.title}</option>
                     ))}
                   </select>
                 </div>
 
                 <div className="relative">
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Target Batches</label>
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Target Batches</label>
                   <div 
                     onClick={() => {
                       if (scheduleForm.course_id) {
                         setIsBatchDropdownOpen(!isBatchDropdownOpen);
                       }
                     }}
-                    className={`w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus-within:border-indigo-500 transition-all text-sm font-bold text-black flex items-center min-h-[46px] ${
+                    className={`w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none focus-within:border-slate-400 dark:focus-within:border-slate-600 transition-colors text-sm text-slate-900 dark:text-slate-100 flex items-center min-h-[40px] ${
                       scheduleForm.course_id ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'
                     }`}
                   >
@@ -1176,7 +1149,7 @@ export default function ProjectsClient({ courses, initialProjects, availableBatc
                   {isBatchDropdownOpen && (
                     <>
                       <div className="fixed inset-0 z-10" onClick={() => setIsBatchDropdownOpen(false)} />
-                      <div className="absolute left-0 right-0 mt-2 bg-white border border-slate-200 rounded-2xl shadow-xl z-20 max-h-60 overflow-y-auto p-3 space-y-1 animate-in slide-in-from-top-2 duration-150">
+                      <div className="absolute left-0 right-0 mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-20 max-h-60 overflow-y-auto p-2 space-y-0.5 animate-in slide-in-from-top-2 duration-150">
                         {(() => {
                           const courseBatches = availableBatches.filter((b: any) => b.course_id === scheduleForm.course_id);
                           const allSelected = courseBatches.length > 0 && courseBatches.every((b: any) => scheduleForm.batches.includes(b.title));
@@ -1212,7 +1185,7 @@ export default function ProjectsClient({ courses, initialProjects, availableBatc
                             return (
                               <label 
                                 key={batch.id}
-                                className="flex items-center gap-3 px-3 py-2 hover:bg-slate-50 rounded-xl cursor-pointer text-xs font-bold text-slate-700 select-none transition-colors"
+                                className="flex items-center gap-3 px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer text-xs font-medium text-slate-700 dark:text-slate-300 select-none transition-colors"
                               >
                                 <input 
                                   type="checkbox"
@@ -1246,15 +1219,15 @@ export default function ProjectsClient({ courses, initialProjects, availableBatc
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Due Date (Sets to 6 PM)</label>
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Due Date (Sets to 6 PM)</label>
                   <select 
                     value={scheduleForm.due_date}
                     onChange={(e) => setScheduleForm({...scheduleForm, due_date: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 transition-all text-sm font-bold text-black" 
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none focus:border-slate-400 dark:focus:border-slate-600 transition-colors text-sm text-slate-900 dark:text-slate-100" 
                   >
                     <option value="">No Due Date</option>
                     {getDueDatesList(scheduleForm.due_date).map(item => (
-                      <option key={item.value} value={item.value}>{item.label}</option>
+                      <option key={item.value} value={item.value} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{item.label}</option>
                     ))}
                   </select>
                 </div>
@@ -1264,13 +1237,13 @@ export default function ProjectsClient({ courses, initialProjects, availableBatc
                 <button 
                   type="button"
                   onClick={handleCloseSchedule}
-                  className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl transition-all"
+                  className="flex-1 py-2.5 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium rounded-lg transition-colors text-sm"
                 >
                   Cancel
                 </button>
                 <button 
                   disabled={isSubmittingSchedule}
-                  className="flex-[2] py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20"
+                  className="flex-[2] py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-200 text-white dark:text-slate-900 font-medium rounded-lg transition-colors flex items-center justify-center gap-2 text-sm"
                 >
                   {isSubmittingSchedule ? <Loader2 className="animate-spin" size={18} /> : <CalendarIcon size={18} />}
                   Schedule Project

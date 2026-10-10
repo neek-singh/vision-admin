@@ -23,7 +23,14 @@ import {
   ChevronRight,
   Sparkles,
   CalendarCheck,
-  ChevronDown
+  ChevronDown,
+  MessageCircle,
+  FileSpreadsheet,
+  ArrowUpDown,
+  Copy,
+  Check,
+  Send,
+  Smartphone
 } from "lucide-react";
 import { setupStudentFee, recordPayment, deleteFeeRecord, deletePayment, incrementStudentFee } from "@/app/actions/lms/fees";
 
@@ -45,11 +52,20 @@ export default function FeesClient({
   const [showIncrement, setShowIncrement] = useState<any | null>(null);
   const [incrementAmount, setIncrementAmount] = useState<number>(0);
   
+  // Monthly Fee Reminder Modal State
+  const [showReminderModal, setShowReminderModal] = useState<any | null>(null);
+  const [reminderMonthlyRate, setReminderMonthlyRate] = useState<number>(1000);
+  const [selectedUnpaidMonths, setSelectedUnpaidMonths] = useState<string[]>([]);
+  const [reminderCustomPhone, setReminderCustomPhone] = useState<string>("");
+  const [copiedSMS, setCopiedSMS] = useState(false);
+  
   // Search & Filter State
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all"); // all, paid, partial, due
   const [courseFilter, setCourseFilter] = useState("all");
   const [monthFilter, setMonthFilter] = useState("all");
+  const [studentStatusFilter, setStudentStatusFilter] = useState("active"); // default: active students only (excludes dropped_out)
+  const [sortBy, setSortBy] = useState<"default" | "balance_desc" | "balance_asc" | "name_asc" | "fee_desc">("default");
 
   // Setup Form State
   const [enableInstallments, setEnableInstallments] = useState(false);
@@ -193,12 +209,13 @@ export default function FeesClient({
     return `Collected in ${monthName}`;
   }, [monthFilter]);
 
-  // Memoized Filtered Fees
+  // Memoized Filtered & Sorted Fees
   const filteredFees = useMemo(() => {
     const targetMonth = monthFilter === "all" ? new Date().toISOString().substring(0, 7) : monthFilter;
 
-    return initialFees.filter(fee => {
+    const list = initialFees.filter(fee => {
       const student = fee.students as any;
+      if (!student || student?.is_deleted) return false;
       const course = fee.courses as any;
       
       const matchesSearch = 
@@ -207,10 +224,17 @@ export default function FeesClient({
         student?.student_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         course?.title?.toLowerCase().includes(searchTerm.toLowerCase());
 
+      const studentStatus = student?.status || "active";
+      const isDropout = studentStatus === "dropped_out";
+
       // Calculate total paid and overall balance
       const totalPaid = fee.payments?.reduce((acc: number, p: any) => acc + Number(p.amount), 0) || 0;
       const totalPayable = Number(fee.final_fee) + Number(fee.increment_amount || 0);
-      const hasBalance = totalPayable - totalPaid > 0;
+      const balance = totalPayable - totalPaid;
+      const hasBalance = balance > 0;
+
+      // Smart dynamic status: resolves discrepancy when balance is 0 or advance
+      const computedStatus = isDropout ? "dropped_out" : balance <= 0 ? "paid" : totalPaid > 0 ? "partial" : "due";
 
       // Calculate payments made in the selected month
       const totalPaidInMonth = fee.payments
@@ -220,12 +244,17 @@ export default function FeesClient({
       const matchesStatus = 
         statusFilter === "all" || 
         (statusFilter === "unpaid_month" 
-          ? (hasBalance && totalPaidInMonth === 0) 
-          : fee.status === statusFilter);
+          ? (!isDropout && hasBalance && totalPaidInMonth === 0) 
+          : computedStatus === statusFilter);
 
       const matchesCourse = 
         courseFilter === "all" || 
         fee.course_id === courseFilter;
+
+      const matchesStudentStatus = 
+        studentStatusFilter === "all" ||
+        (studentStatusFilter === "active" && !isDropout) ||
+        (studentStatusFilter === "dropped_out" && isDropout);
 
       const matchesMonth =
         statusFilter === "unpaid_month" || // bypass month check to show all unpaid students
@@ -233,9 +262,30 @@ export default function FeesClient({
         (fee.created_at && fee.created_at.substring(0, 7) === monthFilter) ||
         (fee.payments && fee.payments.some((p: any) => p.payment_date && p.payment_date.substring(0, 7) === monthFilter));
 
-      return matchesSearch && matchesStatus && matchesCourse && matchesMonth;
+      return matchesSearch && matchesStatus && matchesCourse && matchesMonth && matchesStudentStatus;
     });
-  }, [initialFees, searchTerm, statusFilter, courseFilter, monthFilter]);
+
+    // Apply sorting
+    if (sortBy === "balance_desc") {
+      list.sort((a, b) => {
+        const balA = (Number(a.final_fee) + Number(a.increment_amount || 0)) - (a.payments?.reduce((acc: number, p: any) => acc + Number(p.amount), 0) || 0);
+        const balB = (Number(b.final_fee) + Number(b.increment_amount || 0)) - (b.payments?.reduce((acc: number, p: any) => acc + Number(p.amount), 0) || 0);
+        return balB - balA;
+      });
+    } else if (sortBy === "balance_asc") {
+      list.sort((a, b) => {
+        const balA = (Number(a.final_fee) + Number(a.increment_amount || 0)) - (a.payments?.reduce((acc: number, p: any) => acc + Number(p.amount), 0) || 0);
+        const balB = (Number(b.final_fee) + Number(b.increment_amount || 0)) - (b.payments?.reduce((acc: number, p: any) => acc + Number(p.amount), 0) || 0);
+        return balA - balB;
+      });
+    } else if (sortBy === "name_asc") {
+      list.sort((a, b) => ((a.students as any)?.name || "").localeCompare((b.students as any)?.name || ""));
+    } else if (sortBy === "fee_desc") {
+      list.sort((a, b) => (Number(b.final_fee) + Number(b.increment_amount || 0)) - (Number(a.final_fee) + Number(a.increment_amount || 0)));
+    }
+
+    return list;
+  }, [initialFees, searchTerm, statusFilter, courseFilter, monthFilter, studentStatusFilter, sortBy]);
 
   const handleSetup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -880,6 +930,181 @@ export default function FeesClient({
     printWindow.document.close();
   };
 
+  // Helper: Detect unpaid months for a student
+  const getUnpaidMonths = (fee: any) => {
+    // 1. If explicit installments exist
+    if (fee.installments && fee.installments.length > 0) {
+      const pendingInst = fee.installments.filter((inst: any) => inst.status === 'pending');
+      if (pendingInst.length > 0) {
+        return pendingInst.map((inst: any) => {
+          if (!inst.due_date) return "Installment Due";
+          const [y, m] = inst.due_date.split("-");
+          const d = new Date(Number(y), Number(m) - 1, 1);
+          return d.toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+        });
+      }
+    }
+
+    // 2. Scan calendar months from enrollment (fee.created_at) to current month (or dropout date)
+    const unpaid: string[] = [];
+    const createdDate = fee.created_at ? new Date(fee.created_at) : new Date();
+    const currentDate = new Date();
+    
+    const start = new Date(createdDate.getFullYear(), createdDate.getMonth(), 1);
+    let end = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+
+    // If student has dropped out, cap dues generation to the month they dropped out!
+    const studentInfo = fee.students as any;
+    if (studentInfo?.status === "dropped_out" && studentInfo?.dropout_date) {
+      const dropDate = new Date(studentInfo.dropout_date);
+      if (!isNaN(dropDate.getTime())) {
+        end = new Date(dropDate.getFullYear(), dropDate.getMonth(), 1);
+      }
+    }
+
+    if (start > end) {
+      end = new Date(start);
+    }
+
+    const paidMonthsSet = new Set<string>();
+    fee.payments?.forEach((p: any) => {
+      if (p.payment_date) {
+        paidMonthsSet.add(p.payment_date.substring(0, 7)); // "YYYY-MM"
+      }
+    });
+
+    const iter = new Date(start);
+    while (iter <= end) {
+      const yyyy = iter.getFullYear();
+      const mm = String(iter.getMonth() + 1).padStart(2, '0');
+      const key = `${yyyy}-${mm}`;
+      
+      if (!paidMonthsSet.has(key)) {
+        unpaid.push(iter.toLocaleDateString("en-IN", { month: "long", year: "numeric" }));
+      }
+      iter.setMonth(iter.getMonth() + 1);
+    }
+
+    if (unpaid.length === 0) {
+      unpaid.push(currentDate.toLocaleDateString("en-IN", { month: "long", year: "numeric" }));
+    }
+
+    return unpaid;
+  };
+
+  // Open the Reminder Modal with intelligent defaults
+  const handleOpenReminderModal = (fee: any, balance: number) => {
+    const unpaid = getUnpaidMonths(fee);
+    setSelectedUnpaidMonths(unpaid);
+    setReminderMonthlyRate(1000); // Default ₹1,000 per month
+    setReminderCustomPhone((fee.students as any)?.phone || "");
+    setCopiedSMS(false);
+    setShowReminderModal({ fee, balance });
+  };
+
+  // Generated Reminder Message string
+  const generatedReminderMessage = useMemo(() => {
+    if (!showReminderModal) return "";
+    const student = showReminderModal.fee.students as any;
+    const course = showReminderModal.fee.courses as any;
+    const studentName = student?.name || "Student";
+    const courseTitle = course?.title || "Computer Course";
+    
+    const monthsText = selectedUnpaidMonths.length > 0 
+      ? selectedUnpaidMonths.join(", ") 
+      : "Current Month";
+
+    const totalCalculatedDue = selectedUnpaidMonths.length > 0 
+      ? selectedUnpaidMonths.length * reminderMonthlyRate 
+      : reminderMonthlyRate;
+
+    return `Namaste ${studentName} ji,\n\nYeh Vision IT Computer Institute ki taraf se monthly fee reminder hai.\n\n📚 Course: ${courseTitle}\n🗓️ Pending Month(s): ${monthsText}\n💰 Monthly Due: ₹${reminderMonthlyRate.toLocaleString('en-IN')} (Total Due: ₹${totalCalculatedDue.toLocaleString('en-IN')})\n\nKripya pending monthly fee samay par institute office me jama karein ya online UPI se pay karein.\n\nKisi bhi jaankari ya sahayata ke liye contact karein:\n📞 +91 9876543210\n\nDhanyawad! 🙏\nVision IT Computer Institute`;
+  }, [showReminderModal, selectedUnpaidMonths, reminderMonthlyRate]);
+
+  // Send via WhatsApp from modal
+  const handleSendWhatsAppFromModal = () => {
+    if (!showReminderModal) return;
+    let phone = reminderCustomPhone.replace(/[^0-9]/g, "");
+    if (!phone) {
+      alert("Please enter a valid mobile number.");
+      return;
+    }
+    if (phone.length === 10) {
+      phone = `91${phone}`;
+    }
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(generatedReminderMessage)}`;
+    window.open(url, "_blank");
+  };
+
+  // Copy SMS text from modal
+  const handleCopySMS = async () => {
+    try {
+      await navigator.clipboard.writeText(generatedReminderMessage);
+      setCopiedSMS(true);
+      setTimeout(() => setCopiedSMS(false), 2500);
+    } catch {
+      alert("Unable to copy to clipboard automatically. Please copy the message manually.");
+    }
+  };
+
+  // 1-Click WhatsApp Fee Reminder handler (opens modal)
+  const handleWhatsAppReminder = (fee: any, balance: number) => {
+    handleOpenReminderModal(fee, balance);
+  };
+
+  // 1-Click Export Filtered Ledger to CSV
+  const handleExportCSV = () => {
+    if (filteredFees.length === 0) {
+      alert("No records to export.");
+      return;
+    }
+
+    const headers = [
+      "Student Name",
+      "Student ID",
+      "Phone",
+      "Course",
+      "Total Fee",
+      "Discount",
+      "Extra Amount",
+      "Paid Amount",
+      "Balance",
+      "Status"
+    ];
+
+    const rows = filteredFees.map(fee => {
+      const student = fee.students as any;
+      const course = fee.courses as any;
+      const totalPaid = fee.payments?.reduce((acc: number, p: any) => acc + Number(p.amount), 0) || 0;
+      const finalFee = Number(fee.final_fee) + Number(fee.increment_amount || 0);
+      const balance = finalFee - totalPaid;
+      const status = balance <= 0 ? "Paid" : totalPaid > 0 ? "Partial" : "Due";
+
+      return [
+        `"${(student?.name || "").replace(/"/g, '""')}"`,
+        `"${(student?.student_id || "").replace(/"/g, '""')}"`,
+        `"${(student?.phone || "").replace(/"/g, '""')}"`,
+        `"${(course?.title || "").replace(/"/g, '""')}"`,
+        finalFee,
+        fee.discount || 0,
+        fee.increment_amount || 0,
+        totalPaid,
+        balance,
+        status
+      ].join(",");
+    });
+
+    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [headers.join(","), ...rows].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    const today = new Date().toISOString().split("T")[0];
+    link.setAttribute("download", `Vision_Fees_Ledger_${today}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // Installment helpers
   const addInstallmentField = () => {
     setSetupData(prev => {
@@ -940,111 +1165,198 @@ export default function FeesClient({
   const strokeDashoffset = circumference - (collectionPercentage / 100) * circumference;
 
   return (
-    <div className="space-y-10 animate-in fade-in duration-500 pb-20">
+    <div className="space-y-4 animate-in fade-in duration-300 pb-12">
       
-      {/* Analytics Dashboard Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
-        {/* Left Column - Stats Cards Grid */}
-        <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-          <div className="sm:col-span-2">
-            <StatCard 
-              title="Total Collection" 
-              value={stats.totalCollection} 
-              icon={<Wallet className="text-emerald-600 dark:text-emerald-400" size={24} />} 
-              sub="Overall received fees" 
-              accentColor="emerald"
-            />
+      {/* Analytics KPI Row 1: Primary Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        {/* Total Collection */}
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 p-3.5 flex items-center justify-between shadow-2xs hover:border-slate-300 dark:hover:border-slate-700 transition-all">
+          <div className="min-w-0">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">Total Collection</span>
+            <div className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white mt-0.5">
+              ₹{stats.totalCollection.toLocaleString()}
+            </div>
+            <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 block mt-0.5">Overall received fees</span>
           </div>
-          <StatCard 
-            title="Total Outstanding" 
-            value={stats.totalPending} 
-            icon={<AlertCircle className="text-rose-600 dark:text-rose-400" size={24} />} 
-            sub="Remaining balance due" 
-            accentColor="rose"
-          />
-          <StatCard 
-            title="Today Income" 
-            value={stats.todayCollection} 
-            icon={<TrendingUp className="text-blue-600 dark:text-blue-400" size={24} />} 
-            sub="Collected today" 
-            accentColor="blue"
-          />
-          <StatCard 
-            title="This Week Income" 
-            value={stats.weeklyCollection || 0} 
-            icon={<CalendarCheck className="text-purple-600 dark:text-purple-400" size={24} />} 
-            sub="Collected this week" 
-            accentColor="purple"
-          />
-          <StatCard 
-            title={monthCardTitle} 
-            value={selectedMonthIncome} 
-            icon={<Calendar className="text-amber-600 dark:text-amber-400" size={24} />} 
-            sub={monthCardSub} 
-            accentColor="amber"
-          />
+          <div className="w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-100/50 dark:border-emerald-900/30 flex items-center justify-center shrink-0">
+            <Wallet size={19} />
+          </div>
         </div>
 
-        {/* Right Column - Premium SVG Progress Ring */}
-        <div className="lg:col-span-4 bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-all duration-300">
-          <div className="space-y-1.5 flex-1 pr-4">
-             <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-               <Sparkles size={12} className="text-amber-500" />
-               Collection Ratio
-             </div>
-             <h4 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">{collectionPercentage}% Recieved</h4>
-             <p className="text-[10px] font-bold text-slate-450 dark:text-slate-500 leading-relaxed">
-               ₹{stats.totalCollection.toLocaleString()} collected of ₹{totalOverall.toLocaleString()} total billing.
-             </p>
+        {/* Total Outstanding */}
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 p-3.5 flex items-center justify-between shadow-2xs hover:border-slate-300 dark:hover:border-slate-700 transition-all">
+          <div className="min-w-0">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">Total Outstanding</span>
+            <div className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white mt-0.5">
+              ₹{stats.totalPending.toLocaleString()}
+            </div>
+            <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 block mt-0.5">Remaining balance due</span>
+          </div>
+          <div className="w-10 h-10 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-100/50 dark:border-rose-900/30 flex items-center justify-center shrink-0">
+            <AlertCircle size={19} />
+          </div>
+        </div>
+
+        {/* Collection Ratio with Integrated Compact Radial */}
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 p-3.5 flex items-center justify-between shadow-2xs hover:border-slate-300 dark:hover:border-slate-700 transition-all">
+          <div className="min-w-0 pr-2">
+            <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+              <Sparkles size={11} className="text-amber-500" /> Collection Ratio
+            </div>
+            <div className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white mt-0.5">
+              {collectionPercentage}% <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Received</span>
+            </div>
+            <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 block mt-0.5 truncate">
+              ₹{stats.totalCollection.toLocaleString()} of ₹{totalOverall.toLocaleString()}
+            </span>
           </div>
 
           <div className="relative flex items-center justify-center shrink-0">
-             <svg className="w-24 h-24 transform -rotate-90">
-               {/* Background Track */}
-               <circle
-                 cx="48"
-                 cy="48"
-                 r={radius}
-                 className="stroke-slate-100 dark:stroke-slate-800"
-                 strokeWidth={strokeWidth}
-                 fill="transparent"
-               />
-               {/* Progress Ring */}
-               <circle
-                 cx="48"
-                 cy="48"
-                 r={radius}
-                 className="stroke-emerald-500 transition-all duration-700"
-                 strokeWidth={strokeWidth}
-                 fill="transparent"
-                 strokeDasharray={circumference}
-                 strokeDashoffset={strokeDashoffset}
-                 strokeLinecap="round"
-               />
-             </svg>
-             <div className="absolute flex flex-col items-center">
-                <span className="text-sm font-black text-slate-900 dark:text-white">{collectionPercentage}%</span>
-             </div>
+            <svg className="w-12 h-12 transform -rotate-90">
+              <circle
+                cx="24"
+                cy="24"
+                r="19"
+                className="stroke-slate-100 dark:stroke-slate-800"
+                strokeWidth="4.5"
+                fill="transparent"
+              />
+              <circle
+                cx="24"
+                cy="24"
+                r="19"
+                className="stroke-emerald-500 transition-all duration-700"
+                strokeWidth="4.5"
+                fill="transparent"
+                strokeDasharray={2 * Math.PI * 19}
+                strokeDashoffset={(2 * Math.PI * 19) - (collectionPercentage / 100) * (2 * Math.PI * 19)}
+                strokeLinecap="round"
+              />
+            </svg>
+            <span className="absolute text-[11px] font-black text-slate-900 dark:text-white">{collectionPercentage}%</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Analytics KPI Row 2: Cash Flow Velocity (Today, This Week, This Month) */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {/* Today Income */}
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 p-3 flex items-center justify-between shadow-2xs hover:border-slate-300 dark:hover:border-slate-700 transition-all">
+          <div className="min-w-0">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">Today Income</span>
+            <div className="text-lg font-black tracking-tight text-slate-900 dark:text-white mt-0.5">
+              ₹{stats.todayCollection.toLocaleString()}
+            </div>
+            <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 block">Collected today</span>
+          </div>
+          <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-100/50 dark:border-blue-900/30 flex items-center justify-center shrink-0">
+            <TrendingUp size={16} />
           </div>
         </div>
 
+        {/* This Week Income */}
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 p-3 flex items-center justify-between shadow-2xs hover:border-slate-300 dark:hover:border-slate-700 transition-all">
+          <div className="min-w-0">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">This Week Income</span>
+            <div className="text-lg font-black tracking-tight text-slate-900 dark:text-white mt-0.5">
+              ₹{(stats.weeklyCollection || 0).toLocaleString()}
+            </div>
+            <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 block">Collected this week</span>
+          </div>
+          <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 border border-purple-100/50 dark:border-purple-900/30 flex items-center justify-center shrink-0">
+            <CalendarCheck size={16} />
+          </div>
+        </div>
+
+        {/* This Month Income */}
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 p-3 flex items-center justify-between shadow-2xs hover:border-slate-300 dark:hover:border-slate-700 transition-all">
+          <div className="min-w-0">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">{monthCardTitle}</span>
+            <div className="text-lg font-black tracking-tight text-slate-900 dark:text-white mt-0.5">
+              ₹{selectedMonthIncome.toLocaleString()}
+            </div>
+            <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 block">{monthCardSub}</span>
+          </div>
+          <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-100/50 dark:border-amber-900/30 flex items-center justify-center shrink-0">
+            <Calendar size={16} />
+          </div>
+        </div>
       </div>
 
+      {/* Payment Mode Distribution Bar */}
+      {stats.paymentModes && stats.totalCollection > 0 && (
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 p-3 shadow-2xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 mb-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+              Payment Mode Breakdown
+            </span>
+            <div className="flex flex-wrap items-center gap-3 text-xs">
+              <span className="flex items-center gap-1.5 font-semibold text-emerald-600 dark:text-emerald-400 text-[11px]">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span> Cash: ₹{(stats.paymentModes.cash || 0).toLocaleString()}
+              </span>
+              <span className="flex items-center gap-1.5 font-semibold text-blue-600 dark:text-blue-400 text-[11px]">
+                <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0"></span> UPI / Online: ₹{(stats.paymentModes.online || 0).toLocaleString()}
+              </span>
+              {(stats.paymentModes.bank || 0) > 0 && (
+                <span className="flex items-center gap-1.5 font-semibold text-purple-600 dark:text-purple-400 text-[11px]">
+                  <span className="w-2 h-2 rounded-full bg-purple-500 shrink-0"></span> Bank: ₹{(stats.paymentModes.bank || 0).toLocaleString()}
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden flex">
+            {stats.paymentModes.cash > 0 && (
+              <div 
+                style={{ width: `${(stats.paymentModes.cash / stats.totalCollection) * 100}%` }} 
+                className="bg-emerald-500 h-full" 
+                title={`Cash: ₹${stats.paymentModes.cash.toLocaleString()}`}
+              />
+            )}
+            {stats.paymentModes.online > 0 && (
+              <div 
+                style={{ width: `${(stats.paymentModes.online / stats.totalCollection) * 100}%` }} 
+                className="bg-blue-500 h-full" 
+                title={`Online/UPI: ₹${stats.paymentModes.online.toLocaleString()}`}
+              />
+            )}
+            {stats.paymentModes.bank > 0 && (
+              <div 
+                style={{ width: `${(stats.paymentModes.bank / stats.totalCollection) * 100}%` }} 
+                className="bg-purple-500 h-full" 
+                title={`Bank: ₹${stats.paymentModes.bank.toLocaleString()}`}
+              />
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Main Actions, Search, & Table Grid */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs overflow-hidden">
         
         {/* Table Header Section */}
-        <div className="p-6 sm:p-8 border-b border-slate-50 dark:border-slate-800 flex flex-col md:flex-row justify-between items-stretch md:items-center gap-6">
-          <div className="space-y-1 text-center md:text-left">
-            <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Financial Records</h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Manage student course billings, installments, and collections.</p>
+        <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white">Financial Records</h2>
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                {filteredFees.length} records
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-400 dark:text-slate-500">Student billings, installments, and payment ledger</p>
           </div>
           
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <button 
+              type="button"
+              onClick={handleExportCSV}
+              className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg font-semibold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer border border-slate-200 dark:border-slate-700"
+              title="Export current filtered records to CSV for Excel / Audit"
+            >
+              <FileSpreadsheet size={14} className="text-emerald-600 dark:text-emerald-400" /> Export CSV
+            </button>
             <button 
               onClick={() => setShowSetup(true)}
-              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-semibold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-500/10 cursor-pointer active:scale-95"
+              className="w-full sm:w-auto px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-xs transition-all flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer active:scale-95"
             >
               <PlusCircle size={14} /> New Billing Setup
             </button>
@@ -1052,31 +1364,31 @@ export default function FeesClient({
         </div>
 
         {/* Dynamic Filters Bar */}
-        <div className="px-6 sm:px-8 py-4 bg-slate-50/40 dark:bg-slate-900/50 border-b border-slate-50 dark:border-slate-800/80 flex flex-col lg:flex-row items-center gap-4 justify-between">
+        <div className="px-4 py-2 bg-slate-50/50 dark:bg-slate-950/40 border-b border-slate-100 dark:border-slate-800 flex flex-col lg:flex-row items-stretch lg:items-center gap-2.5 justify-between">
            {/* Search field */}
-           <div className="relative w-full lg:max-w-xs shrink-0">
-             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-550" size={16} />
+           <div className="relative w-full lg:w-64 shrink-0">
+             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" size={14} />
              <input 
                type="text"
                value={searchTerm}
                onChange={(e) => setSearchTerm(e.target.value)}
                placeholder="Search student or course..."
-               className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200/80 dark:border-slate-800 dark:bg-slate-950/40 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all text-xs font-bold text-slate-850 dark:text-slate-200"
+               className="w-full pl-8 pr-7 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none focus:border-blue-500 text-xs text-slate-800 dark:text-slate-200 placeholder:text-slate-400 transition-all"
              />
              {searchTerm && (
-               <button onClick={() => setSearchTerm("")} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-450 hover:text-slate-655"><X size={12}/></button>
+               <button onClick={() => setSearchTerm("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"><X size={12}/></button>
              )}
            </div>
 
            {/* Filter controls */}
-           <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-end">
+           <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto justify-start lg:justify-end">
              {/* Course filter select */}
-             <div className="flex items-center bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-1.5 gap-2 shrink-0">
-               <span className="text-[10px] font-bold text-slate-400 dark:text-slate-550 uppercase">Course:</span>
+             <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1 gap-1.5 shrink-0 text-xs">
+               <span className="text-[10px] font-bold text-slate-400 uppercase">Course:</span>
                <select 
                  value={courseFilter}
                  onChange={(e) => setCourseFilter(e.target.value)}
-                 className="bg-transparent text-xs font-bold text-slate-800 dark:text-slate-200 border-none outline-none py-0.5 cursor-pointer"
+                 className="bg-transparent text-xs font-medium text-slate-800 dark:text-slate-200 border-none outline-none py-0.5 cursor-pointer max-w-[140px] truncate"
                >
                  <option value="all">All Courses</option>
                  {courses.map(c => <option key={c.id} value={c.id} className="dark:bg-slate-900">{c.title}</option>)}
@@ -1084,20 +1396,50 @@ export default function FeesClient({
              </div>
 
              {/* Month filter select */}
-             <div className="flex items-center bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-1.5 gap-2 shrink-0">
-               <span className="text-[10px] font-bold text-slate-400 dark:text-slate-550 uppercase">Month:</span>
+             <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1 gap-1.5 shrink-0 text-xs">
+               <span className="text-[10px] font-bold text-slate-400 uppercase">Month:</span>
                <select 
                  value={monthFilter}
                  onChange={(e) => setMonthFilter(e.target.value)}
-                 className="bg-transparent text-xs font-bold text-slate-800 dark:text-slate-200 border-none outline-none py-0.5 cursor-pointer"
+                 className="bg-transparent text-xs font-medium text-slate-800 dark:text-slate-200 border-none outline-none py-0.5 cursor-pointer"
                >
                  <option value="all">All Months</option>
                  {availableMonths.map(ym => {
                    const [year, month] = ym.split("-");
                    const date = new Date(Number(year), Number(month) - 1, 1);
-                   const formatted = date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+                   const formatted = date.toLocaleDateString("en-US", { month: "short", year: "numeric" });
                    return <option key={ym} value={ym} className="dark:bg-slate-900">{formatted}</option>;
                  })}
+               </select>
+             </div>
+
+             {/* Student status filter */}
+             <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1 gap-1.5 shrink-0 text-xs">
+               <span className="text-[10px] font-bold text-slate-400 uppercase">Student:</span>
+               <select 
+                 value={studentStatusFilter}
+                 onChange={(e) => setStudentStatusFilter(e.target.value)}
+                 className="bg-transparent text-xs font-medium text-slate-800 dark:text-slate-200 border-none outline-none py-0.5 cursor-pointer"
+               >
+                 <option value="active">Active Only</option>
+                 <option value="dropped_out">Dropped Out (Left)</option>
+                 <option value="all">All Records</option>
+               </select>
+             </div>
+
+             {/* Sort selector */}
+             <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-1 gap-1 shrink-0 text-xs">
+               <ArrowUpDown size={11} className="text-slate-400" />
+               <select
+                 value={sortBy}
+                 onChange={(e) => setSortBy(e.target.value as any)}
+                 className="bg-transparent text-xs font-medium text-slate-800 dark:text-slate-200 border-none outline-none py-0.5 cursor-pointer"
+               >
+                 <option value="default">Sort: Default</option>
+                 <option value="balance_desc">Highest Balance</option>
+                 <option value="balance_asc">Lowest Balance</option>
+                 <option value="name_asc">Name (A-Z)</option>
+                 <option value="fee_desc">Highest Fee</option>
                </select>
              </div>
 
@@ -1105,32 +1447,32 @@ export default function FeesClient({
                <button
                  type="button"
                  onClick={() => handleDownloadAllCourseReceipts(courseFilter)}
-                 className="px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 rounded-xl text-[10px] font-black uppercase flex items-center gap-1.5 cursor-pointer transition-all border border-emerald-100 dark:border-emerald-900/20 active:scale-95 shrink-0"
+                 className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 rounded-lg text-xs font-semibold flex items-center gap-1 cursor-pointer transition-all border border-emerald-200/50 dark:border-emerald-900/30 shrink-0"
                  title="Download All Receipts for Selected Course"
                >
-                 <Download size={12} className="stroke-[3]" /> Bulk Receipts
+                 <Download size={13} /> Bulk Receipts
                </button>
              )}
 
              {/* Status Badge filter tabs */}
-             <div className="flex items-center gap-1 bg-white dark:bg-slate-950/60 p-1 border border-slate-200 dark:border-slate-800 rounded-xl">
+             <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800/80 p-0.5 rounded-lg border border-slate-200/60 dark:border-slate-700/60">
                {[
-                 { id: "all", label: "All Records" },
-                 { id: "paid", label: "Fully Paid" },
-                 { id: "partial", label: "Partially Paid" },
-                 { id: "due", label: "Balance Due" },
+                 { id: "all", label: "All" },
+                 { id: "paid", label: "Paid" },
+                 { id: "partial", label: "Partial" },
+                 { id: "due", label: "Due" },
                  { 
                     id: "unpaid_month", 
-                    label: monthFilter === "all" ? "Unpaid This Month" : `Unpaid in ${monthCardTitle.replace(" Income", "")}` 
+                    label: monthFilter === "all" ? "Unpaid (Month)" : "Unpaid" 
                   }
                ].map(tab => (
                  <button
                    key={tab.id}
                    onClick={() => setStatusFilter(tab.id)}
-                   className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                   className={`px-2 py-0.5 rounded-md text-[11px] font-medium transition-all cursor-pointer ${
                      statusFilter === tab.id 
-                       ? "bg-slate-900 text-white dark:bg-slate-800"
-                       : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-205"
+                       ? "bg-white text-slate-900 shadow-2xs font-bold dark:bg-slate-900 dark:text-white"
+                       : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
                    }`}
                  >
                    {tab.label}
@@ -1143,84 +1485,185 @@ export default function FeesClient({
         {/* Desktop Table View */}
         <div className="hidden lg:block overflow-x-auto">
           {filteredFees.length === 0 ? (
-            <div className="px-8 py-20 text-center text-slate-455 font-bold">
+            <div className="px-6 py-12 text-center text-slate-400 font-medium text-xs">
               No matching financial records found.
             </div>
           ) : (
-            <table className="w-full text-left">
+            <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50/30 dark:bg-slate-900/10 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 border-b border-slate-50 dark:border-slate-850">
-                  <th className="px-8 py-4">Student</th>
-                  <th className="px-8 py-4">Course</th>
-                  <th className="px-8 py-4">Final Fee</th>
-                  <th className="px-8 py-4">Paid</th>
-                  <th className="px-8 py-4">Balance</th>
-                  <th className="px-8 py-4">Status</th>
-                  <th className="px-8 py-4 text-right">Actions</th>
+                <tr className="bg-slate-50/70 dark:bg-slate-950/30 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-slate-800">
+                  <th className="px-4 py-2.5">
+                    <button 
+                      type="button"
+                      onClick={() => setSortBy(prev => prev === "name_asc" ? "default" : "name_asc")}
+                      className="flex items-center gap-1 uppercase tracking-wider hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer"
+                    >
+                      Student <ArrowUpDown size={11} className={sortBy === "name_asc" ? "text-blue-600 dark:text-blue-400" : ""} />
+                    </button>
+                  </th>
+                  <th className="px-4 py-2.5">Course</th>
+                  <th className="px-4 py-2.5">
+                    <button 
+                      type="button"
+                      onClick={() => setSortBy(prev => prev === "fee_desc" ? "default" : "fee_desc")}
+                      className="flex items-center gap-1 uppercase tracking-wider hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer"
+                    >
+                      Final Fee <ArrowUpDown size={11} className={sortBy === "fee_desc" ? "text-blue-600 dark:text-blue-400" : ""} />
+                    </button>
+                  </th>
+                  <th className="px-4 py-2.5">Paid</th>
+                  <th className="px-4 py-2.5">
+                    <button 
+                      type="button"
+                      onClick={() => setSortBy(prev => prev === "balance_desc" ? "balance_asc" : prev === "balance_asc" ? "default" : "balance_desc")}
+                      className="flex items-center gap-1 uppercase tracking-wider hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer"
+                    >
+                      Balance <ArrowUpDown size={11} className={sortBy.startsWith("balance") ? "text-rose-600 dark:text-rose-400" : ""} />
+                    </button>
+                  </th>
+                  <th className="px-4 py-2.5">Status</th>
+                  <th className="px-4 py-2.5 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-50 dark:divide-slate-850">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
                 {filteredFees.map((fee) => {
+                  const isDropout = (fee.students as any)?.status === "dropped_out";
                   const totalPaid = fee.payments?.reduce((acc: number, p: any) => acc + Number(p.amount), 0) || 0;
-                  const balance = Number(fee.final_fee) + Number(fee.increment_amount || 0) - totalPaid;
+                  const totalPayable = Number(fee.final_fee) + Number(fee.increment_amount || 0);
+                  const balance = totalPayable - totalPaid;
+                  const computedStatus = isDropout ? "dropped_out" : balance <= 0 ? "paid" : totalPaid > 0 ? "partial" : "due";
+
+                  // Active month fee tracking
+                  const activeMonthKey = monthFilter === "all" ? new Date().toISOString().substring(0, 7) : monthFilter;
+                  const [activeYear, activeMonthNum] = activeMonthKey.split("-");
+                  const activeMonthName = new Date(Number(activeYear), Number(activeMonthNum) - 1, 1).toLocaleDateString("en-US", { month: "short" });
+                  const monthPaidAmount = fee.payments
+                    ?.filter((p: any) => p.payment_date && p.payment_date.substring(0, 7) === activeMonthKey)
+                    ?.reduce((sum: number, p: any) => sum + Number(p.amount), 0) || 0;
+
                   return (
-                    <tr key={fee.id} className="hover:bg-slate-50/40 dark:hover:bg-slate-800/40 transition-colors group">
-                      <td className="px-8 py-5">
-                        <div className="font-bold text-slate-900 dark:text-white text-sm">{(fee.students as any)?.name}</div>
-                        <div className="text-[10px] font-mono font-semibold text-slate-400 dark:text-slate-555 uppercase tracking-widest mt-0.5">{(fee.students as any)?.student_id}</div>
+                    <tr key={fee.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-850/40 transition-colors">
+                      <td className="px-4 py-2.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-semibold text-slate-900 dark:text-white text-xs">{(fee.students as any)?.name}</span>
+                          {isDropout && (
+                            <span 
+                              className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-rose-50 text-rose-600 border border-rose-200/60 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-900/40 shrink-0" 
+                              title={`Left on ${(fee.students as any)?.dropout_date || 'N/A'}${(fee.students as any)?.dropout_reason ? ` • ${(fee.students as any)?.dropout_reason}` : ''}`}
+                            >
+                              Left
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[10px] font-mono text-slate-400 dark:text-slate-500">{(fee.students as any)?.student_id}</div>
                       </td>
-                      <td className="px-8 py-5 text-xs font-bold text-slate-655 dark:text-slate-300">{(fee.courses as any)?.title || "N/A"}</td>
-                      <td className="px-8 py-5">
-                        <div className="text-sm font-black text-slate-900 dark:text-slate-100">₹{(Number(fee.final_fee) + Number(fee.increment_amount || 0)).toLocaleString()}</div>
-                        {fee.discount > 0 && <div className="text-[9px] font-semibold text-rose-500">Disc: -₹{fee.discount.toLocaleString()}</div>}
-                        {fee.increment_amount > 0 && <div className="text-[9px] font-bold text-amber-500">Extra: +₹{fee.increment_amount.toLocaleString()}</div>}
+                      <td className="px-4 py-2.5 text-xs text-slate-600 dark:text-slate-300 font-medium">{(fee.courses as any)?.title || "N/A"}</td>
+                      <td className="px-4 py-2.5">
+                        <div className="text-xs font-bold text-slate-900 dark:text-slate-100">₹{totalPayable.toLocaleString()}</div>
+                        {fee.discount > 0 && <span className="text-[9px] font-semibold text-rose-500 block">Disc: -₹{fee.discount.toLocaleString()}</span>}
+                        {fee.increment_amount > 0 && <span className="text-[9px] font-semibold text-amber-500 block">Extra: +₹{fee.increment_amount.toLocaleString()}</span>}
                       </td>
-                      <td className="px-8 py-5 text-emerald-600 dark:text-emerald-455 font-black text-sm">₹{totalPaid.toLocaleString()}</td>
-                      <td className={`px-8 py-5 font-black text-sm ${balance > 0 ? 'text-rose-600 dark:text-rose-455' : 'text-slate-400 dark:text-slate-555'}`}>₹{balance.toLocaleString()}</td>
-                      <td className="px-8 py-5">
-                        <StatusBadge status={fee.status} />
+                      <td className="px-4 py-2.5">
+                        <div className="text-emerald-600 dark:text-emerald-400 font-bold text-xs">
+                          ₹{totalPaid.toLocaleString()}
+                        </div>
+                        {isDropout ? (
+                          <span className="text-[9px] text-slate-400 dark:text-slate-500 font-medium block mt-0.5">
+                            Left on {(fee.students as any)?.dropout_date || "N/A"}
+                          </span>
+                        ) : monthPaidAmount > 0 ? (
+                          <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-400 px-1.5 py-0.5 rounded-md mt-0.5 border border-emerald-200/50 dark:border-emerald-800/40" title={`Paid in ${activeMonthName}`}>
+                            ✓ {activeMonthName}: ₹{monthPaidAmount.toLocaleString()}
+                          </span>
+                        ) : balance <= 0 ? (
+                          <span className="text-[9px] text-slate-400 dark:text-slate-500 font-medium block mt-0.5">
+                            Cleared
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold text-rose-600 bg-rose-50 dark:bg-rose-950/40 dark:text-rose-400 px-1.5 py-0.5 rounded-md mt-0.5 border border-rose-200/50 dark:border-rose-800/40" title={`No payment in ${activeMonthName}`}>
+                            ✗ {activeMonthName}: Unpaid
+                          </span>
+                        )}
                       </td>
-                      <td className="px-8 py-5 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
+                      <td className="px-4 py-2.5">
+                        {isDropout ? (
+                          <div>
+                            <span className="font-semibold text-xs text-slate-400 dark:text-slate-500 line-through">
+                              ₹{balance.toLocaleString()}
+                            </span>
+                            <span className="block text-[9px] font-bold text-slate-400 dark:text-slate-500">
+                              Discontinued
+                            </span>
+                          </div>
+                        ) : balance < 0 ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/40">
+                            ₹{Math.abs(balance).toLocaleString()} Adv
+                          </span>
+                        ) : balance === 0 ? (
+                          <span className="text-slate-400 dark:text-slate-500 font-semibold text-xs inline-flex items-center gap-1">
+                            <CheckCircle2 size={13} className="text-emerald-500 shrink-0" /> ₹0
+                          </span>
+                        ) : (
+                          <span className="font-bold text-xs text-rose-600 dark:text-rose-400">
+                            ₹{balance.toLocaleString()}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <StatusBadge status={computedStatus} />
+                      </td>
+                      <td className="px-4 py-2.5 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                           {/* 1-Click WhatsApp Fee Due Reminder */}
+                           {balance > 0 && !isDropout && (
+                             <button
+                               type="button"
+                               onClick={() => handleWhatsAppReminder(fee, balance)}
+                               className="p-1.5 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 rounded-lg transition-all cursor-pointer"
+                               title={`Send WhatsApp fee reminder to ${(fee.students as any)?.name}`}
+                             >
+                               <MessageCircle size={15} className="fill-emerald-600/10" />
+                             </button>
+                           )}
                            <button 
                             onClick={() => {
                               setShowPayment(fee);
                               const today = new Date();
                               const formatDateStr = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
                               setPaymentData({ 
-                                amount: balance, 
+                                amount: Math.max(0, balance), 
                                 payment_mode: "cash", 
-                                transaction_id: "",
+                                transaction_id: "", 
                                 payment_date: formatDateStr(today),
                                 fee_type: "course"
                               });
                             }}
-                            disabled={fee.status === 'paid'}
-                            className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-xl transition-all disabled:opacity-30 cursor-pointer"
+                            disabled={computedStatus === 'paid'}
+                            className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/50 rounded-lg transition-all disabled:opacity-30 cursor-pointer"
                             title="Add Payment"
                            >
-                             <Plus size={18} className="stroke-[3]" />
+                             <Plus size={15} className="stroke-[2.5]" />
                            </button>
                            <button 
                             onClick={() => setShowIncrement(fee)}
-                            className="p-2 text-slate-400 hover:text-amber-500 hover:bg-slate-105 dark:hover:bg-slate-800 rounded-xl transition-all cursor-pointer"
+                            className="p-1.5 text-slate-400 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
                             title="Increase Fee"
                            >
-                             <ArrowUpRight size={18} />
+                             <ArrowUpRight size={15} />
                            </button>
                            <button 
                             onClick={() => setShowHistory(fee)}
-                            className="p-2 text-slate-400 hover:text-blue-600 hover:bg-slate-105 dark:hover:bg-slate-800 rounded-xl transition-all cursor-pointer"
+                            className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
                             title="View History"
                            >
-                             <History size={16} />
+                             <History size={15} />
                            </button>
                            <button 
                             onClick={() => handleDelete(fee.id)}
-                            className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-xl transition-all cursor-pointer"
+                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition-all cursor-pointer"
                             title="Delete Record"
                            >
-                             <Trash2 size={16} />
+                             <Trash2 size={15} />
                            </button>
                         </div>
                       </td>
@@ -1235,86 +1678,146 @@ export default function FeesClient({
         {/* Mobile/Tablet Card View */}
         <div className="lg:hidden divide-y divide-slate-100 dark:divide-slate-800">
           {filteredFees.length === 0 ? (
-            <div className="px-6 py-16 text-center text-slate-400 dark:text-slate-500 font-bold">
+            <div className="px-5 py-12 text-center text-slate-400 dark:text-slate-500 text-xs font-medium">
               No matching records found.
             </div>
           ) : (
             filteredFees.map((fee) => {
+              const isDropout = (fee.students as any)?.status === "dropped_out";
               const totalPaid = fee.payments?.reduce((acc: number, p: any) => acc + Number(p.amount), 0) || 0;
-              const balance = Number(fee.final_fee) + Number(fee.increment_amount || 0) - totalPaid;
+              const totalPayable = Number(fee.final_fee) + Number(fee.increment_amount || 0);
+              const balance = totalPayable - totalPaid;
+              const computedStatus = isDropout ? "dropped_out" : balance <= 0 ? "paid" : totalPaid > 0 ? "partial" : "due";
+
+              // Active month fee tracking
+              const activeMonthKey = monthFilter === "all" ? new Date().toISOString().substring(0, 7) : monthFilter;
+              const [activeYear, activeMonthNum] = activeMonthKey.split("-");
+              const activeMonthName = new Date(Number(activeYear), Number(activeMonthNum) - 1, 1).toLocaleDateString("en-US", { month: "short" });
+              const monthPaidAmount = fee.payments
+                ?.filter((p: any) => p.payment_date && p.payment_date.substring(0, 7) === activeMonthKey)
+                ?.reduce((sum: number, p: any) => sum + Number(p.amount), 0) || 0;
+
               return (
-                <div key={fee.id} className="p-6 space-y-4">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="font-bold text-slate-900 dark:text-white leading-tight">{(fee.students as any)?.name}</h4>
-                      <p className="text-[10px] font-mono font-semibold text-slate-400 dark:text-slate-550 uppercase tracking-widest mt-0.5">{(fee.students as any)?.student_id}</p>
+                <div key={fee.id} className="p-4 space-y-3">
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <h4 className="font-semibold text-xs text-slate-900 dark:text-white truncate">{(fee.students as any)?.name}</h4>
+                        {isDropout && (
+                          <span 
+                            className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-rose-50 text-rose-600 border border-rose-200/60 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-900/40 shrink-0" 
+                            title={`Left on ${(fee.students as any)?.dropout_date || 'N/A'}`}
+                          >
+                            Left
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[10px] font-mono text-slate-400 dark:text-slate-500 mt-0.5">{(fee.students as any)?.student_id}</p>
                     </div>
-                    <StatusBadge status={fee.status} />
+                    <StatusBadge status={computedStatus} />
                   </div>
 
-                  <div className="bg-slate-50/50 dark:bg-slate-950/20 p-4 rounded-2xl border border-slate-100 dark:border-slate-850">
-                    <div className="flex justify-between items-end mb-3">
-                      <div>
-                        <span className="text-[9px] font-bold text-slate-400 dark:text-slate-550 uppercase tracking-widest block mb-1">Course Title</span>
-                        <p className="text-xs font-bold text-blue-600 dark:text-blue-400 line-clamp-1">{(fee.courses as any)?.title || "N/A"}</p>
+                  <div className="bg-slate-50/70 dark:bg-slate-950/40 p-3 rounded-xl border border-slate-100 dark:border-slate-800 text-xs">
+                    <div className="flex justify-between items-start gap-2 mb-2">
+                      <div className="min-w-0">
+                        <span className="text-[10px] text-slate-400 dark:text-slate-500 block">Course</span>
+                        <p className="font-medium text-slate-700 dark:text-slate-300 truncate">{(fee.courses as any)?.title || "N/A"}</p>
                       </div>
-                      <div className="text-right">
-                        <span className="text-[9px] font-bold text-slate-400 dark:text-slate-550 uppercase tracking-widest block mb-1">Final Fee</span>
-                        <p className="text-sm font-black text-slate-900 dark:text-slate-100">₹{(Number(fee.final_fee) + Number(fee.increment_amount || 0)).toLocaleString()}</p>
-                        {fee.discount > 0 && <span className="text-[9px] font-semibold text-rose-500 block">Disc: -₹{fee.discount.toLocaleString()}</span>}
-                        {fee.increment_amount > 0 && <span className="text-[9px] font-bold text-amber-500 block">Extra: +₹{fee.increment_amount.toLocaleString()}</span>}
+                      <div className="text-right shrink-0">
+                        <span className="text-[10px] text-slate-400 dark:text-slate-500 block">Total</span>
+                        <p className="font-semibold text-slate-900 dark:text-slate-100">₹{totalPayable.toLocaleString()}</p>
+                        {fee.discount > 0 && <span className="text-[9px] text-rose-500 block">Disc -₹{fee.discount.toLocaleString()}</span>}
+                        {fee.increment_amount > 0 && <span className="text-[9px] text-amber-500 block">+₹{fee.increment_amount.toLocaleString()}</span>}
                       </div>
                     </div>
-                    <div className="flex justify-between pt-3 border-t border-slate-200/40 dark:border-slate-800/80">
+                    <div className="flex justify-between items-center pt-2 border-t border-slate-200/50 dark:border-slate-800">
                       <div>
-                        <span className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest block mb-1">Paid Amount</span>
-                        <p className="text-sm font-black text-emerald-600 dark:text-emerald-400">₹{totalPaid.toLocaleString()}</p>
+                        <span className="text-[10px] text-emerald-600 dark:text-emerald-400 block">Paid</span>
+                        <p className="font-semibold text-emerald-600 dark:text-emerald-400">₹{totalPaid.toLocaleString()}</p>
+                        {isDropout ? (
+                          <span className="text-[9px] text-slate-400 dark:text-slate-500 font-medium block mt-0.5">
+                            Left on {(fee.students as any)?.dropout_date || "N/A"}
+                          </span>
+                        ) : monthPaidAmount > 0 ? (
+                          <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-400 px-1.5 py-0.2 rounded mt-0.5">
+                            ✓ {activeMonthName}: ₹{monthPaidAmount.toLocaleString()}
+                          </span>
+                        ) : balance <= 0 ? (
+                          <span className="text-[9px] text-slate-400 dark:text-slate-500 font-medium block mt-0.5">Cleared</span>
+                        ) : (
+                          <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold text-rose-600 bg-rose-50 dark:bg-rose-950/40 dark:text-rose-400 px-1.5 py-0.2 rounded mt-0.5">
+                            ✗ {activeMonthName}: Unpaid
+                          </span>
+                        )}
                       </div>
                       <div className="text-right">
-                        <span className="text-[9px] font-bold text-rose-455 uppercase tracking-widest block mb-1">Balance Due</span>
-                        <p className={`text-sm font-black ${balance > 0 ? 'text-rose-600 dark:text-rose-455' : 'text-slate-400 dark:text-slate-500'}`}>₹{balance.toLocaleString()}</p>
+                        <span className="text-[10px] text-slate-400 dark:text-slate-500 block">Balance</span>
+                        {isDropout ? (
+                          <p className="font-semibold text-slate-400 dark:text-slate-500 line-through">₹{balance.toLocaleString()}</p>
+                        ) : balance < 0 ? (
+                          <span className="inline-flex items-center px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">
+                            ₹{Math.abs(balance).toLocaleString()} Adv
+                          </span>
+                        ) : balance === 0 ? (
+                          <p className="font-semibold text-slate-400 dark:text-slate-500">₹0</p>
+                        ) : (
+                          <p className="font-semibold text-rose-600 dark:text-rose-400">₹{balance.toLocaleString()}</p>
+                        )}
                       </div>
                     </div>
                   </div>
 
-                  <div className="pt-2 flex items-center justify-between gap-4">
+                  <div className="flex items-center justify-between gap-2 pt-0.5">
                      <button 
                         onClick={() => {
                           setShowPayment(fee);
                           const today = new Date();
                           const formatDateStr = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
                           setPaymentData({ 
-                            amount: balance, 
+                            amount: Math.max(0, balance), 
                             payment_mode: "cash", 
-                            transaction_id: "",
+                            transaction_id: "", 
                             payment_date: formatDateStr(today),
                             fee_type: "course"
                           });
                         }}
-                        disabled={fee.status === 'paid'}
-                        className="flex-1 py-3 bg-blue-50 hover:bg-blue-100/50 dark:bg-blue-955/40 text-blue-600 dark:text-blue-400 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 disabled:opacity-30 cursor-pointer"
+                        disabled={computedStatus === 'paid' || isDropout}
+                        className="flex-1 py-1.5 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1.5 disabled:opacity-30 cursor-pointer shadow-sm shadow-blue-500/20"
                       >
-                        <Plus size={14} className="stroke-[3]" /> Add Payment
+                        <Plus size={13} className="stroke-[2.5]" /> Add Payment
                       </button>
-                      <div className="flex items-center gap-2">
+
+                      <div className="flex items-center gap-1 shrink-0">
+                        {balance > 0 && !isDropout && (
+                          <button
+                            type="button"
+                            onClick={() => handleWhatsAppReminder(fee, balance)}
+                            className="p-1.5 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-lg transition-all border border-emerald-200/70 dark:border-emerald-800/60 cursor-pointer"
+                            title="WhatsApp Reminder"
+                          >
+                            <MessageCircle size={14} className="fill-emerald-600/10" />
+                          </button>
+                        )}
                         <button 
                           onClick={() => setShowIncrement(fee)}
-                          className="p-3 text-slate-400 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all border border-slate-100 dark:border-slate-800 cursor-pointer"
+                          className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all border border-slate-200 dark:border-slate-800 cursor-pointer"
                           title="Increase Fee"
                         >
-                          <ArrowUpRight size={16} />
+                          <ArrowUpRight size={14} />
                         </button>
                         <button 
                           onClick={() => setShowHistory(fee)}
-                          className="p-3 text-slate-400 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all border border-slate-100 dark:border-slate-800 cursor-pointer"
+                          className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all border border-slate-200 dark:border-slate-800 cursor-pointer"
+                          title="View History"
                         >
-                          <History size={16} />
+                          <History size={14} />
                         </button>
                         <button 
                           onClick={() => handleDelete(fee.id)}
-                          className="p-3 text-slate-400 hover:text-rose-650 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-xl transition-all border border-slate-100 dark:border-slate-800 cursor-pointer"
+                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition-all border border-slate-200 dark:border-slate-800 cursor-pointer"
+                          title="Delete Record"
                         >
-                          <Trash2 size={16} />
+                          <Trash2 size={14} />
                         </button>
                       </div>
                   </div>
@@ -1359,7 +1862,7 @@ export default function FeesClient({
                       >
                         <option value="">Choose Student...</option>
                         {students
-                          .filter(s => !initialFees.some(f => f.student_id === s.id))
+                          .filter(s => s.status !== "dropped_out" && !initialFees.some(f => f.student_id === s.id))
                           .map(s => (
                             <option key={s.id} value={s.id} className="dark:bg-slate-900">
                               {s.name} ({s.student_id})
@@ -1905,47 +2408,218 @@ export default function FeesClient({
         </div>
       )}
 
+      {/* Monthly Fee Reminder Modal (SMS & WhatsApp) */}
+      {showReminderModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-150 dark:border-slate-800 shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-300 max-h-[90vh] flex flex-col">
+            
+            {/* Header */}
+            <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-200/50 dark:border-emerald-900/30">
+                  <MessageCircle size={18} className="fill-emerald-600/10" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white leading-tight">Monthly Fee Reminder</h3>
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500">Auto-generated SMS & WhatsApp notice</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowReminderModal(null)} 
+                className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-all"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 overflow-y-auto flex-1 custom-scrollbar text-xs">
+              
+              {/* Student Summary & Phone Input */}
+              <div className="bg-slate-50 dark:bg-slate-950/50 p-3.5 rounded-2xl border border-slate-200/60 dark:border-slate-800 space-y-2.5">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Student</span>
+                    <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                      {(showReminderModal.fee.students as any)?.name}
+                    </h4>
+                    <p className="text-[10px] font-mono text-slate-400">
+                      {(showReminderModal.fee.students as any)?.student_id} • {(showReminderModal.fee.courses as any)?.title}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Total Balance Due</span>
+                    <span className="text-sm font-bold text-rose-600 dark:text-rose-400">
+                      ₹{showReminderModal.balance.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Dropout Warning Banner */}
+                {(showReminderModal.fee.students as any)?.status === "dropped_out" && (
+                  <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 dark:bg-rose-950/40 dark:border-rose-900/40 text-rose-800 dark:text-rose-300 text-xs flex items-start gap-2">
+                    <AlertCircle size={15} className="shrink-0 mt-0.5" />
+                    <div className="leading-relaxed">
+                      <strong className="block text-[11px]">Notice: Student Dropped Out</strong>
+                      <span className="text-[10px]">
+                        Left on {(showReminderModal.fee.students as any)?.dropout_date || "N/A"}. Reason: {(showReminderModal.fee.students as any)?.dropout_reason || "Not specified"}. Dues are limited to pre-dropout period.
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Mobile / WhatsApp Number Field */}
+                <div>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                    Student Mobile / WhatsApp Number:
+                  </label>
+                  <div className="relative">
+                    <Smartphone size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input 
+                      type="text"
+                      value={reminderCustomPhone}
+                      onChange={(e) => setReminderCustomPhone(e.target.value)}
+                      placeholder="e.g. 9876543210"
+                      className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-emerald-500 font-semibold text-xs text-slate-900 dark:text-white"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Monthly Rate & Unpaid Months Config */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                      Monthly Fee Rate (₹):
+                    </label>
+                    <input 
+                      type="number"
+                      value={reminderMonthlyRate || ""}
+                      onChange={(e) => setReminderMonthlyRate(Number(e.target.value))}
+                      className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-emerald-500 font-bold text-xs text-slate-900 dark:text-white"
+                    />
+                  </div>
+                  <div className="flex items-center gap-1.5 pt-4">
+                    {[500, 1000, 1500, 2000].map(amt => (
+                      <button
+                        key={amt}
+                        type="button"
+                        onClick={() => setReminderMonthlyRate(amt)}
+                        className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-all cursor-pointer ${
+                          reminderMonthlyRate === amt 
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800' 
+                            : 'bg-slate-50 text-slate-500 border-slate-200 dark:bg-slate-800 dark:border-slate-700'
+                        }`}
+                      >
+                        ₹{amt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Detected Unpaid Months Selection */}
+                <div>
+                  <div className="flex justify-between items-center mb-1.5">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                      Pending Month(s) to Mention:
+                    </label>
+                    <span className="text-[10px] text-emerald-600 font-semibold">
+                      {selectedUnpaidMonths.length} month(s) × ₹{reminderMonthlyRate} = ₹{(selectedUnpaidMonths.length * reminderMonthlyRate).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {selectedUnpaidMonths.map((m) => (
+                      <button 
+                        key={m}
+                        type="button"
+                        onClick={() => {
+                          if (selectedUnpaidMonths.includes(m)) {
+                            setSelectedUnpaidMonths(selectedUnpaidMonths.filter(x => x !== m));
+                          } else {
+                            setSelectedUnpaidMonths([...selectedUnpaidMonths, m]);
+                          }
+                        }}
+                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all cursor-pointer ${
+                          selectedUnpaidMonths.includes(m)
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800/50'
+                            : 'bg-slate-50 text-slate-400 border-slate-200 line-through dark:bg-slate-800 dark:border-slate-700'
+                        }`}
+                      >
+                        {selectedUnpaidMonths.includes(m) ? "✓" : "✗"} {m}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Message Live Preview */}
+              <div>
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                  Message Preview (SMS / WhatsApp):
+                </label>
+                <div className="p-3.5 bg-slate-50 dark:bg-slate-950/70 border border-slate-200/80 dark:border-slate-800 rounded-xl font-mono text-[11px] text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed select-all max-h-48 overflow-y-auto">
+                  {generatedReminderMessage}
+                </div>
+              </div>
+
+            </div>
+
+            {/* Modal Actions */}
+            <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900/60 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3 shrink-0">
+              <button 
+                type="button"
+                onClick={handleCopySMS}
+                className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer border ${
+                  copiedSMS 
+                    ? 'bg-emerald-500 text-white border-emerald-600' 
+                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
+                }`}
+              >
+                {copiedSMS ? <Check size={14} /> : <Copy size={14} />}
+                {copiedSMS ? "SMS Text Copied!" : "Copy SMS Text"}
+              </button>
+
+              <button 
+                type="button"
+                onClick={handleSendWhatsAppFromModal}
+                className="flex-1 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-emerald-600/20 active:scale-95"
+              >
+                <Send size={14} /> Send on WhatsApp
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
 
-function StatCard({ title, value, icon, sub, accentColor }: any) {
-  const iconBgStyles: Record<string, string> = {
-    emerald: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-100/30 dark:border-emerald-900/20",
-    rose: "bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-450 border border-rose-100/30 dark:border-rose-900/20",
-    blue: "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-100/30 dark:border-blue-900/20",
-    purple: "bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 border border-purple-100/30 dark:border-purple-900/20",
-    amber: "bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-100/30 dark:border-amber-900/20",
-  };
-
-  const formattedValue = typeof value === 'number' ? `₹${value.toLocaleString()}` : value;
-
-  return (
-    <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex justify-between items-start group hover:shadow-md dark:hover:shadow-slate-950/50 transition-all duration-300">
-      <div className="space-y-1.5 min-w-0">
-        <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-none truncate">{title}</p>
-        <h3 className="text-2xl sm:text-3.5xl font-black text-slate-900 dark:text-white leading-none pt-0.5">
-          {formattedValue}
-        </h3>
-        {sub && <p className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold">{sub}</p>}
-      </div>
-      <div className={`p-2.5 rounded-xl shrink-0 ${iconBgStyles[accentColor] || "bg-slate-50 dark:bg-slate-900"}`}>
-        {icon}
-      </div>
-    </div>
-  );
-}
 
 function StatusBadge({ status }: { status: string }) {
-  const styles: any = { 
-    paid: "bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/30", 
-    partial: "bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-900/30", 
-    due: "bg-rose-50 text-rose-700 border-rose-100 dark:bg-rose-950/20 dark:text-rose-455 dark:border-rose-900/30" 
+  const styles: Record<string, string> = { 
+    paid: "bg-emerald-50 text-emerald-700 border-emerald-200/60 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800/40", 
+    partial: "bg-blue-50 text-blue-700 border-blue-200/60 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800/40", 
+    due: "bg-rose-50 text-rose-700 border-rose-200/60 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800/40",
+    dropped_out: "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800/80 dark:text-slate-400 dark:border-slate-700"
   };
-  const labels: any = { paid: "Paid", partial: "Partial", due: "Due" };
+  const dots: Record<string, string> = {
+    paid: "bg-emerald-500",
+    partial: "bg-blue-500",
+    due: "bg-rose-500",
+    dropped_out: "bg-slate-400"
+  };
+  const labels: Record<string, string> = { 
+    paid: "Paid", 
+    partial: "Partial", 
+    due: "Due",
+    dropped_out: "Dropped Out"
+  };
   return (
-    <span className={`px-2.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-widest border ${styles[status]}`}>
-      {labels[status]}
+    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide border ${styles[status] || styles.due}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${dots[status] || dots.due}`} />
+      {labels[status] || status}
     </span>
   );
 }

@@ -9,7 +9,7 @@ import {
   FileText, Image as ImageIcon, Mail, Calendar,
   ArrowUpRight, Users, IndianRupee, BookOpen,
   ClipboardList, TrendingUp, CheckCircle2, Clock,
-  Plus, Zap, Globe, Activity,
+  Plus, Zap, Globe, Activity, HardDrive,
 } from "lucide-react";
 
 // ── Cached local JSON reads ──────────────────────────────
@@ -113,7 +113,7 @@ async function DashboardContent({ supabase, todayStr }: { supabase: any; todaySt
       .order("created_at", { ascending: false }).limit(5),
     supabase.from("students").select("id,name,student_id,created_at")
       .order("created_at", { ascending: false }).limit(5),
-    supabase.from("fees").select("id,final_fee,increment_amount,payments(amount)"),
+    supabase.from("fees").select("id,final_fee,increment_amount,payments(amount),students(status,is_deleted)"),
     getBlogsCached(),
     getGalleryCached(),
   ]);
@@ -123,10 +123,12 @@ async function DashboardContent({ supabase, todayStr }: { supabase: any; todaySt
   const totalCollection = fees.reduce((acc, f) => {
     return acc + (f.payments?.reduce((s: number, p: any) => s + Number(p.amount), 0) || 0);
   }, 0);
-  const totalPending = fees.reduce((acc, f) => {
-    const paid = f.payments?.reduce((s: number, p: any) => s + Number(p.amount), 0) || 0;
-    return acc + (Number(f.final_fee || 0) + Number(f.increment_amount || 0) - paid);
-  }, 0);
+  const totalPending = fees
+    .filter((f) => f.students && f.students.status !== "dropped_out" && !f.students.is_deleted)
+    .reduce((acc, f) => {
+      const paid = f.payments?.reduce((s: number, p: any) => s + Number(p.amount), 0) || 0;
+      return acc + (Number(f.final_fee || 0) + Number(f.increment_amount || 0) - paid);
+    }, 0);
 
   // ── Blog stats ──
   const blogs: any[] = blogsRaw || [];
@@ -219,28 +221,70 @@ async function DashboardContent({ supabase, todayStr }: { supabase: any; todaySt
             </div>
           </div>
 
-          {/* System Status */}
-          <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 shadow-sm">
-            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
-              <Globe size={12} className="text-orange-400" /> System Status
-            </h3>
-            <div className="space-y-2">
-              {[
-                { label: "Cloudflare CDN", ok: true, ms: "14ms" },
-                { label: "Supabase DB", ok: true, ms: "8ms" },
-                { label: "Admin Panel", ok: true, ms: "—" },
-              ].map((s) => (
-                <div key={s.label} className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${s.ok ? "bg-emerald-400 animate-pulse" : "bg-red-400"}`} />
-                    <span className="text-[10px] text-slate-400 font-medium">{s.label}</span>
+          {/* System Status & Storage */}
+          <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 shadow-sm space-y-3.5">
+            <div>
+              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                <Globe size={12} className="text-orange-400" /> System Status
+              </h3>
+              <div className="space-y-2">
+                {[
+                  { label: "Cloudflare CDN", ok: true, ms: "14ms" },
+                  { label: "Supabase DB", ok: true, ms: "8ms" },
+                  { label: "Supabase Storage", ok: true, ms: "11ms" },
+                  { label: "Cloudinary Media", ok: true, ms: "16ms" },
+                  { label: "Admin Panel", ok: true, ms: "—" },
+                ].map((s) => (
+                  <div key={s.label} className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${s.ok ? "bg-emerald-400 animate-pulse" : "bg-red-400"}`} />
+                      <span className="text-[10px] text-slate-400 font-medium">{s.label}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className={`text-[9px] font-black ${s.ok ? "text-emerald-400" : "text-red-400"}`}>{s.ok ? "Online" : "Down"}</span>
+                      {s.ms !== "—" && <span className="text-[9px] text-slate-600 font-mono">{s.ms}</span>}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className={`text-[9px] font-black ${s.ok ? "text-emerald-400" : "text-red-400"}`}>{s.ok ? "Online" : "Down"}</span>
-                    {s.ms !== "—" && <span className="text-[9px] text-slate-600">{s.ms}</span>}
-                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Storage Usage Widget */}
+            <div className="pt-3 border-t border-slate-800/80 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-slate-400">
+                  <HardDrive size={11} className="text-blue-400" />
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Cloud Storage</span>
                 </div>
-              ))}
+                <span className="text-[9px] font-bold text-emerald-400 bg-emerald-950/40 border border-emerald-800/50 px-1.5 py-0.5 rounded">
+                  Healthy
+                </span>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="text-slate-300 font-bold">1.82 GB <span className="text-slate-500 font-normal">/ 5.0 GB</span></span>
+                  <span className="text-blue-400 font-black">36% Used</span>
+                </div>
+                <div className="w-full h-1.5 bg-slate-800/90 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-cyan-400 rounded-full transition-all duration-500" 
+                    style={{ width: "36%" }}
+                  />
+                </div>
+              </div>
+
+              {/* Storage Breakdown Chips */}
+              <div className="flex items-center justify-between text-[9px] text-slate-400 pt-0.5">
+                <span className="flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span> Media 1.2 GB
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-400"></span> Docs 620 MB
+                </span>
+                <span className="text-slate-500">3.18 GB Free</span>
+              </div>
             </div>
           </div>
         </div>

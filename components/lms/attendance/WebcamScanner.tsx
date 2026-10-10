@@ -449,14 +449,23 @@ export default function WebcamScanner({ onClose }: { onClose?: () => void }) {
           : { facingMode: "environment" },
       };
       stream = await navigator.mediaDevices.getUserMedia(constraints);
-    } catch (err) {
-      console.warn("Primary constraints failed, falling back to default camera...", err);
+    } catch (err: any) {
+      if (err?.name === "NotAllowedError" || err?.name === "PermissionDeniedError") {
+        setScanning(false);
+        setScannerError("Camera permission denied. Please click the lock or camera icon in your browser address bar to allow camera access.");
+        return;
+      }
       try {
         stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      } catch (fallbackErr) {
-        console.error("Camera access failed entirely:", fallbackErr);
+      } catch (fallbackErr: any) {
         setScanning(false);
-        setScannerError("Access denied. Please check site permissions in your browser address bar.");
+        if (fallbackErr?.name === "NotAllowedError" || fallbackErr?.name === "PermissionDeniedError") {
+          setScannerError("Camera permission denied. Please click the lock or camera icon in your browser address bar to allow camera access.");
+        } else if (fallbackErr?.name === "NotFoundError" || fallbackErr?.name === "DevicesNotFoundError") {
+          setScannerError("No camera hardware detected on this device.");
+        } else {
+          setScannerError("Could not access camera: " + (fallbackErr?.message || "Check device connection"));
+        }
         return;
       }
     }
@@ -468,8 +477,8 @@ export default function WebcamScanner({ onClose }: { onClose?: () => void }) {
         const playPromise = videoRef.current.play();
         if (playPromise !== undefined) {
           playPromise.catch((error) => {
-            if (error.name !== "AbortError") {
-              console.error("Video element play failed:", error);
+            if (error.name !== "AbortError" && error.name !== "NotAllowedError") {
+              console.warn("Video element play failed:", error);
             }
           });
         }

@@ -19,6 +19,17 @@ import {
   GraduationCap
 } from "lucide-react";
 
+const typeText: Record<string, string> = {
+  word: "text-blue-500",
+  excel: "text-emerald-500",
+  powerpoint: "text-orange-500",
+  onenote: "text-purple-500",
+  canva: "text-pink-500",
+  notion: "text-slate-500 dark:text-slate-400",
+  windows: "text-sky-500",
+  notes: "text-amber-500",
+};
+
 export default function MaterialsClient({ courses, initialMaterials, availableBatches = [] }: { courses: any[], initialMaterials: any[], availableBatches?: any[] }) {
   const router = useRouter();
   const [isAdding, setIsAdding] = useState(false);
@@ -195,52 +206,52 @@ export default function MaterialsClient({ courses, initialMaterials, availableBa
     <div className="space-y-6">
       {isAdding && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg flex flex-col max-h-[90vh] overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <h3 className="font-bold text-slate-900">{editingId ? 'Edit Study Material' : 'Add Study Material'}</h3>
-              <button onClick={closeForm} className="p-1.5 hover:bg-slate-100 rounded-lg"><X size={18} /></button>
+        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-lg flex flex-col max-h-[90vh] overflow-hidden border border-slate-100 dark:border-slate-800 animate-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <h3 className="font-semibold text-slate-900 dark:text-white">{editingId ? 'Edit Study Material' : 'Add Study Material'}</h3>
+              <button onClick={closeForm} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500"><X size={18} /></button>
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1 scrollbar-hide">
               <div className="space-y-4">
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Material Title</label>
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Material Title</label>
                   <input 
                     required
                     type="text" 
                     value={formData.title}
                     onChange={(e) => setFormData({...formData, title: e.target.value})}
                     placeholder="e.g. Intro to HTML5 Guide"
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-black" 
+                    className="w-full px-3 py-2 bg-transparent border border-slate-200 dark:border-slate-800 rounded-lg outline-none focus:border-slate-400 dark:focus:border-slate-600 transition-colors text-sm text-slate-900 dark:text-slate-100" 
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Type (Category)</label>
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Type (Category)</label>
                   <select 
                     value={formData.type}
                     onChange={(e) => setFormData({...formData, type: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-black"
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none focus:border-slate-400 dark:focus:border-slate-600 transition-colors text-sm text-slate-900 dark:text-slate-100"
                   >
-                    <option value="word">Word</option>
-                    <option value="excel">Excel</option>
-                    <option value="powerpoint">PowerPoint</option>
-                    <option value="onenote">OneNote</option>
-                    <option value="canva">Canva</option>
-                    <option value="notion">Notion</option>
-                    <option value="windows">Windows</option>
-                    <option value="notes">Notes</option>
+                    <option value="word" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Word</option>
+                    <option value="excel" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Excel</option>
+                    <option value="powerpoint" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">PowerPoint</option>
+                    <option value="onenote" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">OneNote</option>
+                    <option value="canva" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Canva</option>
+                    <option value="notion" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Notion</option>
+                    <option value="windows" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Windows</option>
+                    <option value="notes" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Notes</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Content URL</label>
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Content URL</label>
                   <input 
                     required
                     type="url" 
                     value={formData.content_url}
                     onChange={(e) => setFormData({...formData, content_url: e.target.value})}
                     placeholder="https://..."
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-black" 
+                    className="w-full px-3 py-2 bg-transparent border border-slate-200 dark:border-slate-800 rounded-lg outline-none focus:border-slate-400 dark:focus:border-slate-600 transition-colors text-sm text-slate-900 dark:text-slate-100" 
                   />
                 </div>
               </div>
@@ -249,13 +260,13 @@ export default function MaterialsClient({ courses, initialMaterials, availableBa
                 <button 
                   type="button"
                   onClick={closeForm}
-                  className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl transition-all"
+                  className="flex-1 py-3 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium rounded-lg transition-colors"
                 >
                   Cancel
                 </button>
                 <button 
                   disabled={isSubmitting}
-                  className="flex-[2] py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20"
+                  className="flex-[2] py-3 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-200 text-white dark:text-slate-900 font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
                 >
                   {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : <Plus size={18} />}
                   {editingId ? 'Update Material' : 'Add Material'}
@@ -266,174 +277,148 @@ export default function MaterialsClient({ courses, initialMaterials, availableBa
         </div>
       )}
 
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <button 
-          onClick={() => setIsAdding(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20 shrink-0 w-fit active:scale-95 flex items-center justify-center gap-1.5"
-        >
-          <Plus size={18} />
-          Add Material
-        </button>
-
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2">
-            <label className="text-xs font-black text-slate-400 uppercase tracking-widest shrink-0">Filter by Course:</label>
-            <select 
-              value={selectedCourseFilter}
-              onChange={(e) => setSelectedCourseFilter(e.target.value)}
-              className="px-4 py-2 bg-white border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-xs font-bold text-slate-700"
-            >
-              <option value="all">All Courses</option>
-              {courses.map(course => (
-                <option key={course.id} value={course.id}>{course.title}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-slate-50 text-slate-400 text-[10px] uppercase font-black tracking-widest border-b border-slate-100">
-              <th className="px-6 py-4">Material</th>
-              <th className="px-6 py-4">Course</th>
-              <th className="px-6 py-4">Type</th>
-              <th className="px-6 py-4 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-50">
-            {filteredMaterials.map((material) => (
-              <tr key={material.id} className="hover:bg-slate-50/50 transition-colors">
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${
-                      material.type === 'word' ? 'bg-blue-50 text-blue-600 border-blue-100/50' : 
-                      material.type === 'excel' ? 'bg-emerald-50 text-emerald-600 border-emerald-100/50' : 
-                      material.type === 'powerpoint' ? 'bg-orange-50 text-orange-600 border-orange-100/50' : 
-                      material.type === 'onenote' ? 'bg-purple-50 text-purple-600 border-purple-100/50' : 
-                      material.type === 'canva' ? 'bg-pink-50 text-pink-600 border-pink-100/50' : 
-                      material.type === 'notion' ? 'bg-slate-100 text-slate-700 border-slate-200/50' : 
-                      material.type === 'windows' ? 'bg-sky-50 text-sky-600 border-sky-100/50' : 
-                      material.type === 'notes' ? 'bg-amber-50 text-amber-600 border-amber-100/50' : 
-                      'bg-slate-50 text-slate-500 border-slate-100/50'
-                    }`}>
-                      {material.type === 'word' ? <FileText size={18} /> : 
-                       material.type === 'excel' ? <FileText size={18} /> : 
-                       material.type === 'powerpoint' ? <FileText size={18} /> : 
-                       material.type === 'onenote' ? <FileText size={18} /> : 
-                       material.type === 'canva' ? <FileText size={18} /> : 
-                       material.type === 'notion' ? <FileText size={18} /> : 
-                       material.type === 'windows' ? <FileText size={18} /> : 
-                       material.type === 'notes' ? <BookOpenIcon size={18} /> : 
-                       <LinkIcon size={18} />}
-                    </div>
-                    <div>
-                      <p className="font-black text-slate-900 text-sm">{material.title}</p>
-                      <p className="text-[10px] text-slate-400 font-bold">{material.file_size || material.duration || 'External'}</p>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <span className="text-xs font-bold text-slate-600 block">{(material.courses as any)?.title}</span>
-                  {(material.batches?.[0] || material.batch) && (
-                    <span className="inline-block mt-1 px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded text-[9px] font-black uppercase tracking-widest">
-                      {material.batches?.[0] || material.batch}
-                    </span>
-                  )}
-                </td>
-                <td className="px-6 py-4">
-                  <div className="flex items-center justify-between gap-4">
-                    <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-[10px] font-black uppercase tracking-widest">
-                      {material.type}
-                    </span>
-                  </div>
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    <button 
-                      onClick={() => {
-                        setAssigningMaterial(material);
-                        setAssignFormData({
-                          course_id: material.course_id || "",
-                          batch: material.batches?.[0] || ""
-                        });
-                      }}
-                      className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
-                      title="Assign Course/Batch"
-                    >
-                      <GraduationCap size={18} />
-                    </button>
-                    <button 
-                      onClick={() => handleEdit(material)}
-                      className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
-                    >
-                      <Pencil size={18} />
-                    </button>
-                    {material.type !== 'note' && material.type !== 'code' && (
-                      <a href={material.content_url} target="_blank" rel="noopener noreferrer" className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all">
-                        <ExternalLink size={18} />
-                      </a>
-                    )}
-                    <button 
-                      onClick={() => handleDelete(material.id)}
-                      className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
+      {/* Toolbar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <label className="flex items-center gap-2">
+          <span className="text-xs text-slate-400 dark:text-slate-500 shrink-0">Course</span>
+          <select
+            value={selectedCourseFilter}
+            onChange={(e) => setSelectedCourseFilter(e.target.value)}
+            className="px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none focus:border-slate-400 dark:focus:border-slate-600 transition-colors text-sm text-slate-700 dark:text-slate-300 cursor-pointer max-w-[16rem]"
+          >
+            <option value="all" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">All courses</option>
+            {courses.map(course => (
+              <option key={course.id} value={course.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{course.title}</option>
             ))}
-          </tbody>
-        </table>
+          </select>
+        </label>
+
+        <button
+          onClick={() => setIsAdding(true)}
+          className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-200 text-white dark:text-slate-900 rounded-lg text-sm font-medium transition-colors w-fit cursor-pointer"
+        >
+          <Plus size={14} />
+          New material
+        </button>
       </div>
+
+      <p className="text-xs text-slate-400 dark:text-slate-500 px-1 -mb-3">
+        {filteredMaterials.length} {filteredMaterials.length === 1 ? "material" : "materials"}
+      </p>
+
+      {/* List */}
+      {filteredMaterials.length === 0 ? (
+        <div className="py-16 text-center text-sm text-slate-500 dark:text-slate-400">No materials found.</div>
+      ) : (
+        <ul className="divide-y divide-slate-100 dark:divide-slate-800/80 border-y border-slate-100 dark:border-slate-800/80">
+          {filteredMaterials.map((material) => {
+            const batchName = material.batches?.[0] || material.batch;
+            const isDoc = !!typeText[material.type];
+            return (
+              <li
+                key={material.id}
+                className="group flex items-center gap-3 py-3 px-2 -mx-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors"
+              >
+                <div className={`shrink-0 ${typeText[material.type] || 'text-slate-400'}`}>
+                  {material.type === 'notes' ? <BookOpenIcon size={18} /> : isDoc ? <FileText size={18} /> : <LinkIcon size={18} />}
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">{material.title}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                    {[(material.courses as any)?.title, batchName, material.file_size || material.duration || 'External']
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
+                </div>
+
+                <span className="hidden sm:block w-24 text-xs text-slate-400 dark:text-slate-500 capitalize">{material.type}</span>
+
+                <div className="flex items-center gap-0.5 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100 transition-opacity">
+                  <button
+                    onClick={() => {
+                      setAssigningMaterial(material);
+                      setAssignFormData({
+                        course_id: material.course_id || "",
+                        batch: material.batches?.[0] || ""
+                      });
+                    }}
+                    className="p-2 text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-md transition-colors cursor-pointer"
+                    title="Assign Course/Batch"
+                  >
+                    <GraduationCap size={16} />
+                  </button>
+                  <button
+                    onClick={() => handleEdit(material)}
+                    className="p-2 text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-md transition-colors cursor-pointer"
+                    title="Edit"
+                  >
+                    <Pencil size={16} />
+                  </button>
+                  {material.type !== 'note' && material.type !== 'code' && (
+                    <a href={material.content_url} target="_blank" rel="noopener noreferrer" className="p-2 text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-md transition-colors" title="Open">
+                      <ExternalLink size={16} />
+                    </a>
+                  )}
+                  <button
+                    onClick={() => handleDelete(material.id)}
+                    className="p-2 text-slate-400 hover:text-red-600 rounded-md transition-colors cursor-pointer"
+                    title="Delete"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
 
       {assigningMaterial && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md flex flex-col border border-slate-100 animate-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <h3 className="font-bold text-slate-900">Assign Course & Batch</h3>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-md flex flex-col border border-slate-100 dark:border-slate-800 animate-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <h3 className="font-semibold text-slate-900 dark:text-white">Assign Course & Batch</h3>
               <button 
                 onClick={() => setAssigningMaterial(null)} 
-                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600"
+                className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-600"
               >
                 <X size={18} />
               </button>
             </div>
             
             <form onSubmit={handleAssignSubmit} className="p-6 space-y-4">
-              <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 mb-2">
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Material Title</p>
-                <p className="font-bold text-slate-800 text-sm mt-1">{assigningMaterial.title}</p>
+              <div className="border border-slate-100 dark:border-slate-800 rounded-lg p-3 mb-2">
+                <p className="text-xs text-slate-400">Material Title</p>
+                <p className="font-medium text-slate-800 dark:text-slate-200 text-sm mt-1">{assigningMaterial.title}</p>
               </div>
 
               <div>
-                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Link to Course</label>
+                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Link to Course</label>
                 <select 
                   value={assignFormData.course_id}
                   onChange={(e) => setAssignFormData({...assignFormData, course_id: e.target.value})}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-black"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none focus:border-slate-400 dark:focus:border-slate-600 transition-colors text-sm text-slate-900 dark:text-slate-100"
                 >
-                  <option value="">Not Assigned (General)</option>
+                  <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Not Assigned (General)</option>
                   {courses.map(course => (
-                    <option key={course.id} value={course.id}>{course.title}</option>
+                    <option key={course.id} value={course.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{course.title}</option>
                   ))}
                 </select>
               </div>
 
               <div>
-                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Target Batch</label>
+                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Target Batch</label>
                 <select 
                   value={assignFormData.batch}
                   onChange={(e) => setAssignFormData({...assignFormData, batch: e.target.value})}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-black"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none focus:border-slate-400 dark:focus:border-slate-600 transition-colors text-sm text-slate-900 dark:text-slate-100"
                 >
-                  <option value="">All Batches</option>
+                  <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">All Batches</option>
                   {(availableBatches as any[])
                     .filter(batch => !assignFormData.course_id || batch.course_id === assignFormData.course_id)
                     .map(batch => (
-                      <option key={batch.title} value={batch.title}>{batch.title}</option>
+                      <option key={batch.title} value={batch.title} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{batch.title}</option>
                     ))
                   }
                 </select>
@@ -443,13 +428,13 @@ export default function MaterialsClient({ courses, initialMaterials, availableBa
                 <button 
                   type="button"
                   onClick={() => setAssigningMaterial(null)}
-                  className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl transition-all text-sm"
+                  className="flex-1 py-2.5 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium rounded-lg transition-colors text-sm"
                 >
                   Cancel
                 </button>
                 <button 
                   disabled={isAssignSubmitting}
-                  className="flex-[2] py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 text-sm"
+                  className="flex-[2] py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-200 text-white dark:text-slate-900 font-medium rounded-lg transition-colors flex items-center justify-center gap-2 text-sm"
                 >
                   {isAssignSubmitting ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle2 size={18} />}
                   Save Assignment

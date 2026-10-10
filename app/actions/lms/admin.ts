@@ -168,3 +168,198 @@ export async function verifyAdmissionDocuments(admissionId: string, verified: bo
         return { error: e.message || "Failed to verify documents" };
     }
 }
+
+// Student Trash & Soft Delete Actions
+export async function moveToTrashStudent(id: string) {
+    try {
+        const supabase = await createServerSupabaseClient();
+        const { error } = await supabase
+            .from("students")
+            .update({
+                is_deleted: true,
+                deleted_at: new Date().toISOString()
+            })
+            .eq("id", id);
+
+        if (error) throw error;
+
+        revalidatePath("/admin/students");
+        revalidatePath("/admin/fees");
+        return { success: true };
+    } catch (e: any) {
+        console.error("moveToTrashStudent error:", e);
+        return { error: e.message || "Failed to move student to trash" };
+    }
+}
+
+export async function bulkMoveToTrashStudents(ids: string[]) {
+    try {
+        if (!ids.length) return { success: true };
+        const supabase = await createServerSupabaseClient();
+        const { error } = await supabase
+            .from("students")
+            .update({
+                is_deleted: true,
+                deleted_at: new Date().toISOString()
+            })
+            .in("id", ids);
+
+        if (error) throw error;
+
+        revalidatePath("/admin/students");
+        revalidatePath("/admin/fees");
+        return { success: true };
+    } catch (e: any) {
+        console.error("bulkMoveToTrashStudents error:", e);
+        return { error: e.message || "Failed to move students to trash" };
+    }
+}
+
+export async function restoreStudent(id: string) {
+    try {
+        const supabase = await createServerSupabaseClient();
+        const { error } = await supabase
+            .from("students")
+            .update({
+                is_deleted: false,
+                deleted_at: null,
+                deleted_by: null
+            })
+            .eq("id", id);
+
+        if (error) throw error;
+
+        revalidatePath("/admin/students");
+        revalidatePath("/admin/fees");
+        return { success: true };
+    } catch (e: any) {
+        console.error("restoreStudent error:", e);
+        return { error: e.message || "Failed to restore student" };
+    }
+}
+
+export async function bulkRestoreStudents(ids: string[]) {
+    try {
+        if (!ids.length) return { success: true };
+        const supabase = await createServerSupabaseClient();
+        const { error } = await supabase
+            .from("students")
+            .update({
+                is_deleted: false,
+                deleted_at: null,
+                deleted_by: null
+            })
+            .in("id", ids);
+
+        if (error) throw error;
+
+        revalidatePath("/admin/students");
+        revalidatePath("/admin/fees");
+        return { success: true };
+    } catch (e: any) {
+        console.error("bulkRestoreStudents error:", e);
+        return { error: e.message || "Failed to restore students" };
+    }
+}
+
+export async function permanentDeleteStudent(id: string) {
+    try {
+        const supabase = await createServerSupabaseClient();
+        const { error } = await supabase
+            .from("students")
+            .delete()
+            .eq("id", id);
+
+        if (error) throw error;
+
+        revalidatePath("/admin/students");
+        revalidatePath("/admin/fees");
+        return { success: true };
+    } catch (e: any) {
+        console.error("permanentDeleteStudent error:", e);
+        return { error: e.message || "Failed to permanently delete student" };
+    }
+}
+
+export async function emptyTrashStudents() {
+    try {
+        const supabase = await createServerSupabaseClient();
+        const { error } = await supabase
+            .from("students")
+            .delete()
+            .eq("is_deleted", true);
+
+        if (error) throw error;
+
+        revalidatePath("/admin/students");
+        revalidatePath("/admin/fees");
+        return { success: true };
+    } catch (e: any) {
+        console.error("emptyTrashStudents error:", e);
+        return { error: e.message || "Failed to empty trash" };
+    }
+}
+
+export async function updateStudentAcademicStatus(data: {
+    id: string;
+    status: "active" | "dropped_out" | "on_hold" | "completed" | "inactive";
+    dropout_date?: string | null;
+    dropout_reason?: string | null;
+    dropout_remarks?: string | null;
+}) {
+    try {
+        const supabase = await createServerSupabaseClient();
+        const { error } = await supabase
+            .from("students")
+            .update({
+                status: data.status,
+                dropout_date: data.dropout_date || null,
+                dropout_reason: data.dropout_reason || null,
+                dropout_remarks: data.dropout_remarks || null
+            })
+            .eq("id", data.id);
+
+        if (error) throw error;
+
+        revalidatePath("/admin/students");
+        revalidatePath("/admin/fees");
+        revalidatePath("/admin");
+        revalidatePath("/admin/lms/analytics");
+        return { success: true };
+    } catch (e: any) {
+        console.error("updateStudentAcademicStatus error:", e);
+        return { error: e.message || "Failed to update academic status" };
+    }
+}
+
+export async function bulkUpdateStudentStatus(
+    ids: string[],
+    newStatus: "active" | "dropped_out" | "on_hold" | "completed" | "inactive"
+) {
+    try {
+        if (!ids.length) return { success: true };
+        const supabase = await createServerSupabaseClient();
+        const updateData: any = { status: newStatus };
+        if (newStatus === "dropped_out") {
+            updateData.dropout_date = new Date().toISOString().split('T')[0];
+            updateData.dropout_reason = "Bulk Dropout Update";
+        }
+        const { error } = await supabase
+            .from("students")
+            .update(updateData)
+            .in("id", ids);
+
+        if (error) throw error;
+
+        revalidatePath("/admin/students");
+        revalidatePath("/admin/fees");
+        revalidatePath("/admin");
+        revalidatePath("/admin/lms/analytics");
+        return { success: true };
+    } catch (e: any) {
+        console.error("bulkUpdateStudentStatus error:", e);
+        return { error: e.message || "Failed to update status in bulk" };
+    }
+}
+
+

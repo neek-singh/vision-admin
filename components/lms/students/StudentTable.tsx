@@ -1,9 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { removeCourseFromStudent } from "@/app/actions/lms/admin";
+import { 
+  removeCourseFromStudent,
+  moveToTrashStudent,
+  bulkMoveToTrashStudents,
+  restoreStudent,
+  bulkRestoreStudents,
+  permanentDeleteStudent,
+  emptyTrashStudents,
+  updateStudentAcademicStatus,
+  bulkUpdateStudentStatus
+} from "@/app/actions/lms/admin";
 import DeleteButton from "@/components/ui/DeleteButton";
 import { 
   Loader2, 
@@ -23,14 +33,24 @@ import {
   Copy,
   CheckCircle2,
   Award,
-  Clock,
-  HelpCircle
+  UserCheck,
+  ChevronDown,
+  Download,
+  Phone,
+  Mail,
+  Plus
 } from "lucide-react";
 import dynamic from "next/dynamic";
+import StudentTrashBinView from "@/components/lms/students/StudentTrashBinView";
 
 const StudentEditModal = dynamic(() => import("@/components/lms/students/StudentEditModal"), { 
   ssr: false,
   loading: () => <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-[100] flex items-center justify-center"><Loader2 className="animate-spin text-blue-600" /></div>
+});
+
+const StudentDropoutModal = dynamic(() => import("@/components/lms/students/StudentDropoutModal"), { 
+  ssr: false,
+  loading: () => <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-[100] flex items-center justify-center"><Loader2 className="animate-spin text-rose-600" /></div>
 });
 
 const AssignCourseModal = dynamic(() => import("@/components/lms/students/AssignCourseModal"), { 
@@ -51,6 +71,45 @@ const StudentCertificateModal = dynamic(() => import("@/components/lms/students/
   loading: () => <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-[100] flex items-center justify-center"><Loader2 className="animate-spin text-blue-600" /></div>
 });
 
+const getShortCourseName = (title?: string, code?: string): string => {
+  if (!title && !code) return "Course";
+  
+  // If code is already a short uppercase acronym (<= 6 chars, like 'DCA', 'ADCA', 'PGDCA')
+  if (code && code.trim().length <= 6 && !code.includes("-")) {
+    return code.trim().toUpperCase();
+  }
+
+  const clean = (title || code || "").trim();
+  const upper = clean.toUpperCase().replace(/[-_]/g, " ").replace(/\s+/g, " ");
+
+  // Standard computer course abbreviations
+  if (upper.includes("POST GRADUATE DIPLOMA IN COMPUTER") || upper.includes("PGDCA")) return "PGDCA";
+  if (upper.includes("ADVANCED DIPLOMA IN COMPUTER") || upper.includes("ADCA")) return "ADCA";
+  if (upper.includes("DIPLOMA IN COMPUTER") || upper.includes("DCA")) return "DCA";
+  if (upper.includes("BASIC COMPUTER COURSE") || upper.includes("BASIC COMPUTER")) return "BCC";
+  if (upper.includes("CERTIFICATE IN COMPUTER APPLICATION") || upper.includes("CCA")) return "CCA";
+  if (upper.includes("COMPUTER TEACHER TRAINING") || upper.includes("CTTC")) return "CTTC";
+  if (upper.includes("DESK TOP PUBLISHING") || upper.includes("DESKTOP PUBLISHING") || upper.includes("DTP")) return "DTP";
+  if (upper.includes("FINANCIAL ACCOUNTING") || upper.includes("TALLY")) return "Tally";
+  if (upper.includes("WEB DESIGN") || upper.includes("WEB DEVELOPMENT")) return "Web Dev";
+  if (upper.includes("PYTHON")) return "Python";
+  if (upper.includes("JAVA")) return "Java";
+  if (upper.includes("DATA ENTRY") || upper.includes("DEO")) return "DEO";
+  if (upper.includes("HARDWARE") || upper.includes("NETWORKING")) return "Hardware";
+  if (upper.includes("DIGITAL MARKETING")) return "Digital Mkt";
+  if (upper.includes("GRAPHIC DESIGN")) return "Graphic";
+
+  if (clean.length <= 10) return clean;
+
+  const words = clean.split(/\s+/).filter(Boolean);
+  if (words.length >= 3) {
+    const acronym = words.map(w => w[0].toUpperCase()).join("");
+    if (acronym.length <= 6) return acronym;
+  }
+
+  return clean.slice(0, 14) + "…";
+};
+
 export default function StudentTable({ 
   initialStudents, 
   availableBatches = [],
@@ -69,6 +128,13 @@ export default function StudentTable({
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [selectedBatch, setSelectedBatch] = useState<string>("");
   const [selectedCourse, setSelectedCourse] = useState<string>("");
+  const [viewMode, setViewMode] = useState<"active" | "trash">("active");
+
+  // Local student state for instant optimistic UI updates
+  const [students, setStudents] = useState<any[]>(initialStudents || []);
+  useEffect(() => {
+    setStudents(initialStudents || []);
+  }, [initialStudents]);
   
   // Bulk Selection States
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -84,8 +150,8 @@ export default function StudentTable({
   const [idCardStudent, setIdCardStudent] = useState<any | null>(null);
   const [bulkIdCardData, setBulkIdCardData] = useState<{ students: any[]; courseTitle: string } | null>(null);
   const [certificateStudent, setCertificateStudent] = useState<any | null>(null);
+  const [dropoutStudent, setDropoutStudent] = useState<any | null>(null);
   const [availableCourses, setAvailableCourses] = useState<any[]>(passedCourses);
-  const [viewingQuizzesFor, setViewingQuizzesFor] = useState<any | null>(null);
 
   // Credentials Modal State
   const [credentialsStudent, setCredentialsStudent] = useState<any | null>(null);
@@ -93,17 +159,23 @@ export default function StudentTable({
   const [generatedCreds, setGeneratedCreds] = useState<{ student_id: string; password: string } | null>(null);
   const [credsError, setCredsError] = useState("");
   const [copiedField, setCopiedField] = useState<"id" | "pass" | null>(null);
-  // Track which students had credentials generated this session
   const [credentialsDoneIds, setCredentialsDoneIds] = useState<Set<string>>(new Set());
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     const params = new URLSearchParams(searchParams);
-    if (query) {
-      params.set("query", query);
+    if (query.trim()) {
+      params.set("query", query.trim());
     } else {
       params.delete("query");
     }
+    router.replace(`${pathname}?${params.toString()}`);
+  };
+
+  const clearQuery = () => {
+    setQuery("");
+    const params = new URLSearchParams(searchParams);
+    params.delete("query");
     router.replace(`${pathname}?${params.toString()}`);
   };
 
@@ -113,24 +185,86 @@ export default function StudentTable({
     setAvailableCourses(data || []);
   };
 
-  const toggleStatus = async (studentId: string, currentStatus: string) => {
-    setIsUpdating(studentId);
-    const newStatus = currentStatus === "active" ? "inactive" : "active";
-    
+  const handleReactivateStudent = async (student: any) => {
+    if (!confirm(`Reactivate "${student.name}" back to Active status?`)) return;
+    setIsUpdating(student.id);
     try {
-      const { error } = await supabase
-        .from("students")
-        .update({ status: newStatus })
-        .eq("id", studentId);
+      const result = await updateStudentAcademicStatus({
+        id: student.id,
+        status: "active",
+        dropout_date: null,
+        dropout_reason: null,
+        dropout_remarks: student.dropout_remarks 
+          ? `${student.dropout_remarks} (Reactivated on ${new Date().toISOString().split('T')[0]})` 
+          : `Reactivated on ${new Date().toISOString().split('T')[0]}`
+      });
 
-      if (error) throw error;
+      if (result.error) throw new Error(result.error);
       router.refresh();
-    } catch (err) {
-      console.error("Error updating student status:", err);
-      alert("Failed to update status");
+      alert(`Student ${student.name} reactivated to Active!`);
+    } catch (err: any) {
+      console.error("Error reactivating student:", err);
+      alert(err.message || "Failed to reactivate");
     } finally {
       setIsUpdating(null);
     }
+  };
+
+  const renderStatusBadge = (student: any) => {
+    const status = student.status || "active";
+    const isDropout = status === "dropped_out";
+    const isOnHold = status === "on_hold";
+    const isCompleted = status === "completed";
+    const isActive = status === "active";
+
+    const badgeColor = isActive
+      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20"
+      : isDropout
+      ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20 hover:bg-rose-500/20"
+      : isOnHold
+      ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 hover:bg-amber-500/20"
+      : isCompleted
+      ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20 hover:bg-blue-500/20"
+      : "bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20 hover:bg-slate-500/20";
+
+    const dotColor = isActive
+      ? "bg-emerald-500"
+      : isDropout
+      ? "bg-rose-500"
+      : isOnHold
+      ? "bg-amber-500"
+      : isCompleted
+      ? "bg-blue-500"
+      : "bg-slate-400";
+
+    const label = isDropout ? "Dropped Out" : isOnHold ? "On Hold" : isCompleted ? "Completed" : isActive ? "Active" : "Inactive";
+    const tooltip = isDropout 
+      ? `Left on: ${student.dropout_date || "N/A"}${student.dropout_reason ? ` • ${student.dropout_reason}` : ""}` 
+      : isOnHold 
+      ? `Break since: ${student.dropout_date || "N/A"}${student.dropout_reason ? ` • ${student.dropout_reason}` : ""}` 
+      : `Status: ${label}`;
+
+    return (
+      <button
+        onClick={() => {
+          if (isActive) {
+            setDropoutStudent(student);
+          } else {
+            handleReactivateStudent(student);
+          }
+        }}
+        disabled={isUpdating === student.id}
+        title={tooltip + " (Click to change status)"}
+        className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold border transition-all cursor-pointer ${badgeColor}`}
+      >
+        {isUpdating === student.id ? (
+          <Loader2 size={10} className="animate-spin" />
+        ) : (
+          <span className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
+        )}
+        <span>{label}</span>
+      </button>
+    );
   };
 
   const handleRemoveCourse = async (enrollmentId: string, courseTitle: string, studentName: string) => {
@@ -193,25 +327,36 @@ export default function StudentTable({
     setTimeout(() => setCopiedField(null), 2000);
   };
 
-  // Client-Side Dynamic Filtering
-  const filteredStudents = initialStudents.filter(student => {
-    // Search match
-    const matchesQuery = !query || 
-      student.name.toLowerCase().includes(query.toLowerCase()) || 
-      student.student_id.toLowerCase().includes(query.toLowerCase()) ||
-      (student.phone && student.phone.includes(query)) ||
-      (student.email && student.email.toLowerCase().includes(query.toLowerCase()));
+  const getInitials = (name: string) => {
+    if (!name) return "ST";
+    const parts = name.trim().split(/\s+/);
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  };
 
-    // Status match
-    const isActive = (student.status || "active") === "active";
+  // Split into active and trashed lists (reactive from local students state)
+  const activeStudentsList = students.filter(s => !s.is_deleted);
+  const trashedStudentsList = students.filter(s => Boolean(s.is_deleted));
+
+  // Client-Side Dynamic Filtering (active students only)
+  const filteredStudents = activeStudentsList.filter(student => {
+    const q = query.trim().toLowerCase();
+    const matchesQuery = !q || 
+      student.name?.toLowerCase().includes(q) || 
+      student.student_id?.toLowerCase().includes(q) ||
+      (student.phone && student.phone.includes(q)) ||
+      (student.email && student.email.toLowerCase().includes(q));
+
+    const studentStatus = student.status || "active";
     const matchesStatus = selectedStatus === "all" || 
-      (selectedStatus === "active" && isActive) || 
-      (selectedStatus === "inactive" && !isActive);
+      (selectedStatus === "active" && studentStatus === "active") ||
+      (selectedStatus === "dropped_out" && studentStatus === "dropped_out") ||
+      (selectedStatus === "on_hold" && studentStatus === "on_hold") ||
+      (selectedStatus === "completed" && studentStatus === "completed") ||
+      (selectedStatus === "inactive" && studentStatus === "inactive");
 
-    // Batch match
     const matchesBatch = !selectedBatch || student.batch === selectedBatch;
 
-    // Course match
     const matchesCourse = !selectedCourse || 
       student.enrollments?.some((e: any) => (e.courses as any)?.id === selectedCourse);
 
@@ -222,11 +367,9 @@ export default function StudentTable({
     if (filteredStudents.length === 0) return;
     const allFilteredSelected = filteredStudents.every(s => selectedIds.includes(s.id));
     if (allFilteredSelected) {
-      // Deselect only the filtered ones
       const filteredIds = filteredStudents.map(s => s.id);
       setSelectedIds(prev => prev.filter(id => !filteredIds.includes(id)));
     } else {
-      // Select all filtered ones
       const newSelections = filteredStudents.map(s => s.id);
       setSelectedIds(prev => {
         const merged = new Set([...prev, ...newSelections]);
@@ -236,16 +379,12 @@ export default function StudentTable({
   };
 
   // Bulk Actions
-  const handleBulkStatusChange = async (newStatus: "active" | "inactive") => {
+  const handleBulkStatusChange = async (newStatus: "active" | "dropped_out" | "on_hold" | "completed" | "inactive") => {
     if (selectedIds.length === 0) return;
     setIsBulkUpdating(true);
     try {
-      const { error } = await supabase
-        .from("students")
-        .update({ status: newStatus })
-        .in("id", selectedIds);
-
-      if (error) throw error;
+      const result = await bulkUpdateStudentStatus(selectedIds, newStatus);
+      if (result.error) throw new Error(result.error);
       alert(`Successfully updated status to ${newStatus} for ${selectedIds.length} students.`);
       setSelectedIds([]);
       router.refresh();
@@ -262,7 +401,6 @@ export default function StudentTable({
     setIsBulkUpdating(true);
     const targetBatch = batchVal === "clear" ? null : batchVal;
     try {
-      // 1. Update students global batch
       const { error: studentError } = await supabase
         .from("students")
         .update({ batch: targetBatch })
@@ -270,7 +408,6 @@ export default function StudentTable({
 
       if (studentError) throw studentError;
 
-      // 2. Update enrollments batch for these students
       const { error: enrollError } = await supabase
         .from("enrollments")
         .update({ batch: targetBatch })
@@ -289,25 +426,142 @@ export default function StudentTable({
     }
   };
 
-  const handleBulkDelete = async () => {
-    if (selectedIds.length === 0) return;
-    const confirmDelete = confirm(`Are you sure you want to delete the ${selectedIds.length} selected students? This action is permanent and cannot be undone.`);
-    if (!confirmDelete) return;
-
-    setIsBulkUpdating(true);
+  // Trash & Permanent Delete Actions
+  const handleMoveToTrash = async (student: any) => {
+    if (!confirm(`Move "${student.name}" to Trash Bin?\n(You can restore them anytime from the Trash Bin)`)) return;
+    setIsUpdating(student.id);
+    // Optimistic update
+    setStudents(prev => prev.map(s => s.id === student.id ? { ...s, is_deleted: true, deleted_at: new Date().toISOString() } : s));
     try {
-      const { error } = await supabase
-        .from("students")
-        .delete()
-        .in("id", selectedIds);
+      const res = await moveToTrashStudent(student.id);
+      if (res?.error) {
+        // Rollback
+        setStudents(prev => prev.map(s => s.id === student.id ? { ...s, is_deleted: false, deleted_at: null } : s));
+        alert(res.error);
+        return;
+      }
+      router.refresh();
+    } catch (err: any) {
+      console.error("Error moving student to trash:", err);
+      setStudents(prev => prev.map(s => s.id === student.id ? { ...s, is_deleted: false, deleted_at: null } : s));
+      alert(err.message || "Failed to move to trash");
+    } finally {
+      setIsUpdating(null);
+    }
+  };
 
-      if (error) throw error;
-      alert(`Successfully deleted ${selectedIds.length} students.`);
-      setSelectedIds([]);
+  const handleBulkMoveToTrash = async () => {
+    if (selectedIds.length === 0) return;
+    if (!confirm(`Move ${selectedIds.length} selected student(s) to Trash Bin?`)) return;
+    setIsBulkUpdating(true);
+    const idsToTrash = [...selectedIds];
+    // Optimistic update
+    setStudents(prev => prev.map(s => idsToTrash.includes(s.id) ? { ...s, is_deleted: true, deleted_at: new Date().toISOString() } : s));
+    setSelectedIds([]);
+    try {
+      const res = await bulkMoveToTrashStudents(idsToTrash);
+      if (res?.error) {
+        setStudents(prev => prev.map(s => idsToTrash.includes(s.id) ? { ...s, is_deleted: false, deleted_at: null } : s));
+        alert(res.error);
+        return;
+      }
       router.refresh();
     } catch (err: any) {
       console.error(err);
-      alert(err.message || "Failed to delete students in bulk");
+      setStudents(prev => prev.map(s => idsToTrash.includes(s.id) ? { ...s, is_deleted: false, deleted_at: null } : s));
+      alert(err.message || "Failed to move students to trash");
+    } finally {
+      setIsBulkUpdating(false);
+    }
+  };
+
+  const handleRestoreStudent = async (student: any) => {
+    if (!confirm(`Restore "${student.name}" back to Active Students list?`)) return;
+    setIsUpdating(student.id);
+    // Optimistic update
+    setStudents(prev => prev.map(s => s.id === student.id ? { ...s, is_deleted: false, deleted_at: null } : s));
+    try {
+      const res = await restoreStudent(student.id);
+      if (res?.error) {
+        setStudents(prev => prev.map(s => s.id === student.id ? { ...s, is_deleted: true } : s));
+        alert(res.error);
+        return;
+      }
+      router.refresh();
+    } catch (err: any) {
+      console.error("Error restoring student:", err);
+      setStudents(prev => prev.map(s => s.id === student.id ? { ...s, is_deleted: true } : s));
+      alert(err.message || "Failed to restore student");
+    } finally {
+      setIsUpdating(null);
+    }
+  };
+
+  const handleBulkRestore = async (ids: string[]) => {
+    if (ids.length === 0) return;
+    setIsBulkUpdating(true);
+    // Optimistic update
+    setStudents(prev => prev.map(s => ids.includes(s.id) ? { ...s, is_deleted: false, deleted_at: null } : s));
+    try {
+      const res = await bulkRestoreStudents(ids);
+      if (res?.error) {
+        setStudents(prev => prev.map(s => ids.includes(s.id) ? { ...s, is_deleted: true } : s));
+        alert(res.error);
+        return;
+      }
+      router.refresh();
+    } catch (err: any) {
+      setStudents(prev => prev.map(s => ids.includes(s.id) ? { ...s, is_deleted: true } : s));
+      alert(err.message || "Failed to restore");
+    } finally {
+      setIsBulkUpdating(false);
+    }
+  };
+
+  const handlePermanentDelete = async (student: any) => {
+    setIsUpdating(student.id);
+    const backup = [...students];
+    // Optimistic update
+    setStudents(prev => prev.filter(s => s.id !== student.id));
+    try {
+      const res = await permanentDeleteStudent(student.id);
+      if (res?.error) {
+        setStudents(backup);
+        alert(res.error);
+        return;
+      }
+      router.refresh();
+    } catch (err: any) {
+      console.error("Permanent delete error:", err);
+      setStudents(backup);
+      alert(err.message || "Failed to permanently delete student");
+    } finally {
+      setIsUpdating(null);
+    }
+  };
+
+  const handleEmptyTrash = async () => {
+    const trashedIds = trashedStudentsList.map(s => s.id);
+    if (trashedIds.length === 0) return;
+    
+    const confirm1 = confirm(`⚠️ Warning: You are about to PERMANENTLY DELETE all ${trashedIds.length} student(s) in the Trash Bin!\n\nThis cannot be undone. Continue?`);
+    if (!confirm1) return;
+
+    setIsBulkUpdating(true);
+    const backup = [...students];
+    // Optimistic update
+    setStudents(prev => prev.filter(s => !s.is_deleted));
+    try {
+      const res = await emptyTrashStudents();
+      if (res?.error) {
+        setStudents(backup);
+        alert(res.error);
+        return;
+      }
+      router.refresh();
+    } catch (err: any) {
+      setStudents(backup);
+      alert(err.message || "Failed to empty trash");
     } finally {
       setIsBulkUpdating(false);
     }
@@ -315,12 +569,12 @@ export default function StudentTable({
 
   const handleBulkExport = () => {
     if (selectedIds.length === 0) return;
-    const studentsToExport = initialStudents.filter(s => selectedIds.includes(s.id));
+    const studentsToExport = activeStudentsList.filter(s => selectedIds.includes(s.id));
     exportCSVData(studentsToExport, "selected_students");
   };
 
   const exportAllCSV = () => {
-    exportCSVData(initialStudents, "all_students");
+    exportCSVData(activeStudentsList, "active_students");
   };
 
   const exportCSVData = (studentsList: any[], filenamePrefix: string) => {
@@ -347,14 +601,32 @@ export default function StudentTable({
     document.body.removeChild(link);
   };
 
-  // Stats Calculations
-  const totalStudents = initialStudents.length;
-  const activeStudents = initialStudents.filter(s => (s.status || "active") === "active").length;
-  const batchAssigned = initialStudents.filter(s => s.batch).length;
-  const totalEnrollments = initialStudents.reduce((acc, s) => acc + (s.enrollments?.length || 0), 0);
+  // Stats Calculations (Active students)
+  const totalStudents = activeStudentsList.length;
+  const activeStudents = activeStudentsList.filter(s => (s.status || "active") === "active").length;
+  const droppedStudents = activeStudentsList.filter(s => s.status === "dropped_out").length;
+  const onHoldStudents = activeStudentsList.filter(s => s.status === "on_hold").length;
+  const completedStudents = activeStudentsList.filter(s => s.status === "completed").length;
+  const batchAssigned = activeStudentsList.filter(s => s.batch).length;
+  const totalEnrollments = activeStudentsList.reduce((acc, s) => acc + (s.enrollments?.length || 0), 0);
+  const activeRate = totalStudents > 0 ? Math.round((activeStudents / totalStudents) * 100) : 0;
+  const unassignedCount = Math.max(0, totalStudents - batchAssigned);
+  const avgCourses = totalStudents > 0 ? (totalEnrollments / totalStudents).toFixed(1) : "0.0";
+
+  const hasActiveFilters = Boolean(query || selectedBatch || selectedCourse || selectedStatus !== "all");
+
+  const resetFilters = () => {
+    setQuery("");
+    setSelectedBatch("");
+    setSelectedCourse("");
+    setSelectedStatus("all");
+    const params = new URLSearchParams(searchParams);
+    params.delete("query");
+    router.replace(pathname);
+  };
 
   return (
-    <div className="space-y-8 pb-20">
+    <div className="space-y-3.5 pb-10">
       {/* Lazy Loaded Modals */}
       {editingStudent && (
         <StudentEditModal 
@@ -406,175 +678,268 @@ export default function StudentTable({
         />
       )}
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      {dropoutStudent && (
+        <StudentDropoutModal
+          student={dropoutStudent}
+          onClose={() => setDropoutStudent(null)}
+          onSuccess={() => {
+            setDropoutStudent(null);
+            router.refresh();
+          }}
+        />
+      )}
+
+      {/* Render Trash Bin View if active */}
+      {viewMode === "trash" ? (
+        <StudentTrashBinView
+          trashedStudents={trashedStudentsList}
+          onRestore={handleRestoreStudent}
+          onPermanentDelete={handlePermanentDelete}
+          onEmptyTrash={handleEmptyTrash}
+          onBulkRestore={handleBulkRestore}
+          onBack={() => setViewMode("active")}
+          isUpdating={isUpdating}
+          isBulkUpdating={isBulkUpdating}
+        />
+      ) : (
+        <>
+      {/* ── Statistics Cards (Compact & Clean) ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
         {/* Card 1: Total Students */}
-        <div className="relative overflow-hidden bg-white dark:bg-[#0f172a]/40 border border-slate-100 dark:border-slate-800/80 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all group">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 dark:bg-blue-500/10 rounded-full translate-x-6 -translate-y-6 group-hover:scale-110 transition-transform" />
-          <div className="flex justify-between items-start">
-            <div className="space-y-2">
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Total Students</span>
-              <h3 className="text-3xl font-black text-slate-900 dark:text-white">{totalStudents}</h3>
-            </div>
-            <div className="p-3 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-2xl">
-              <Users size={20} />
+        <div className="bg-white dark:bg-slate-900 p-3 sm:p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs hover:border-blue-500/30 transition-all group">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+              Total Students
+            </span>
+            <div className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-500/20 group-hover:scale-105 transition-transform">
+              <Users size={14} />
             </div>
           </div>
-          <div className="mt-4 flex items-center gap-2">
-            <span className="text-xs font-bold text-slate-400 dark:text-slate-500">All registered profiles</span>
+          <div className="mt-1 flex items-baseline gap-2">
+            <span className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
+              {totalStudents}
+            </span>
           </div>
+          <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5 font-normal">
+            All registered profiles
+          </p>
         </div>
 
         {/* Card 2: Active Students */}
-        <div className="relative overflow-hidden bg-white dark:bg-[#0f172a]/40 border border-slate-100 dark:border-slate-800/80 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all group">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 dark:bg-emerald-500/10 rounded-full translate-x-6 -translate-y-6 group-hover:scale-110 transition-transform" />
-          <div className="flex justify-between items-start">
-            <div className="space-y-2">
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Active Students</span>
-              <h3 className="text-3xl font-black text-slate-900 dark:text-white">{activeStudents}</h3>
-            </div>
-            <div className="p-3 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-2xl">
-              <ShieldCheck size={20} />
+        <div className="bg-white dark:bg-slate-900 p-3 sm:p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs hover:border-emerald-500/30 transition-all group">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+              Active Students
+            </span>
+            <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/20 group-hover:scale-105 transition-transform">
+              <ShieldCheck size={14} />
             </div>
           </div>
-          <div className="mt-4 flex items-center gap-2">
-            <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2.5 py-0.5 rounded-lg border border-emerald-100/30">
-              {totalStudents > 0 ? Math.round((activeStudents / totalStudents) * 100) : 0}% Active Rate
+          <div className="mt-1 flex items-baseline gap-2">
+            <span className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
+              {activeStudents}
+            </span>
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              {activeRate}% Active
             </span>
           </div>
+          <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5 font-normal">
+            Currently enabled accounts
+          </p>
         </div>
 
         {/* Card 3: Batch Assigned */}
-        <div className="relative overflow-hidden bg-white dark:bg-[#0f172a]/40 border border-slate-100 dark:border-slate-800/80 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all group">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 dark:bg-amber-500/10 rounded-full translate-x-6 -translate-y-6 group-hover:scale-110 transition-transform" />
-          <div className="flex justify-between items-start">
-            <div className="space-y-2">
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Batch Assigned</span>
-              <h3 className="text-3xl font-black text-slate-900 dark:text-white">{batchAssigned}</h3>
-            </div>
-            <div className="p-3 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-2xl">
-              <Users size={20} />
-            </div>
-          </div>
-          <div className="mt-4 flex items-center gap-2">
-            <span className="text-xs font-bold text-slate-400 dark:text-slate-500">
-              {totalStudents > 0 ? totalStudents - batchAssigned : 0} unassigned students
+        <div className="bg-white dark:bg-slate-900 p-3 sm:p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs hover:border-amber-500/30 transition-all group">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+              Batch Assigned
             </span>
+            <div className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-500/20 group-hover:scale-105 transition-transform">
+              <UserCheck size={14} />
+            </div>
           </div>
+          <div className="mt-1 flex items-baseline gap-2">
+            <span className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
+              {batchAssigned}
+            </span>
+            {unassignedCount > 0 && (
+              <span className="text-[11px] text-amber-600 dark:text-amber-400 font-semibold">
+                {unassignedCount} unassigned
+              </span>
+            )}
+          </div>
+          <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5 font-normal">
+            Assigned to learning batches
+          </p>
         </div>
 
         {/* Card 4: Course Enrollments */}
-        <div className="relative overflow-hidden bg-white dark:bg-[#0f172a]/40 border border-slate-100 dark:border-slate-800/80 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all group">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-violet-500/5 dark:bg-violet-500/10 rounded-full translate-x-6 -translate-y-6 group-hover:scale-110 transition-transform" />
-          <div className="flex justify-between items-start">
-            <div className="space-y-2">
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Course Enrollments</span>
-              <h3 className="text-3xl font-black text-slate-900 dark:text-white">{totalEnrollments}</h3>
-            </div>
-            <div className="p-3 bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400 rounded-2xl">
-              <BookOpen size={20} />
+        <div className="bg-white dark:bg-slate-900 p-3 sm:p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs hover:border-violet-500/30 transition-all group">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+              Course Enrollments
+            </span>
+            <div className="w-7 h-7 rounded-lg bg-violet-500/10 text-violet-600 dark:text-violet-400 flex items-center justify-center border border-violet-500/20 group-hover:scale-105 transition-transform">
+              <BookOpen size={14} />
             </div>
           </div>
-          <div className="mt-4 flex items-center gap-2">
-            <span className="text-xs font-bold text-slate-400 dark:text-slate-500">
-              {totalStudents > 0 ? (totalEnrollments / totalStudents).toFixed(1) : 0} avg. courses/student
+          <div className="mt-1 flex items-baseline gap-2">
+            <span className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
+              {totalEnrollments}
+            </span>
+            <span className="text-[11px] text-violet-600 dark:text-violet-400 font-semibold">
+              {avgCourses} avg/student
             </span>
           </div>
+          <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5 font-normal">
+            Active course allocations
+          </p>
         </div>
       </div>
 
-      {/* Advanced Interactive Filters Section */}
-      <div className="bg-slate-50/50 dark:bg-[#0f172a]/20 border border-slate-200/40 dark:border-slate-800/80 rounded-3xl p-6 space-y-4 shadow-sm backdrop-blur-md">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <h4 className="text-xs font-black uppercase tracking-widest text-slate-450 dark:text-slate-500">Filter Records</h4>
+      {/* ── Interactive Filters Section ── */}
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xs border border-slate-200/80 dark:border-slate-800 p-2.5 sm:p-3 space-y-2.5 transition-colors">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+              Filter Records
+            </h4>
+            <span className="text-[11px] text-slate-400 font-normal">
+              ({filteredStudents.length} {filteredStudents.length === 1 ? "student" : "students"})
+            </span>
+
+            {/* Trash Bin Toggle Button */}
+            <button
+              type="button"
+              onClick={() => setViewMode("trash")}
+              className="ml-1 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 dark:text-rose-400 border border-rose-200/60 dark:border-rose-900/40 transition-all cursor-pointer"
+              title="Open Trash Bin"
+            >
+              <Trash2 size={12} />
+              <span>Trash Bin</span>
+              {trashedStudentsList.length > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-rose-600 text-white leading-none">
+                  {trashedStudentsList.length}
+                </span>
+              )}
+            </button>
+          </div>
           
-          {/* Status Tabs */}
-          <div className="flex bg-slate-100 dark:bg-[#090f1f]/80 p-1 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 w-full sm:w-auto">
+          {/* Status Segment Control */}
+          <div className="flex flex-wrap bg-slate-100 dark:bg-slate-950 p-0.5 rounded-lg border border-slate-200/70 dark:border-slate-800 text-xs w-full sm:w-auto">
             <button
               type="button"
               onClick={() => setSelectedStatus("all")}
-              className={`flex-1 sm:flex-initial px-4 py-2 text-xs font-black uppercase tracking-widest rounded-xl transition-all cursor-pointer ${
+              className={`px-2.5 py-0.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
                 selectedStatus === "all"
-                  ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm font-extrabold"
-                  : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-300"
+                  ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs font-semibold"
+                  : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
               }`}
             >
-              All
+              All ({totalStudents})
             </button>
             <button
               type="button"
               onClick={() => setSelectedStatus("active")}
-              className={`flex-1 sm:flex-initial px-4 py-2 text-xs font-black uppercase tracking-widest rounded-xl transition-all cursor-pointer ${
+              className={`px-2.5 py-0.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
                 selectedStatus === "active"
-                  ? "bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-sm font-extrabold"
-                  : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-300"
+                  ? "bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-2xs font-semibold"
+                  : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
               }`}
             >
-              Active
+              Active ({activeStudents})
             </button>
             <button
               type="button"
-              onClick={() => setSelectedStatus("inactive")}
-              className={`flex-1 sm:flex-initial px-4 py-2 text-xs font-black uppercase tracking-widest rounded-xl transition-all cursor-pointer ${
-                selectedStatus === "inactive"
-                  ? "bg-white dark:bg-slate-800 text-rose-600 dark:text-rose-450 shadow-sm font-extrabold"
-                  : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-300"
+              onClick={() => setSelectedStatus("dropped_out")}
+              className={`px-2.5 py-0.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
+                selectedStatus === "dropped_out"
+                  ? "bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-400 shadow-2xs font-semibold"
+                  : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
               }`}
             >
-              Inactive
+              Left ({droppedStudents})
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedStatus("on_hold")}
+              className={`px-2.5 py-0.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
+                selectedStatus === "on_hold"
+                  ? "bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 shadow-2xs font-semibold"
+                  : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+              }`}
+            >
+              On Hold ({onHoldStudents})
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedStatus("completed")}
+              className={`px-2.5 py-0.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
+                selectedStatus === "completed"
+                  ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-2xs font-semibold"
+                  : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+              }`}
+            >
+              Completed ({completedStudents})
             </button>
           </div>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center">
+        <div className="flex flex-col lg:flex-row gap-2 items-stretch lg:items-center">
           {/* Search Input */}
           <form onSubmit={handleSearch} className="relative flex-1">
+            <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" size={13} />
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search by name, email, phone or student ID..."
-              className="w-full pl-10 pr-4 py-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/65 dark:border-slate-800/80 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all"
+              className="w-full pl-8 pr-7 py-1.5 bg-slate-50/80 dark:bg-slate-950 border border-slate-200/70 dark:border-slate-800 rounded-lg text-xs outline-none focus:bg-white dark:focus:bg-slate-900 focus:border-blue-500 transition-all text-slate-900 dark:text-white placeholder:text-slate-400"
             />
-            <SearchIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+            {query && (
+              <button
+                type="button"
+                onClick={clearQuery}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer p-0.5"
+              >
+                <X size={12} />
+              </button>
+            )}
           </form>
 
-          <div className="flex flex-wrap sm:flex-nowrap gap-3 items-center">
+          <div className="flex flex-wrap sm:flex-nowrap gap-1.5 items-center">
             {/* Batch Select */}
-            <div className="relative w-full sm:w-48">
+            <div className="relative w-full sm:w-36">
               <select
                 value={selectedBatch}
                 onChange={(e) => setSelectedBatch(e.target.value)}
-                className="w-full pl-3.5 pr-8 py-3 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-2xl text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-200 outline-none cursor-pointer focus:ring-2 focus:ring-blue-500 appearance-none"
+                className="appearance-none w-full pl-2.5 pr-7 py-1.5 bg-slate-50/80 dark:bg-slate-950 border border-slate-200/70 dark:border-slate-800 rounded-lg text-xs text-slate-700 dark:text-slate-200 outline-none cursor-pointer focus:border-blue-500 transition-all truncate"
               >
                 <option value="">All Batches</option>
                 {availableBatches.map(b => (
                   <option key={b} value={b}>{b}</option>
                 ))}
               </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
-                <Users size={12} />
-              </div>
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={12} />
             </div>
 
             {/* Course Select */}
-            <div className="relative w-full sm:w-56">
+            <div className="relative w-full sm:w-40">
               <select
                 value={selectedCourse}
                 onChange={(e) => setSelectedCourse(e.target.value)}
-                className="w-full pl-3.5 pr-8 py-3 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-2xl text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-200 outline-none cursor-pointer focus:ring-2 focus:ring-blue-500 appearance-none"
+                className="appearance-none w-full pl-2.5 pr-7 py-1.5 bg-slate-50/80 dark:bg-slate-950 border border-slate-200/70 dark:border-slate-800 rounded-lg text-xs text-slate-700 dark:text-slate-200 outline-none cursor-pointer focus:border-blue-500 transition-all truncate"
               >
                 <option value="">All Courses</option>
                 {availableCourses.map(c => (
                   <option key={c.id} value={c.id}>{c.title}</option>
                 ))}
               </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
-                <BookOpen size={12} />
-              </div>
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={12} />
             </div>
 
-            {/* Bulk ID Cards (Theme 4) button */}
+            {/* Bulk ID Cards button */}
             {selectedCourse && (
               <button
                 type="button"
@@ -589,92 +954,101 @@ export default function StudentTable({
                     courseTitle: courseObj?.title || "Selected Course"
                   });
                 }}
-                className="w-full sm:w-auto px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
+                className="w-full sm:w-auto px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs"
               >
                 <IdCard size={12} />
-                Bulk ID Cards (Theme 4)
+                <span>Bulk ID Cards</span>
               </button>
             )}
 
             {/* Reset Filters button */}
-            {(query || selectedBatch || selectedCourse || selectedStatus !== "all") && (
+            {hasActiveFilters && (
               <button
                 type="button"
-                onClick={() => {
-                  setQuery("");
-                  setSelectedBatch("");
-                  setSelectedCourse("");
-                  setSelectedStatus("all");
-                  // Clear URL params
-                  const params = new URLSearchParams(searchParams);
-                  params.delete("query");
-                  router.replace(`${pathname}`);
-                }}
-                className="w-full sm:w-auto px-4 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-2xl text-xs font-black uppercase tracking-widest transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                onClick={resetFilters}
+                className="w-full sm:w-auto px-2 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-xs font-medium transition-colors cursor-pointer flex items-center justify-center gap-1"
+                title="Reset filters"
               >
-                <RotateCcw size={12} />
-                Reset
+                <RotateCcw size={11} />
+                <span>Reset</span>
               </button>
             )}
 
+            {/* Export CSV button */}
             <button
               onClick={exportAllCSV}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-3 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-all border border-emerald-100 dark:border-emerald-900/30 cursor-pointer"
+              className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-semibold border border-slate-200/80 dark:border-slate-800 transition-all cursor-pointer shadow-2xs"
             >
-              <span>Export CSV</span> 📊
+              <Download size={12} className="text-slate-500" />
+              <span>Export CSV</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* Table & mobile card section */}
-      <div className="bg-white dark:bg-slate-900/40 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800/60 overflow-hidden transition-colors duration-300">
+      {/* ── Table & Mobile Card Section ── */}
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xs border border-slate-200/80 dark:border-slate-800 overflow-hidden transition-colors">
         {/* Desktop Table View */}
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50/70 dark:bg-[#0f172a]/30 text-slate-850 dark:text-slate-200 border-b border-slate-100 dark:border-slate-800/80">
-                <th className="px-6 py-4 font-semibold text-xs uppercase tracking-wider w-12 text-center">
+              <tr className="bg-slate-50/75 dark:bg-slate-950/40 text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800/80 text-[10px] font-bold uppercase tracking-wider">
+                <th className="px-3.5 py-2.5 w-10 text-center">
                   <div className="flex items-center justify-center">
                     <input
                       type="checkbox"
                       checked={filteredStudents.length > 0 && filteredStudents.every(s => selectedIds.includes(s.id))}
                       onChange={toggleSelectAll}
-                      className="w-4 h-4 text-blue-600 border-slate-350 dark:border-slate-700 rounded focus:ring-blue-500 bg-white dark:bg-slate-900 cursor-pointer"
+                      className="w-3.5 h-3.5 text-blue-600 border-slate-300 dark:border-slate-700 rounded focus:ring-blue-500 bg-white dark:bg-slate-900 cursor-pointer"
                     />
                   </div>
                 </th>
-                <th className="px-6 py-4 font-semibold text-xs uppercase tracking-wider">Student</th>
-                <th className="px-6 py-4 font-semibold text-xs uppercase tracking-wider">Contact & ID</th>
-                <th className="px-6 py-4 font-semibold text-xs uppercase tracking-wider">Assigned Courses</th>
-                <th className="px-6 py-4 font-semibold text-xs uppercase tracking-wider">LMS Progress</th>
-                <th className="px-6 py-4 font-semibold text-xs uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 font-semibold text-right text-xs uppercase tracking-wider">Actions</th>
+                <th className="px-3.5 py-2.5 w-52">Student</th>
+                <th className="px-3.5 py-2.5 w-44">Contact &amp; ID</th>
+                <th className="px-3.5 py-2.5">Assigned Courses &amp; Batch</th>
+                <th className="px-3.5 py-2.5 w-24">Status</th>
+                <th className="px-3.5 py-2.5 text-right w-36">Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
               {filteredStudents.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-slate-500 dark:text-slate-400 font-medium">
-                    No students found.
+                  <td colSpan={6} className="px-4 py-10 text-center">
+                    <div className="flex flex-col items-center justify-center max-w-sm mx-auto text-center">
+                      <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mb-2.5">
+                        <Users size={16} />
+                      </div>
+                      <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                        No students found
+                      </p>
+                      <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+                        Try adjusting your search criteria, batch, or status filters.
+                      </p>
+                      {hasActiveFilters && (
+                        <button
+                          onClick={resetFilters}
+                          className="mt-3 px-3 py-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-lg transition-colors cursor-pointer"
+                        >
+                          Clear filters
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ) : (
                 filteredStudents.map((student) => {
-                  const firstName = student.name.split(" ")[0];
-                  const last4 = student.phone?.slice(-4) || "0000";
-                  const passHint = `${firstName}@${last4}`;
                   const isActive = (student.status || "active") === "active";
                   const isSelected = selectedIds.includes(student.id);
                   
                   return (
                     <tr 
                       key={student.id} 
-                      className={`border-b border-slate-50 dark:border-slate-850 hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-all ${
+                      className={`hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors group ${
                         isSelected ? "bg-blue-50/20 dark:bg-blue-950/15" : ""
                       }`}
                     >
-                      <td className="px-6 py-4 text-center">
+                      {/* Checkbox */}
+                      <td className="px-3.5 py-2 text-center">
                         <div className="flex items-center justify-center">
                           <input
                             type="checkbox"
@@ -686,146 +1060,145 @@ export default function StudentTable({
                                 setSelectedIds(prev => prev.filter(id => id !== student.id));
                               }
                             }}
-                            className="w-4 h-4 text-blue-600 border-slate-350 dark:border-slate-700 rounded focus:ring-blue-500 bg-white dark:bg-slate-900 cursor-pointer"
+                            className="w-3.5 h-3.5 text-blue-600 border-slate-300 dark:border-slate-700 rounded focus:ring-blue-500 bg-white dark:bg-slate-900 cursor-pointer"
                           />
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="font-bold text-slate-900 dark:text-white text-sm">{student.name}</div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="font-mono text-[10px] font-bold text-blue-600 dark:text-blue-450 mb-1">{student.student_id}</div>
-                        <div className="text-xs text-slate-600 dark:text-slate-350">{student.phone}</div>
-                        <div className="text-[10px] text-slate-400 dark:text-slate-500">{student.email}</div>
-                        {student.batch && (
-                          <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 rounded-md border border-blue-100 dark:border-blue-900/30 text-[10px] font-black uppercase">
-                            <Users size={10} /> {student.batch}
+
+                      {/* Student Info */}
+                      <td className="px-3.5 py-2">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500/10 to-indigo-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 font-bold text-[11px] flex items-center justify-center shrink-0">
+                            {getInitials(student.name)}
                           </div>
-                        )}
+                          <div className="min-w-0">
+                            <p className="font-semibold text-slate-900 dark:text-white text-xs truncate">
+                              {student.name}
+                            </p>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                              <span className="text-[10px] text-slate-400">
+                                {isActive ? "Active learner" : "Disabled"}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="flex flex-wrap gap-1.5 max-w-[240px]">
-                          {student.enrollments?.map((enrollment: any) => (
-                            <span key={enrollment.id} className="px-2 py-1 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/80 rounded-lg text-[10px] font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2 group hover:border-rose-200 dark:hover:border-rose-900/50 hover:bg-rose-50/30 dark:hover:bg-rose-950/10 transition-all">
-                              <div className="flex flex-col flex-1">
-                                <span className="line-clamp-1">{(enrollment.courses as any)?.title}</span>
-                                <span className="text-[8px] text-slate-400 dark:text-slate-550 uppercase">
-                                  {(enrollment.courses as any)?.course_code}
-                                  {enrollment.batch && <span className="text-emerald-600 dark:text-emerald-400 font-black ml-1">• {enrollment.batch}</span>}
+
+                      {/* Contact & ID */}
+                      <td className="px-3.5 py-2">
+                        <div className="space-y-0.5">
+                          <span className="inline-block font-mono text-[9px] text-blue-600 dark:text-blue-400 font-semibold bg-blue-50/80 dark:bg-blue-950/40 px-1.5 py-0.2 rounded border border-blue-100 dark:border-blue-900/30">
+                            {student.student_id}
+                          </span>
+                          <p className="text-xs text-slate-700 dark:text-slate-300 font-medium">
+                            <a href={`tel:${student.phone}`} className="hover:underline">{student.phone || "—"}</a>
+                          </p>
+                          <p className="text-[10px] text-slate-400 truncate max-w-[170px]" title={student.email}>
+                            {student.email || "—"}
+                          </p>
+                        </div>
+                      </td>
+
+                      {/* Assigned Courses & Batch (Clean Minimal Badges) */}
+                      <td className="px-3.5 py-2">
+                        <div className="space-y-1">
+                          {/* Course tags list */}
+                          <div className="flex flex-wrap gap-1 max-w-md">
+                            {student.enrollments?.map((enrollment: any) => {
+                              const courseTitle = (enrollment.courses as any)?.title || "Course";
+                              const courseCode = (enrollment.courses as any)?.course_code;
+                              const shortName = getShortCourseName(courseTitle, courseCode);
+
+                              return (
+                                <span 
+                                  key={enrollment.id} 
+                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-900/40 rounded-md text-[10px] text-blue-800 dark:text-blue-300 group/tag hover:border-blue-300 transition-all"
+                                  title={courseTitle}
+                                >
+                                  <span className="font-bold tracking-wide">
+                                    {shortName}
+                                  </span>
+                                  {enrollment.batch && (
+                                    <span 
+                                      className="text-[9px] text-emerald-700 dark:text-emerald-400 font-semibold bg-emerald-500/15 px-1 py-0.2 rounded truncate max-w-[105px]"
+                                      title={enrollment.batch}
+                                    >
+                                      {enrollment.batch}
+                                    </span>
+                                  )}
+                                  <div className="flex items-center gap-0.5 ml-0.5 border-l border-blue-200 dark:border-blue-800/80 pl-0.5">
+                                    <button 
+                                      onClick={() => setEditingBatchFor(enrollment)}
+                                      className="p-0.5 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                                      title="Edit Batch"
+                                    >
+                                      <Edit2 size={9} />
+                                    </button>
+                                    <button 
+                                      onClick={() => handleRemoveCourse(enrollment.id, courseTitle, student.name)}
+                                      className="p-0.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
+                                      title="Remove Course"
+                                    >
+                                      <X size={9} />
+                                    </button>
+                                  </div>
                                 </span>
-                              </div>
-                              <div className="flex flex-col gap-1 items-center justify-center border-l border-slate-200/60 dark:border-slate-700/60 pl-2 ml-1">
-                                <button 
-                                  onClick={() => setEditingBatchFor(enrollment)}
-                                  className="p-1 hover:bg-blue-100 dark:hover:bg-blue-500/25 text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 rounded-md transition-all"
-                                  title="Change Batch"
-                                >
-                                  <Edit2 size={10} />
-                                </button>
-                                <button 
-                                  onClick={() => handleRemoveCourse(enrollment.id, (enrollment.courses as any)?.title, student.name)}
-                                  className="p-1 hover:bg-rose-100 dark:hover:bg-rose-500/25 text-slate-300 hover:text-rose-600 dark:hover:text-rose-450 rounded-md transition-all"
-                                  title="Remove Course"
-                                >
-                                  <X size={10} />
-                                </button>
-                              </div>
-                            </span>
-                          ))}
-                          <div className="flex flex-col gap-1 w-full mt-2">
+                              );
+                            })}
+                          </div>
+
+                          {/* Quick Add Course & Batch Buttons */}
+                          <div className="flex items-center gap-1.5">
                             <button 
                               onClick={() => {
                                 setAssigningTo(student);
                                 fetchAvailableCourses();
                               }}
-                              className="px-2 py-1 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/30 rounded-lg text-[10px] font-bold hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                              className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400 bg-blue-50/60 dark:bg-blue-950/40 hover:bg-blue-100/60 rounded-md border border-blue-200/50 dark:border-blue-900/30 transition-colors cursor-pointer"
                             >
-                               <BookOpen size={10} /> Add Course
+                              <Plus size={10} />
+                              <span>Course</span>
                             </button>
                             <button 
                               onClick={() => setIsAssigningBatchTo(student)}
                               disabled={!student.enrollments || student.enrollments.length === 0}
-                              className={`px-2 py-1 border rounded-lg text-[10px] font-bold transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer
-                                ${student.batch 
-                                  ? "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-100 dark:border-amber-900/30 hover:bg-amber-100" 
-                                  : "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/30 hover:bg-emerald-100"}`}
+                              className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 rounded-md transition-colors disabled:opacity-40 cursor-pointer max-w-[140px] truncate"
+                              title={student.batch ? student.batch : "Assign Batch"}
                             >
-                               {student.batch ? <Edit2 size={10} /> : <Users size={10} />}
-                               {student.batch ? "Exchange Batch" : "Assign Batch"}
+                              <Users size={10} className="shrink-0" />
+                              <span className="truncate">{student.batch ? student.batch : "Assign Batch"}</span>
                             </button>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="flex flex-col gap-2">
-                          {/* Active Time Spent */}
-                          <div className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-350">
-                            <span className="p-1 bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400 rounded-md">
-                              <Clock size={12} />
-                            </span>
-                            <span className="font-bold tabular-nums">
-                              {(() => {
-                                const totalSecs = student.lmsStats?.activeSeconds || 0;
-                                const hrs = Math.floor(totalSecs / 3600);
-                                const mins = Math.floor((totalSecs % 3600) / 60);
-                                if (hrs > 0) return `${hrs}h ${mins}m active`;
-                                return `${mins}m active`;
-                              })()}
-                            </span>
-                          </div>
 
-                          {/* Lessons Completed */}
-                          <div className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-350">
-                            <span className="p-1 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-md">
-                              <BookOpen size={12} />
-                            </span>
-                            <span className="font-bold tabular-nums">
-                              {student.lmsStats?.completedLessons || 0} lessons done
-                            </span>
-                          </div>
+                      {/* Status Badge */}
+                      <td className="px-3.5 py-2">
+                        {renderStatusBadge(student)}
+                      </td>
 
-                          {/* Quizzes Completed Button */}
-                          {student.lmsStats?.quizzes && student.lmsStats.quizzes.length > 0 ? (
+                      {/* Actions */}
+                      <td className="px-3.5 py-2 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-0.5">
+                          {student.status === "dropped_out" || student.status === "on_hold" ? (
                             <button
-                              onClick={() => setViewingQuizzesFor(student)}
-                              className="w-full text-left flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-black cursor-pointer hover:underline"
+                              onClick={() => handleReactivateStudent(student)}
+                              disabled={isUpdating === student.id}
+                              className="p-1 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer"
+                              title="Reactivate Student"
                             >
-                              <span className="p-1 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-md">
-                                <HelpCircle size={12} />
-                              </span>
-                              <span>
-                                {student.lmsStats.quizzes.length} {student.lmsStats.quizzes.length === 1 ? 'Quiz' : 'Quizzes'} results
-                              </span>
+                              <UserCheck size={14} />
                             </button>
                           ) : (
-                            <div className="flex items-center gap-1.5 text-xs text-slate-400 dark:text-slate-550 font-medium">
-                              <span className="p-1 bg-slate-50 dark:bg-slate-800 text-slate-400 rounded-md">
-                                <HelpCircle size={12} />
-                              </span>
-                              <span>No quizzes done</span>
-                            </div>
+                            <button
+                              onClick={() => setDropoutStudent(student)}
+                              className="p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer"
+                              title="Mark as Left / Status"
+                            >
+                              <UserMinus size={14} />
+                            </button>
                           )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <button
-                          onClick={() => toggleStatus(student.id, student.status || "active")}
-                          disabled={isUpdating === student.id}
-                          className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer
-                          ${isActive 
-                            ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-450 hover:bg-emerald-100 dark:hover:bg-emerald-500/20" 
-                            : "bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-450 hover:bg-rose-100 dark:hover:bg-rose-500/20"}`}
-                        >
-                          {isUpdating === student.id ? (
-                            <Loader2 size={12} className="animate-spin" />
-                          ) : (
-                            isActive ? <ShieldCheck size={12} /> : <UserMinus size={12} />
-                          )}
-                          {student.status || "active"}
-                        </button>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center justify-end gap-3">
                           {!credentialsDoneIds.has(student.id) && (
                             <button 
                               onClick={() => {
@@ -833,34 +1206,48 @@ export default function StudentTable({
                                 setGeneratedCreds(null);
                                 setCredsError("");
                               }}
-                              className="p-2 text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
+                              className="p-1 text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer"
                               title="Generate Credentials"
                             >
-                              <KeyRound size={18} />
+                              <KeyRound size={14} />
                             </button>
                           )}
                           <button 
                             onClick={() => setIdCardStudent(student)}
-                            className="p-2 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
+                            className="p-1 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer"
                             title="Generate ID Card"
                           >
-                            <IdCard size={18} />
+                            <IdCard size={14} />
                           </button>
                           <button 
-                            onClick={() => setCertificateStudent(student)}
-                            className="p-2 text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
+                            onClick={() => {
+                              if (student.status === "dropped_out") {
+                                alert(`⚠️ Note: ${student.name} is marked as Dropped Out (${student.dropout_date || 'Course Incomplete'}). Course Completion Certificates cannot be issued to dropout students.`);
+                                return;
+                              }
+                              setCertificateStudent(student);
+                            }}
+                            className="p-1 text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer"
                             title="Generate Certificate"
                           >
-                            <Award size={18} />
+                            <Award size={14} />
                           </button>
                           <button 
                             onClick={() => setEditingStudent(student)}
-                            className="p-2 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
+                            className="p-1 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer"
                             title="Edit Student"
                           >
-                            <Settings size={18} />
+                            <Settings size={14} />
                           </button>
-                          <DeleteButton id={student.id} table="students" title={student.name} />
+                          <button
+                            type="button"
+                            onClick={() => handleMoveToTrash(student)}
+                            disabled={isUpdating === student.id}
+                            className="p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer"
+                            title={`Move "${student.name}" to Trash Bin`}
+                          >
+                            <Trash2 size={14} />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -871,183 +1258,180 @@ export default function StudentTable({
           </table>
         </div>
 
-        {/* Mobile Card View */}
-        <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900/60">
+        {/* Mobile Card View (Clean & Compact) */}
+        <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800/80">
           {filteredStudents.length === 0 ? (
-            <div className="px-6 py-12 text-center text-slate-500 dark:text-slate-400 font-medium">
-              No students found.
+            <div className="p-6 text-center">
+              <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                No students found.
+              </p>
             </div>
           ) : (
             filteredStudents.map((student) => {
               const isActive = (student.status || "active") === "active";
-              const firstName = student.name.split(" ")[0];
-              const last4 = student.phone?.slice(-4) || "0000";
-              const passHint = `${firstName}@${last4}`;
               const isSelected = selectedIds.includes(student.id);
 
               return (
                 <div 
                   key={student.id} 
-                  className={`p-5 space-y-4 hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-all duration-200 relative ${
-                    isSelected ? "bg-blue-50/10 dark:bg-blue-955/15" : ""
+                  className={`p-3 space-y-2 hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors relative ${
+                    isSelected ? "bg-blue-50/15 dark:bg-blue-950/20" : ""
                   }`}
                 >
-                  {/* Checkbox for mobile selection */}
-                  <div className="absolute top-5 right-5 z-10 flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedIds(prev => [...prev, student.id]);
-                        } else {
-                          setSelectedIds(prev => prev.filter(id => id !== student.id));
-                        }
-                      }}
-                      className="w-4.5 h-4.5 text-blue-600 border-slate-300 dark:border-slate-700 rounded focus:ring-blue-500 bg-white dark:bg-slate-900 cursor-pointer"
-                    />
-                  </div>
-
-                  <div className="flex justify-between items-start gap-4">
-                    <div className="flex-1">
-                      <h4 className="font-black text-slate-900 dark:text-white leading-tight">{student.name}</h4>
-                      <p className="font-mono text-[10px] font-bold text-blue-600 dark:text-blue-450 mt-0.5 tracking-wider uppercase">{student.student_id}</p>
-                    </div>
-                    <button
-                      onClick={() => toggleStatus(student.id, student.status || "active")}
-                      disabled={isUpdating === student.id}
-                      className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest transition-all border shrink-0 cursor-pointer
-                      ${isActive 
-                        ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-450 border-emerald-100 dark:border-emerald-900/30" 
-                        : "bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-455 border-rose-100 dark:border-rose-900/30"}`}
-                    >
-                      {isUpdating === student.id ? <Loader2 size={10} className="animate-spin" /> : (isActive ? <ShieldCheck size={10} /> : <UserMinus size={10} />)}
-                      {student.status || "active"}
-                    </button>
-                  </div>
-
-                  <div className="bg-slate-50/50 dark:bg-slate-800/20 p-4 rounded-2xl border border-slate-100/50 dark:border-slate-800/40 space-y-3">
-                    <div className="flex justify-between items-center">
-                       <div>
-                          <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Contact Details</p>
-                          <p className="text-xs font-black text-slate-700 dark:text-slate-200">{student.phone}</p>
-                          <p className="text-[10px] font-bold text-slate-400 dark:text-slate-550 truncate">{student.email}</p>
-                       </div>
-                       <div className="text-right">
-                          <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Primary Batch</p>
-                          <div className="inline-flex items-center gap-1 px-2 py-1 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 rounded-lg border border-indigo-100/50 dark:border-indigo-900/30 text-[9px] font-black uppercase tracking-wider">
-                            <Users size={10} /> {student.batch || "UNASSIGNED"}
-                          </div>
-                       </div>
-                    </div>
-                  </div>
-
-                  {/* Mobile LMS Progress Details */}
-                  <div className="bg-blue-50/10 dark:bg-slate-800/10 p-4 rounded-2xl border border-blue-100/20 dark:border-slate-800/30 grid grid-cols-2 gap-3 text-xs">
-                    <div>
-                      <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Study Time</p>
-                      <div className="flex items-center gap-1 font-bold text-slate-750 dark:text-slate-350">
-                        <Clock size={12} className="text-sky-500" />
-                        <span>
-                          {(() => {
-                            const totalSecs = student.lmsStats?.activeSeconds || 0;
-                            const hrs = Math.floor(totalSecs / 3600);
-                            const mins = Math.floor((totalSecs % 3600) / 60);
-                            if (hrs > 0) return `${hrs}h ${mins}m`;
-                            return `${mins}m`;
-                          })()}
-                        </span>
+                  {/* Top row */}
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500/10 to-indigo-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 font-bold text-xs flex items-center justify-center shrink-0">
+                        {getInitials(student.name)}
                       </div>
-                    </div>
-                    <div>
-                      <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Lessons Completed</p>
-                      <div className="flex items-center gap-1 font-bold text-slate-750 dark:text-slate-350">
-                        <BookOpen size={12} className="text-indigo-500" />
-                        <span>{student.lmsStats?.completedLessons || 0} done</span>
-                      </div>
-                    </div>
-                    {student.lmsStats?.quizzes && student.lmsStats.quizzes.length > 0 && (
-                      <div className="col-span-2 pt-2 border-t border-slate-100 dark:border-slate-800/40">
-                        <button
-                          onClick={() => setViewingQuizzesFor(student)}
-                          className="flex items-center gap-1 font-black text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
-                        >
-                          <HelpCircle size={12} />
-                          <span>{student.lmsStats.quizzes.length} Quiz Results</span>
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <p className="text-[9px] font-black text-slate-400 dark:text-slate-550 uppercase tracking-widest px-1">Active Enrollments ({student.enrollments?.length || 0})</p>
-                    <div className="flex flex-wrap gap-2">
-                      {student.enrollments?.map((enrollment: any) => (
-                        <div key={enrollment.id} className="flex items-center gap-2 pl-3 pr-1 py-1 bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-750 rounded-xl shadow-sm">
-                           <div className="flex flex-col">
-                             <span className="text-[10px] font-black text-slate-800 dark:text-slate-205 line-clamp-1">{(enrollment.courses as any)?.title}</span>
-                             <span className="text-[8px] font-bold text-slate-450 dark:text-slate-500">{(enrollment.courses as any)?.course_code} {enrollment.batch && `• ${enrollment.batch}`}</span>
-                           </div>
-                           <button 
-                             onClick={() => handleRemoveCourse(enrollment.id, (enrollment.courses as any)?.title, student.name)}
-                             className="w-6 h-6 flex items-center justify-center text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/10 rounded-lg transition-all"
-                           >
-                             <X size={10} />
-                           </button>
+                      <div className="min-w-0">
+                        <h4 className="font-semibold text-slate-900 dark:text-white text-xs truncate">
+                          {student.name}
+                        </h4>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <span className="font-mono text-[9px] text-blue-600 dark:text-blue-400 font-semibold bg-blue-50 dark:bg-blue-950/40 px-1 rounded">
+                            {student.student_id}
+                          </span>
+                          {student.batch && (
+                            <span className="text-[9px] text-slate-500 font-medium bg-slate-100 dark:bg-slate-800 px-1 rounded">
+                              {student.batch}
+                            </span>
+                          )}
                         </div>
-                      ))}
-                      <button 
-                        onClick={() => { setAssigningTo(student); fetchAvailableCourses(); }}
-                        className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500 text-white rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg shadow-blue-100 dark:shadow-none transition-all cursor-pointer"
-                      >
-                        + Add Course
-                      </button>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      {renderStatusBadge(student)}
+
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedIds(prev => [...prev, student.id]);
+                          } else {
+                            setSelectedIds(prev => prev.filter(id => id !== student.id));
+                          }
+                        }}
+                        className="w-3.5 h-3.5 text-blue-600 border-slate-300 rounded focus:ring-blue-500 cursor-pointer"
+                      />
                     </div>
                   </div>
 
-                  <div className="pt-3 grid grid-cols-2 gap-2.5">
-                    {!credentialsDoneIds.has(student.id) && (
+                  {/* Contact Info */}
+                  <div className="bg-slate-50/60 dark:bg-slate-950/40 p-2 rounded-lg border border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-xs">
+                    <a href={`tel:${student.phone}`} className="text-slate-800 dark:text-slate-200 font-medium hover:underline text-[10px]">
+                      {student.phone || "No phone"}
+                    </a>
+                    <span className="text-slate-400 text-[10px] truncate max-w-[150px]">
+                      {student.email || "No email"}
+                    </span>
+                  </div>
+
+                  {/* Active Enrollments */}
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
+                      Enrolled Courses ({student.enrollments?.length || 0})
+                    </span>
+                    <div className="flex flex-wrap gap-1">
+                      {student.enrollments?.map((enrollment: any) => {
+                        const courseTitle = (enrollment.courses as any)?.title || "Course";
+                        const courseCode = (enrollment.courses as any)?.course_code;
+                        const shortName = getShortCourseName(courseTitle, courseCode);
+
+                        return (
+                          <span 
+                            key={enrollment.id} 
+                            className="px-1.5 py-0.5 bg-blue-50/70 dark:bg-blue-950/40 rounded-md text-[10px] font-bold text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-900/40"
+                            title={courseTitle}
+                          >
+                            {shortName}
+                          </span>
+                        );
+                      })}
+                      {(!student.enrollments || student.enrollments.length === 0) && (
+                        <span className="text-[10px] text-slate-400 italic">No courses assigned</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Mobile Actions Footer */}
+                  <div className="flex items-center justify-between pt-1.5 border-t border-slate-100 dark:border-slate-800/60">
+                    <div className="flex items-center gap-1.5">
                       <button 
                         onClick={() => {
-                          setCredentialsStudent(student);
-                          setGeneratedCreds(null);
-                          setCredsError("");
+                          setAssigningTo(student);
+                          fetchAvailableCourses();
                         }}
-                        className="py-2.5 px-3 bg-amber-500/10 text-amber-700 dark:text-amber-400 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 border border-amber-500/20 shadow-sm transition-all cursor-pointer hover:bg-amber-500/25"
+                        className="text-[10px] text-blue-600 dark:text-blue-400 font-medium hover:underline"
                       >
-                        <KeyRound size={12} className="text-amber-600 dark:text-amber-400 shrink-0" />
-                        <span className="truncate">Credentials</span>
+                        + Course
                       </button>
-                    )}
-                    <button 
-                      onClick={() => setIdCardStudent(student)}
-                      className="py-2.5 px-3 bg-blue-500/10 text-blue-700 dark:text-blue-400 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 border border-blue-500/20 shadow-sm transition-all cursor-pointer hover:bg-blue-500/25"
-                    >
-                      <IdCard size={12} className="text-blue-600 dark:text-blue-400 shrink-0" />
-                      <span className="truncate">ID Card</span>
-                    </button>
-                    <button 
-                      onClick={() => setCertificateStudent(student)}
-                      className="py-2.5 px-3 bg-amber-500/10 text-amber-700 dark:text-amber-400 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 border border-amber-500/20 shadow-sm transition-all cursor-pointer hover:bg-amber-500/25"
-                    >
-                      <Award size={12} className="text-amber-600 dark:text-amber-400 shrink-0" />
-                      <span className="truncate">Certificate</span>
-                    </button>
-                    <button 
-                      onClick={() => setEditingStudent(student)}
-                      className="py-2.5 px-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-350 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 border border-slate-200 dark:border-slate-700 shadow-sm transition-all cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-750"
-                    >
-                      <Settings size={12} className="text-slate-500 shrink-0" />
-                      <span className="truncate">Manage</span>
-                    </button>
-                    <div className="col-span-2 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 mt-1 flex justify-between items-center">
-                      <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-1">Danger Zone</span>
-                      <DeleteButton 
-                        id={student.id} 
-                        table="students" 
-                        title={student.name}
-                        className="py-2 px-3.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer"
-                      />
+                      <span className="text-slate-300">•</span>
+                      <button 
+                        onClick={() => setIsAssigningBatchTo(student)}
+                        className="text-[10px] text-slate-600 dark:text-slate-300 font-medium hover:underline"
+                      >
+                        Batch
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-0.5">
+                      {student.status === "dropped_out" || student.status === "on_hold" ? (
+                        <button 
+                          onClick={() => handleReactivateStudent(student)}
+                          disabled={isUpdating === student.id}
+                          className="p-1 text-slate-400 hover:text-emerald-600 rounded"
+                          title="Reactivate"
+                        >
+                          <UserCheck size={13} />
+                        </button>
+                      ) : (
+                        <button 
+                          onClick={() => setDropoutStudent(student)}
+                          className="p-1 text-slate-400 hover:text-rose-600 rounded"
+                          title="Mark Left"
+                        >
+                          <UserMinus size={13} />
+                        </button>
+                      )}
+                      <button 
+                        onClick={() => setIdCardStudent(student)}
+                        className="p-1 text-slate-400 hover:text-blue-600 rounded"
+                        title="ID Card"
+                      >
+                        <IdCard size={13} />
+                      </button>
+                      <button 
+                        onClick={() => {
+                          if (student.status === "dropped_out") {
+                            alert(`⚠️ Note: ${student.name} is marked as Dropped Out. Course Completion Certificates cannot be issued to dropout students.`);
+                            return;
+                          }
+                          setCertificateStudent(student);
+                        }}
+                        className="p-1 text-slate-400 hover:text-amber-600 rounded"
+                        title="Certificate"
+                      >
+                        <Award size={13} />
+                      </button>
+                      <button 
+                        onClick={() => setEditingStudent(student)}
+                        className="p-1 text-slate-400 hover:text-blue-600 rounded"
+                        title="Edit"
+                      >
+                        <Settings size={13} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleMoveToTrash(student)}
+                        disabled={isUpdating === student.id}
+                        className="p-1 text-slate-400 hover:text-rose-600 rounded"
+                        title="Move to Trash"
+                      >
+                        <Trash2 size={13} />
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -1056,266 +1440,152 @@ export default function StudentTable({
           )}
         </div>
       </div>
-
-      {/* ── Generate Credentials Modal ── */}
-      {credentialsStudent && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
-            onClick={() => { setCredentialsStudent(null); setGeneratedCreds(null); setCredsError(""); }}
-          />
-          <div className="relative w-full max-w-md bg-white dark:bg-[#0f172a] rounded-[2rem] shadow-2xl border border-slate-200/60 dark:border-slate-800 overflow-hidden animate-in zoom-in-95 duration-200">
-            {/* Header */}
-            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-900/30 rounded-xl flex items-center justify-center">
-                  <KeyRound size={18} className="text-amber-600 dark:text-amber-400" />
-                </div>
-                <div>
-                  <p className="font-bold text-slate-900 dark:text-white text-sm">Generate Credentials</p>
-                  <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 truncate max-w-[200px]">{credentialsStudent.name}</p>
-                </div>
-              </div>
-              <button
-                onClick={() => { setCredentialsStudent(null); setGeneratedCreds(null); setCredsError(""); }}
-                className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all cursor-pointer"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* Body */}
-            <div className="p-6 space-y-5">
-              {!generatedCreds ? (
-                <>
-                  <div className="p-4 bg-amber-50/60 dark:bg-amber-950/20 border border-amber-100/60 dark:border-amber-900/30 rounded-2xl">
-                    <p className="text-xs text-amber-800 dark:text-amber-300 font-medium leading-relaxed">
-                      This will generate login credentials for <strong>{credentialsStudent.name}</strong>.
-                      Password will be auto-set as <span className="font-mono bg-white dark:bg-slate-900 px-1.5 py-0.5 rounded text-[11px]">
-                        {credentialsStudent.name.split(" ")[0]}@{(credentialsStudent.phone || "0000").slice(-4)}
-                      </span>
-                    </p>
-                  </div>
-
-                  {credsError && (
-                    <div className="p-3 bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 rounded-xl text-xs text-rose-700 dark:text-rose-400 font-medium">
-                      {credsError}
-                    </div>
-                  )}
-
-                  <button
-                    onClick={() => handleGenerateCredentials(credentialsStudent)}
-                    disabled={isGeneratingCreds}
-                    className="w-full py-3.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2.5 shadow-lg shadow-amber-500/20 disabled:opacity-60 cursor-pointer text-sm"
-                  >
-                    {isGeneratingCreds ? (
-                      <><Loader2 size={16} className="animate-spin" /> Generating...</>
-                    ) : (
-                      <><KeyRound size={16} /> Generate Credentials</>
-                    )}
-                  </button>
-                </>
-              ) : (
-                <>
-                  <div className="flex items-center gap-3 p-4 bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-100/50 dark:border-emerald-900/30 rounded-2xl">
-                    <CheckCircle2 size={20} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-                    <p className="text-sm font-bold text-emerald-800 dark:text-emerald-300">Credentials Generated!</p>
-                  </div>
-
-                  <div className="space-y-3">
-                    {/* Student ID */}
-                    <div className="p-4 bg-slate-50 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800 rounded-2xl">
-                      <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Student ID (Login)</p>
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="font-mono text-sm font-bold text-blue-600 dark:text-blue-400 select-all">{generatedCreds.student_id}</p>
-                        <button
-                          onClick={() => copyToClipboard(generatedCreds.student_id, "id")}
-                          className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer shrink-0"
-                          title="Copy"
-                        >
-                          {copiedField === "id" ? <CheckCircle2 size={14} className="text-emerald-500" /> : <Copy size={14} />}
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Password */}
-                    <div className="p-4 bg-slate-50 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800 rounded-2xl">
-                      <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Password</p>
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="font-mono text-sm font-bold text-slate-800 dark:text-slate-200 select-all">{generatedCreds.password}</p>
-                        <button
-                          onClick={() => copyToClipboard(generatedCreds.password, "pass")}
-                          className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer shrink-0"
-                          title="Copy"
-                        >
-                          {copiedField === "pass" ? <CheckCircle2 size={14} className="text-emerald-500" /> : <Copy size={14} />}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <p className="text-[10px] text-slate-400 dark:text-slate-500 text-center font-medium">Share these details with the student. Password can be changed anytime.</p>
-
-                  <button
-                    onClick={() => { setCredentialsStudent(null); setGeneratedCreds(null); }}
-                    className="w-full py-3 bg-slate-900 dark:bg-slate-800 hover:bg-blue-600 dark:hover:bg-blue-700 text-white font-bold rounded-xl transition-all text-sm cursor-pointer"
-                  >
-                    Done
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
+      </>
       )}
 
-      {/* Floating Bulk Actions Bar */}
+      {/* ── Floating Bulk Actions Bar ── */}
       {selectedIds.length > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900/95 dark:bg-slate-950/98 backdrop-blur-md text-white border border-slate-800/80 px-6 py-4 rounded-3xl shadow-2xl flex flex-col sm:flex-row items-center gap-4 animate-in slide-in-from-bottom-8 duration-300 max-w-[90vw] sm:max-w-none">
-          <div className="flex items-center gap-3">
-            <span className="px-2.5 py-1 bg-blue-500/20 text-blue-450 rounded-xl text-xs font-black">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900/95 dark:bg-slate-950/98 backdrop-blur-md text-white border border-slate-800/80 px-5 py-3 rounded-2xl shadow-xl flex flex-col sm:flex-row items-center gap-3 animate-in slide-in-from-bottom-6 duration-200">
+          <div className="flex items-center gap-2.5">
+            <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded-lg text-xs font-semibold">
               {selectedIds.length} Selected
             </span>
             <button
               onClick={() => setSelectedIds([])}
               className="text-xs text-slate-400 hover:text-white transition-colors cursor-pointer"
             >
-              Deselect All
+              Clear
             </button>
           </div>
 
-          <div className="h-[1px] w-full sm:h-6 sm:w-[1px] bg-slate-800" />
+          <div className="hidden sm:block h-4 w-[1px] bg-slate-800" />
 
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Bulk Batch Select */}
-            <div className="relative">
-              <select
-                onChange={(e) => {
-                  if (e.target.value) {
-                    handleBulkBatchChange(e.target.value);
-                    e.target.value = ""; // reset select value after action
-                  }
-                }}
-                disabled={isBulkUpdating}
-                className="pl-3 pr-8 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-xs font-bold text-slate-200 outline-none cursor-pointer focus:border-blue-500 disabled:opacity-50"
-              >
-                <option value="">Assign Batch...</option>
-                <option value="clear">Remove Batch</option>
-                {availableBatches.map(b => (
-                  <option key={b} value={b}>{b}</option>
-                ))}
-              </select>
-            </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              onChange={(e) => {
+                if (e.target.value) {
+                  handleBulkBatchChange(e.target.value);
+                  e.target.value = "";
+                }
+              }}
+              disabled={isBulkUpdating}
+              className="pl-2.5 pr-6 py-1 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-200 outline-none cursor-pointer focus:border-blue-500"
+            >
+              <option value="">Assign Batch...</option>
+              <option value="clear">Remove Batch</option>
+              {availableBatches.map(b => (
+                <option key={b} value={b}>{b}</option>
+              ))}
+            </select>
 
-            {/* Bulk Status Select */}
-            <div className="relative">
-              <select
-                onChange={(e) => {
-                  if (e.target.value) {
-                    handleBulkStatusChange(e.target.value as "active" | "inactive");
-                    e.target.value = ""; // reset select value
-                  }
-                }}
-                disabled={isBulkUpdating}
-                className="pl-3 pr-8 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-xs font-bold text-slate-200 outline-none cursor-pointer focus:border-blue-500 disabled:opacity-50"
-              >
-                <option value="">Change Status...</option>
-                <option value="active">Set Active</option>
-                <option value="inactive">Set Inactive</option>
-              </select>
-            </div>
+            <select
+              onChange={(e) => {
+                if (e.target.value) {
+                  handleBulkStatusChange(e.target.value as any);
+                  e.target.value = "";
+                }
+              }}
+              disabled={isBulkUpdating}
+              className="pl-2.5 pr-6 py-1 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-200 outline-none cursor-pointer focus:border-blue-500"
+            >
+              <option value="">Change Status...</option>
+              <option value="active">Set Active</option>
+              <option value="dropped_out">Set Dropped Out</option>
+              <option value="on_hold">Set On Hold</option>
+              <option value="completed">Set Completed</option>
+              <option value="inactive">Set Inactive</option>
+            </select>
 
-            {/* Bulk CSV Export */}
             <button
               onClick={handleBulkExport}
               disabled={isBulkUpdating}
-              className="px-3.5 py-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+              className="px-2.5 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-lg text-xs font-medium transition-colors cursor-pointer flex items-center gap-1"
             >
-              <span>Export CSV</span> 📊
+              <Download size={11} />
+              <span>Export</span>
             </button>
 
-            {/* Bulk Delete */}
             <button
-              onClick={handleBulkDelete}
+              onClick={handleBulkMoveToTrash}
               disabled={isBulkUpdating}
-              className="px-3.5 py-2.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-450 border border-rose-500/20 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+              className="px-2.5 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-lg text-xs font-medium transition-colors cursor-pointer flex items-center gap-1"
             >
-              {isBulkUpdating ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
-              <span>Delete</span>
+              {isBulkUpdating ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />}
+              <span>Move to Trash ({selectedIds.length})</span>
             </button>
           </div>
         </div>
       )}
-      {/* Quiz Results Modal */}
-      {viewingQuizzesFor && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-200">
-            {/* Header */}
-            <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-850 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900/50">
-              <div>
-                <h3 className="text-lg font-black text-slate-900 dark:text-white leading-none">Quiz & Test Results</h3>
-                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 font-bold">{viewingQuizzesFor.name}</p>
+
+      {/* ── Credentials Modal ── */}
+      {credentialsStudent && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl p-6 shadow-2xl border border-slate-200/80 dark:border-slate-800 animate-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-start mb-4">
+              <div className="w-9 h-9 bg-amber-500/10 rounded-xl flex items-center justify-center text-amber-600 dark:text-amber-400">
+                <KeyRound size={18} />
               </div>
               <button 
-                onClick={() => setViewingQuizzesFor(null)} 
-                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all cursor-pointer text-slate-450 dark:text-slate-500"
+                onClick={() => setCredentialsStudent(null)} 
+                className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 transition-colors"
               >
-                <X size={20} />
+                <X size={16} />
               </button>
             </div>
 
-            {/* Content list */}
-            <div className="p-6 overflow-y-auto space-y-4 custom-scrollbar flex-1">
-              {viewingQuizzesFor.lmsStats?.quizzes?.map((quiz: any, idx: number) => {
-                const percent = quiz.totalQuestions > 0 ? Math.round((quiz.score / quiz.totalQuestions) * 100) : 0;
-                const isPassed = percent >= 40;
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">Student Credentials</h3>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5 mb-5">{credentialsStudent.name}</p>
 
-                return (
-                  <div key={idx} className="bg-slate-50 dark:bg-slate-850/50 border border-slate-100 dark:border-slate-800 p-4.5 rounded-2xl flex flex-col gap-2.5">
-                    <div className="flex justify-between items-start gap-3">
-                      <div>
-                        <h4 className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-505">Quiz Title</h4>
-                        <p className="text-sm font-black text-slate-800 dark:text-white mt-0.5">{quiz.testTitle}</p>
-                      </div>
-                      <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border ${
-                        isPassed 
-                          ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/30" 
-                          : "bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-455 border-rose-100 dark:border-rose-900/30"
-                      }`}>
-                        {isPassed ? "Passed" : "Failed"}
-                      </span>
-                    </div>
+            {generatedCreds ? (
+              <div className="space-y-3 mb-5">
+                <div className="bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-slate-200/70 dark:border-slate-800 relative">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-0.5">Student ID</p>
+                  <p className="font-mono text-xs font-bold text-slate-900 dark:text-white">{generatedCreds.student_id}</p>
+                  <button 
+                    onClick={() => copyToClipboard(generatedCreds.student_id, "id")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-500 hover:text-blue-600"
+                  >
+                    {copiedField === "id" ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
+                  </button>
+                </div>
+                <div className="bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-slate-200/70 dark:border-slate-800 relative">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-0.5">Password</p>
+                  <p className="font-mono text-xs font-bold text-slate-900 dark:text-white">{generatedCreds.password}</p>
+                  <button 
+                    onClick={() => copyToClipboard(generatedCreds.password, "pass")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-500 hover:text-blue-600"
+                  >
+                    {copiedField === "pass" ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-slate-50 dark:bg-slate-950 p-3.5 rounded-xl border border-slate-200/70 dark:border-slate-800 mb-5 text-xs text-slate-600 dark:text-slate-300">
+                <p>Generate login credentials for this student with an auto-generated password.</p>
+              </div>
+            )}
 
-                    <div className="grid grid-cols-2 gap-4 items-center">
-                      <div>
-                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 block">Score Obtained</span>
-                        <span className="text-base font-black text-slate-900 dark:text-white tabular-nums">
-                          {quiz.score} <span className="text-xs font-medium text-slate-400">/ {quiz.totalQuestions} questions</span>
-                        </span>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 block">Percentage</span>
-                        <span className={`text-base font-black tabular-nums ${isPassed ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-450'}`}>
-                          {percent}%
-                        </span>
-                      </div>
-                    </div>
+            {credsError && (
+              <p className="text-xs text-rose-500 font-medium mb-4">{credsError}</p>
+            )}
 
-                    {/* Progress Bar visual indicator */}
-                    <div className="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden p-[1px]">
-                      <div 
-                        className={`h-full rounded-full transition-all duration-500 ${isPassed ? 'bg-emerald-500' : 'bg-rose-500'}`}
-                        style={{ width: `${percent}%` }}
-                      />
-                    </div>
-
-                    <div className="flex justify-between items-center text-[10px] text-slate-400 dark:text-slate-500 font-bold mt-1">
-                      <span>Submitted</span>
-                      <span>{new Date(quiz.completedAt).toLocaleDateString('en-US', { dateStyle: 'medium' })}</span>
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="flex gap-2">
+              {!generatedCreds && (
+                <button
+                  onClick={() => handleGenerateCredentials(credentialsStudent)}
+                  disabled={isGeneratingCreds}
+                  className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
+                >
+                  {isGeneratingCreds ? <Loader2 size={13} className="animate-spin" /> : <KeyRound size={13} />}
+                  <span>Generate</span>
+                </button>
+              )}
+              <button
+                onClick={() => setCredentialsStudent(null)}
+                className="flex-1 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-xs rounded-xl transition-colors"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>

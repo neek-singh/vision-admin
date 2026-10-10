@@ -30,6 +30,7 @@ export async function createSchedule(data: {
     if (error) return { error: error.message };
 
     revalidatePath("/admin/schedule");
+    revalidatePath("/admin/calendar");
     return { success: true };
   }
 
@@ -47,6 +48,7 @@ export async function createSchedule(data: {
   if (error) return { error: error.message };
 
   revalidatePath("/admin/schedule");
+  revalidatePath("/admin/calendar");
   return { success: true };
 }
 
@@ -58,6 +60,82 @@ export async function deleteSchedule(id: string) {
   ]);
   if (res1.error && res2.error) return { error: res1.error.message || res2.error.message };
   revalidatePath("/admin/schedule");
+  revalidatePath("/admin/calendar");
+  return { success: true };
+}
+
+export async function updateScheduleDate(data: {
+  id: string;
+  date: string;
+  isEvent?: boolean;
+}) {
+  const supabase = await createServerSupabaseClient();
+
+  if (data.isEvent) {
+    const { error } = await supabase
+      .from("events")
+      .update({ event_date: data.date })
+      .eq("id", data.id);
+
+    if (error) return { error: error.message };
+  } else {
+    const { data: updated, error } = await supabase
+      .from("schedules")
+      .update({ date: data.date })
+      .eq("id", data.id)
+      .select("id");
+
+    if (error) return { error: error.message };
+
+    if (!updated || updated.length === 0) {
+      const { error: evError } = await supabase
+        .from("events")
+        .update({ event_date: data.date })
+        .eq("id", data.id);
+      if (evError) return { error: evError.message };
+    }
+  }
+
+  revalidatePath("/admin/schedule");
+  revalidatePath("/admin/calendar");
+  return { success: true };
+}
+
+export async function duplicateSchedule(id: string, targetDate: string) {
+  const supabase = await createServerSupabaseClient();
+  
+  const { data: item } = await supabase
+    .from("schedules")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (item) {
+    const { id: _, created_at: __, ...rest } = item;
+    const { error } = await supabase.from("schedules").insert({
+      ...rest,
+      date: targetDate
+    });
+    if (error) return { error: error.message };
+  } else {
+    const { data: evItem } = await supabase
+      .from("events")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (!evItem) return { error: "Item not found" };
+
+    const { id: _, created_at: __, ...rest } = evItem;
+    const { error } = await supabase.from("events").insert({
+      ...rest,
+      event_date: targetDate
+    });
+    if (error) return { error: error.message };
+  }
+
+  revalidatePath("/admin/schedule");
+  revalidatePath("/admin/calendar");
   return { success: true };
 }
 

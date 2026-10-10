@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Loader2, Settings, X, Check } from "lucide-react";
+import { Loader2, Settings, X, Check, ChevronDown, User, Upload } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 interface StudentEditModalProps {
@@ -83,7 +83,11 @@ export default function StudentEditModal({ student: editingStudent, onClose, onS
           education: localStudent.education,
           category: localStudent.category,
           address: localStudent.address,
-          photo_url: localStudent.photo_url
+          photo_url: localStudent.photo_url,
+          status: localStudent.status || "active",
+          dropout_date: localStudent.dropout_date || null,
+          dropout_reason: localStudent.dropout_reason || null,
+          dropout_remarks: localStudent.dropout_remarks || null
         })
         .eq("id", localStudent.id);
 
@@ -100,235 +104,309 @@ export default function StudentEditModal({ student: editingStudent, onClose, onS
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-4xl overflow-hidden border border-slate-100 my-8">
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-          <h3 className="font-bold text-slate-900 flex items-center gap-2">
-            <Settings size={18} className="text-blue-600" />
-            Edit Student Details
-          </h3>
-          <button onClick={onClose} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors"><X size={18} /></button>
+    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-[100] flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-3xl overflow-hidden border border-slate-200/80 dark:border-slate-800 my-4 animate-in fade-in zoom-in-95 duration-150">
+        {/* Modal Header */}
+        <div className="px-4 sm:px-5 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/60 dark:bg-slate-950/40">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-500/20">
+              <Settings size={14} />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
+                Edit Student Details
+              </h3>
+              <p className="text-[10px] text-slate-400 leading-tight">
+                ID: {localStudent.student_id || "—"}
+              </p>
+            </div>
+          </div>
+          <button 
+            type="button"
+            onClick={onClose} 
+            className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+          >
+            <X size={16} />
+          </button>
         </div>
-        <form onSubmit={handleUpdateStudent} className="p-6 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 overflow-y-auto max-h-[70vh] px-2 pb-4 custom-scrollbar">
+
+        {/* Modal Body */}
+        <form onSubmit={handleUpdateStudent} className="p-4 sm:p-5 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 overflow-y-auto max-h-[68vh] pr-1 pb-2 custom-scrollbar">
             
             {/* Photo Upload Section */}
-            <div className="col-span-full bg-slate-50 p-6 rounded-3xl border-2 border-dashed border-slate-200 flex flex-col items-center gap-4">
-              <div className="w-24 h-24 bg-white rounded-full border-4 border-white shadow-md overflow-hidden flex items-center justify-center group relative">
+            <div className="col-span-full bg-slate-50/70 dark:bg-slate-950/50 p-2.5 sm:p-3 rounded-xl border border-slate-200/80 dark:border-slate-800/80 flex flex-col sm:flex-row items-center gap-3">
+              <div className="w-12 h-12 bg-white dark:bg-slate-900 rounded-full border border-slate-200 dark:border-slate-700 shadow-2xs overflow-hidden flex items-center justify-center relative shrink-0">
                 {localStudent.photo_url ? (
                   <img src={localStudent.photo_url} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
-                  <div className="text-slate-300 font-black text-4xl">?</div>
+                  <User size={18} className="text-slate-300 dark:text-slate-600" />
                 )}
                 {uploading && (
-                  <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
-                    <Loader2 className="animate-spin text-blue-600" size={20} />
+                  <div className="absolute inset-0 bg-white/80 dark:bg-slate-950/80 flex items-center justify-center">
+                    <Loader2 className="animate-spin text-blue-600" size={14} />
                   </div>
                 )}
               </div>
-              <div className="text-center space-y-1">
-                <p className="text-xs font-black text-slate-900 uppercase tracking-widest">Student Profile Photo</p>
-                <p className="text-[10px] text-slate-400 font-medium">JPG, PNG or WEBP. Max 2MB.</p>
-              </div>
-              <div className="flex flex-col items-center gap-3 w-full max-w-xs">
-                <label className="cursor-pointer w-full py-2 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-600 hover:bg-slate-50 hover:border-blue-200 transition-all shadow-sm flex items-center justify-center gap-2">
-                  {uploading ? <Loader2 className="animate-spin" size={14} /> : null}
-                  {uploading ? "Uploading..." : "Upload Photo"}
+              <div className="flex-1 w-full flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                <label className="cursor-pointer px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700 hover:border-blue-500 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 hover:text-blue-600 transition-all shadow-2xs flex items-center justify-center gap-1.5 shrink-0">
+                  {uploading ? <Loader2 className="animate-spin" size={12} /> : <Upload size={12} />}
+                  <span>{uploading ? "Uploading..." : "Upload Photo"}</span>
                   <input type="file" className="hidden" accept="image/*" onChange={handlePhotoUpload} disabled={uploading} />
                 </label>
-                
-                <div className="relative w-full">
-                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                    <span className="text-[10px] font-bold text-slate-400">URL</span>
-                  </div>
+                <div className="relative flex-1">
                   <input 
                     type="text" 
                     value={localStudent.photo_url || ""}
                     onChange={(e) => setLocalStudent({...localStudent, photo_url: e.target.value})}
-                    placeholder="Paste image link here..."
-                    className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-[10px] font-medium text-slate-600 shadow-sm"
+                    placeholder="Or paste image URL here..."
+                    className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-lg outline-none focus:border-blue-500 text-xs font-medium text-slate-700 dark:text-slate-200 shadow-2xs"
                   />
                 </div>
               </div>
             </div>
 
-            <div className="space-y-4 col-span-full">
-              <p className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] border-b border-blue-50 pb-2">Basic & Contact Info</p>
+            {/* Basic & Contact Info */}
+            <div className="col-span-full pt-1">
+              <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider block border-b border-slate-100 dark:border-slate-800 pb-1">
+                Basic &amp; Contact Info
+              </span>
             </div>
             
             <div>
-              <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Full Name</label>
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Full Name</label>
               <input 
                 required
                 type="text" 
                 value={localStudent.name}
                 onChange={(e) => setLocalStudent({...localStudent, name: e.target.value})}
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-black text-black" 
+                className="w-full px-2.5 py-1.5 bg-slate-50/70 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800 rounded-lg outline-none focus:bg-white dark:focus:bg-slate-900 focus:border-blue-500 transition-all text-xs font-semibold text-slate-900 dark:text-white" 
               />
             </div>
             <div>
-              <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Phone Number</label>
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Phone Number</label>
               <input 
                 required
                 type="text" 
                 value={localStudent.phone}
                 onChange={(e) => setLocalStudent({...localStudent, phone: e.target.value})}
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-black text-black" 
+                className="w-full px-2.5 py-1.5 bg-slate-50/70 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800 rounded-lg outline-none focus:bg-white dark:focus:bg-slate-900 focus:border-blue-500 transition-all text-xs font-semibold text-slate-900 dark:text-white" 
               />
             </div>
             <div>
-              <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Email Address</label>
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Email Address</label>
               <input 
                 required
                 type="email" 
                 value={localStudent.email}
                 onChange={(e) => setLocalStudent({...localStudent, email: e.target.value})}
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-black text-black" 
+                className="w-full px-2.5 py-1.5 bg-slate-50/70 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800 rounded-lg outline-none focus:bg-white dark:focus:bg-slate-900 focus:border-blue-500 transition-all text-xs font-semibold text-slate-900 dark:text-white" 
               />
             </div>
 
-            <div className="space-y-4 col-span-full pt-4">
-              <p className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] border-b border-blue-50 pb-2">Family & Personal Details</p>
+            {/* Family & Personal Details */}
+            <div className="col-span-full pt-1">
+              <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider block border-b border-slate-100 dark:border-slate-800 pb-1">
+                Family &amp; Personal Details
+              </span>
             </div>
 
             <div>
-              <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Father's Name</label>
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Father's Name</label>
               <input 
                 type="text" 
                 value={localStudent.father_name || ""}
                 onChange={(e) => setLocalStudent({...localStudent, father_name: e.target.value})}
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-black text-black" 
+                className="w-full px-2.5 py-1.5 bg-slate-50/70 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800 rounded-lg outline-none focus:bg-white dark:focus:bg-slate-900 focus:border-blue-500 transition-all text-xs font-semibold text-slate-900 dark:text-white" 
               />
             </div>
             <div>
-              <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Mother's Name</label>
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Mother's Name</label>
               <input 
                 type="text" 
                 value={localStudent.mother_name || ""}
                 onChange={(e) => setLocalStudent({...localStudent, mother_name: e.target.value})}
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-black text-black" 
+                className="w-full px-2.5 py-1.5 bg-slate-50/70 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800 rounded-lg outline-none focus:bg-white dark:focus:bg-slate-900 focus:border-blue-500 transition-all text-xs font-semibold text-slate-900 dark:text-white" 
               />
             </div>
             <div>
-              <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Date of Birth</label>
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Date of Birth</label>
               <input 
                 type="date" 
                 value={localStudent.dob || ""}
                 onChange={(e) => setLocalStudent({...localStudent, dob: e.target.value})}
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-black text-black" 
+                className="w-full px-2.5 py-1.5 bg-slate-50/70 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800 rounded-lg outline-none focus:bg-white dark:focus:bg-slate-900 focus:border-blue-500 transition-all text-xs font-semibold text-slate-900 dark:text-white" 
               />
             </div>
             <div>
-              <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Gender</label>
-              <select 
-                value={localStudent.gender || ""}
-                onChange={(e) => setLocalStudent({...localStudent, gender: e.target.value})}
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-black text-black"
-              >
-                <option value="">Select Gender</option>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-                <option value="other">Other</option>
-              </select>
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Gender</label>
+              <div className="relative">
+                <select 
+                  value={localStudent.gender || ""}
+                  onChange={(e) => setLocalStudent({...localStudent, gender: e.target.value})}
+                  className="w-full pl-2.5 pr-7 py-1.5 bg-slate-50/70 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800 rounded-lg outline-none focus:bg-white dark:focus:bg-slate-900 focus:border-blue-500 transition-all text-xs font-semibold text-slate-900 dark:text-white appearance-none cursor-pointer"
+                >
+                  <option value="">Select Gender</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                </select>
+                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={13} />
+              </div>
             </div>
             <div>
-              <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Category</label>
-              <select 
-                value={localStudent.category || ""}
-                onChange={(e) => setLocalStudent({...localStudent, category: e.target.value})}
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-black text-black"
-              >
-                <option value="">Select Category</option>
-                <option value="General">General</option>
-                <option value="OBC">OBC</option>
-                <option value="SC">SC</option>
-                <option value="ST">ST</option>
-                <option value="Other">Other</option>
-              </select>
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Category</label>
+              <div className="relative">
+                <select 
+                  value={localStudent.category || ""}
+                  onChange={(e) => setLocalStudent({...localStudent, category: e.target.value})}
+                  className="w-full pl-2.5 pr-7 py-1.5 bg-slate-50/70 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800 rounded-lg outline-none focus:bg-white dark:focus:bg-slate-900 focus:border-blue-500 transition-all text-xs font-semibold text-slate-900 dark:text-white appearance-none cursor-pointer"
+                >
+                  <option value="">Select Category</option>
+                  <option value="General">General</option>
+                  <option value="OBC">OBC</option>
+                  <option value="SC">SC</option>
+                  <option value="ST">ST</option>
+                  <option value="Other">Other</option>
+                </select>
+                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={13} />
+              </div>
             </div>
             <div>
-              <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Aadhar Number</label>
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Aadhar Number</label>
               <input 
                 type="text" 
                 value={localStudent.aadhar_no || ""}
                 onChange={(e) => setLocalStudent({...localStudent, aadhar_no: e.target.value})}
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-black text-black" 
+                className="w-full px-2.5 py-1.5 bg-slate-50/70 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800 rounded-lg outline-none focus:bg-white dark:focus:bg-slate-900 focus:border-blue-500 transition-all text-xs font-semibold text-slate-900 dark:text-white" 
               />
             </div>
 
-            <div className="space-y-4 col-span-full pt-4">
-              <p className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] border-b border-blue-50 pb-2">Academic & Internal</p>
+            {/* Academic & Internal */}
+            <div className="col-span-full pt-1">
+              <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider block border-b border-slate-100 dark:border-slate-800 pb-1">
+                Academic &amp; Internal
+              </span>
             </div>
 
             <div>
-              <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Education</label>
-              <select 
-                value={localStudent.education || ""}
-                onChange={(e) => setLocalStudent({...localStudent, education: e.target.value})}
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-black text-black"
-              >
-                <option value="">Select Education</option>
-                <option value="5th">5th Pass</option>
-                <option value="6th">6th Pass</option>
-                <option value="7th">7th Pass</option>
-                <option value="8th">8th Pass</option>
-                <option value="10th">10th Pass</option>
-                <option value="12th">12th Pass</option>
-                <option value="Diploma">Diploma</option>
-                <option value="Graduate">Graduate</option>
-                <option value="Post Graduate">Post Graduate (PG)</option>
-              </select>
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Education</label>
+              <div className="relative">
+                <select 
+                  value={localStudent.education || ""}
+                  onChange={(e) => setLocalStudent({...localStudent, education: e.target.value})}
+                  className="w-full pl-2.5 pr-7 py-1.5 bg-slate-50/70 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800 rounded-lg outline-none focus:bg-white dark:focus:bg-slate-900 focus:border-blue-500 transition-all text-xs font-semibold text-slate-900 dark:text-white appearance-none cursor-pointer"
+                >
+                  <option value="">Select Education</option>
+                  <option value="5th">5th Pass</option>
+                  <option value="6th">6th Pass</option>
+                  <option value="7th">7th Pass</option>
+                  <option value="8th">8th Pass</option>
+                  <option value="10th">10th Pass</option>
+                  <option value="12th">12th Pass</option>
+                  <option value="Diploma">Diploma</option>
+                  <option value="Graduate">Graduate</option>
+                  <option value="Post Graduate">Post Graduate (PG)</option>
+                </select>
+                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={13} />
+              </div>
             </div>
             <div>
-              <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Admission Date</label>
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Admission Date</label>
               <input 
                 type="date" 
                 value={localStudent.admission_date || ""}
                 onChange={(e) => setLocalStudent({...localStudent, admission_date: e.target.value})}
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-black text-black" 
+                className="w-full px-2.5 py-1.5 bg-slate-50/70 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800 rounded-lg outline-none focus:bg-white dark:focus:bg-slate-900 focus:border-blue-500 transition-all text-xs font-semibold text-slate-900 dark:text-white" 
               />
             </div>
             <div>
-              <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Primary Course</label>
-              <select 
-                required
-                value={localStudent.course || ""}
-                onChange={(e) => setLocalStudent({...localStudent, course: e.target.value})}
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-black text-black appearance-none cursor-pointer"
-              >
-                <option value="">Select Primary Course</option>
-                {availableCourses.map((course) => (
-                  <option key={course.id} value={course.title}>
-                    {course.title}
-                  </option>
-                ))}
-              </select>
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Primary Course</label>
+              <div className="relative">
+                <select 
+                  required
+                  value={localStudent.course || ""}
+                  onChange={(e) => setLocalStudent({...localStudent, course: e.target.value})}
+                  className="w-full pl-2.5 pr-7 py-1.5 bg-slate-50/70 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800 rounded-lg outline-none focus:bg-white dark:focus:bg-slate-900 focus:border-blue-500 transition-all text-xs font-semibold text-slate-900 dark:text-white appearance-none cursor-pointer"
+                >
+                  <option value="">Select Primary Course</option>
+                  {availableCourses.map((course) => (
+                    <option key={course.id} value={course.title}>
+                      {course.title}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={13} />
+              </div>
             </div>
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Academic Status</label>
+              <div className="relative">
+                <select 
+                  value={localStudent.status || "active"}
+                  onChange={(e) => setLocalStudent({...localStudent, status: e.target.value})}
+                  className="w-full pl-2.5 pr-7 py-1.5 bg-slate-50/70 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800 rounded-lg outline-none focus:bg-white dark:focus:bg-slate-900 focus:border-blue-500 transition-all text-xs font-semibold text-slate-900 dark:text-white appearance-none cursor-pointer"
+                >
+                  <option value="active">Active</option>
+                  <option value="dropped_out">Dropped Out (Left)</option>
+                  <option value="on_hold">On Hold (Break)</option>
+                  <option value="completed">Completed</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={13} />
+              </div>
+            </div>
+
+            {localStudent.status === "dropped_out" && (
+              <>
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-rose-500 mb-1">Dropout / Left Date</label>
+                  <input 
+                    type="date" 
+                    value={localStudent.dropout_date || ""}
+                    onChange={(e) => setLocalStudent({...localStudent, dropout_date: e.target.value})}
+                    className="w-full px-2.5 py-1.5 bg-slate-50/70 dark:bg-slate-950/60 border border-rose-300 dark:border-rose-900/60 rounded-lg outline-none focus:bg-white dark:focus:bg-slate-900 focus:border-rose-500 transition-all text-xs font-semibold text-slate-900 dark:text-white" 
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-rose-500 mb-1">Reason for Leaving</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. Relocated, Financial, Exams..."
+                    value={localStudent.dropout_reason || ""}
+                    onChange={(e) => setLocalStudent({...localStudent, dropout_reason: e.target.value})}
+                    className="w-full px-2.5 py-1.5 bg-slate-50/70 dark:bg-slate-950/60 border border-rose-300 dark:border-rose-900/60 rounded-lg outline-none focus:bg-white dark:focus:bg-slate-900 focus:border-rose-500 transition-all text-xs font-semibold text-slate-900 dark:text-white" 
+                  />
+                </div>
+              </>
+            )}
             <div className="col-span-full">
-              <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Full Address</label>
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Full Address</label>
               <textarea 
                 rows={2}
                 value={localStudent.address || ""}
                 onChange={(e) => setLocalStudent({...localStudent, address: e.target.value})}
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-black text-black" 
+                className="w-full px-2.5 py-1.5 bg-slate-50/70 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800 rounded-lg outline-none focus:bg-white dark:focus:bg-slate-900 focus:border-blue-500 transition-all text-xs font-semibold text-slate-900 dark:text-white resize-none" 
               />
             </div>
           </div>
 
-          <div className="pt-4 flex gap-3">
+          {/* Modal Footer Actions */}
+          <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2">
             <button 
               type="button"
               onClick={onClose}
-              className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl transition-all"
+              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-semibold rounded-lg text-xs transition-colors cursor-pointer"
             >
               Cancel
             </button>
             <button 
+              type="submit"
               disabled={isSubmitting}
-              className="flex-[2] py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg text-xs transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer active:scale-98 disabled:opacity-50"
             >
-              {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : <Check size={18} />}
-              Save Changes
+              {isSubmitting ? <Loader2 className="animate-spin" size={13} /> : <Check size={13} />}
+              <span>Save Changes</span>
             </button>
           </div>
         </form>

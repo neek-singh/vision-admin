@@ -1,24 +1,60 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { 
   Calendar as CalendarIcon, 
   Video, 
-  MapPin, 
   Plus, 
   Trash2, 
   Loader2,
   X,
   Clock,
-  Flag
+  Flag,
+  FileText,
+  Sparkles,
+  Search,
+  Filter
 } from "lucide-react";
+
+const TYPE_CONFIG: Record<string, { label: string; icon: any; badgeCls: string; iconCls: string }> = {
+  class: {
+    label: "Live Class",
+    icon: Video,
+    badgeCls: "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border-blue-200/60 dark:border-blue-900/40",
+    iconCls: "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50"
+  },
+  test: {
+    label: "Online Test",
+    icon: FileText,
+    badgeCls: "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200/60 dark:border-amber-900/40",
+    iconCls: "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50"
+  },
+  holiday: {
+    label: "Holiday",
+    icon: Flag,
+    badgeCls: "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border-rose-200/60 dark:border-rose-900/40",
+    iconCls: "text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/50"
+  },
+  event: {
+    label: "Event",
+    icon: Sparkles,
+    badgeCls: "bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300 border-violet-200/60 dark:border-violet-900/40",
+    iconCls: "text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/50"
+  },
+};
+
+const labelCls = "block text-[11px] font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5";
+const inputCls = "w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-normal text-slate-900 dark:text-slate-100 outline-none focus:border-slate-400 dark:focus:border-slate-500 transition-colors";
 
 export default function CalendarClient({ courses, initialEvents }: { courses: any[], initialEvents: any[] }) {
   const router = useRouter();
   const [isAdding, setIsAdding] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [typeFilter, setTypeFilter] = useState("all");
+
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -29,6 +65,18 @@ export default function CalendarClient({ courses, initialEvents }: { courses: an
     location: "Online",
     course_id: ""
   });
+
+  const filteredEvents = useMemo(() => {
+    return initialEvents.filter((ev) => {
+      const matchType = typeFilter === "all" || ev.type === typeFilter;
+      const q = searchQuery.toLowerCase().trim();
+      const matchQuery = !q || 
+        ev.title?.toLowerCase().includes(q) ||
+        (ev.courses?.title && ev.courses.title.toLowerCase().includes(q)) ||
+        ev.location?.toLowerCase().includes(q);
+      return matchType && matchQuery;
+    });
+  }, [initialEvents, searchQuery, typeFilter]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,7 +93,16 @@ export default function CalendarClient({ courses, initialEvents }: { courses: an
       if (error) throw error;
 
       setIsAdding(false);
-      setFormData({ title: "", description: "", event_date: "", start_time: "", end_time: "", type: "class", location: "Online", course_id: "" });
+      setFormData({ 
+        title: "", 
+        description: "", 
+        event_date: "", 
+        start_time: "", 
+        end_time: "", 
+        type: "class", 
+        location: "Online", 
+        course_id: "" 
+      });
       router.refresh();
     } catch (err) {
       console.error("Error adding event:", err);
@@ -56,7 +113,7 @@ export default function CalendarClient({ courses, initialEvents }: { courses: an
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure?")) return;
+    if (!confirm("Are you sure you want to delete this event?")) return;
 
     try {
       const { error } = await supabase.from("events").delete().eq("id", id);
@@ -69,58 +126,146 @@ export default function CalendarClient({ courses, initialEvents }: { courses: an
   };
 
   return (
-    <div className="space-y-6">
-      <button 
-        onClick={() => setIsAdding(true)}
-        className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/20"
-      >
-        <Plus size={18} />
-        Schedule Event
-      </button>
+    <div className="space-y-4">
+      {/* Top Toolbar */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
+        <div className="flex flex-1 items-center gap-2">
+          {/* Search */}
+          <div className="relative flex-1 max-w-sm">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input 
+              type="text"
+              placeholder="Search events or courses..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-8 pr-3 py-1.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 outline-none focus:border-slate-400 dark:focus:border-slate-500 transition-colors"
+            />
+          </div>
 
+          {/* Type Filter */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg text-xs">
+            <Filter size={12} className="text-slate-400" />
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className="bg-transparent text-slate-900 dark:text-slate-100 font-medium outline-none cursor-pointer text-xs"
+            >
+              <option value="all" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">All Types</option>
+              <option value="class" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Live Classes</option>
+              <option value="test" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Tests</option>
+              <option value="holiday" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Holidays</option>
+              <option value="event" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Events</option>
+            </select>
+          </div>
+        </div>
+
+        <button 
+          onClick={() => setIsAdding(true)}
+          className="bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 px-3.5 py-2 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+        >
+          <Plus size={14} />
+          Schedule Event
+        </button>
+      </div>
+
+      {/* Modal Dialog */}
       {isAdding && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <h3 className="font-bold text-slate-900">Schedule Event</h3>
-              <button onClick={() => setIsAdding(false)} className="p-1.5 hover:bg-slate-100 rounded-lg"><X size={18} /></button>
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-lg overflow-hidden border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-150">
+            <div className="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Schedule Event</h3>
+                <p className="text-[11px] text-slate-400 mt-0.5">Add a class, exam, or academic holiday</p>
+              </div>
+              <button 
+                onClick={() => setIsAdding(false)} 
+                className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer"
+              >
+                <X size={16} />
+              </button>
             </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+
+            <form onSubmit={handleSubmit} className="p-5 space-y-4">
+              <div className="grid grid-cols-2 gap-3.5">
                 <div className="col-span-2">
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Event Title</label>
-                  <input required type="text" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold" />
+                  <label className={labelCls}>Event Title</label>
+                  <input 
+                    required 
+                    type="text" 
+                    placeholder="e.g. MS Excel Advanced Formulas Workshop"
+                    value={formData.title} 
+                    onChange={(e) => setFormData({...formData, title: e.target.value})} 
+                    className={inputCls} 
+                  />
                 </div>
+
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Date</label>
-                  <input required type="date" value={formData.event_date} onChange={(e) => setFormData({...formData, event_date: e.target.value})} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold" />
+                  <label className={labelCls}>Date</label>
+                  <input 
+                    required 
+                    type="date" 
+                    value={formData.event_date} 
+                    onChange={(e) => setFormData({...formData, event_date: e.target.value})} 
+                    className={inputCls} 
+                  />
                 </div>
+
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Start Time</label>
-                  <input required type="time" value={formData.start_time} onChange={(e) => setFormData({...formData, start_time: e.target.value})} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold" />
+                  <label className={labelCls}>Start Time</label>
+                  <input 
+                    required 
+                    type="time" 
+                    value={formData.start_time} 
+                    onChange={(e) => setFormData({...formData, start_time: e.target.value})} 
+                    className={inputCls} 
+                  />
                 </div>
+
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Type</label>
-                  <select value={formData.type} onChange={(e) => setFormData({...formData, type: e.target.value})} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold">
-                    <option value="class">Live Class</option>
-                    <option value="test">Online Test</option>
-                    <option value="holiday">Holiday</option>
-                    <option value="event">Special Event</option>
+                  <label className={labelCls}>Type</label>
+                  <select 
+                    value={formData.type} 
+                    onChange={(e) => setFormData({...formData, type: e.target.value})} 
+                    className={`${inputCls} bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100`}
+                  >
+                    <option value="class" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Live Class</option>
+                    <option value="test" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Online Test</option>
+                    <option value="holiday" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Holiday</option>
+                    <option value="event" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Special Event</option>
                   </select>
                 </div>
+
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Course (Optional)</label>
-                  <select value={formData.course_id} onChange={(e) => setFormData({...formData, course_id: e.target.value})} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold">
-                    <option value="">Public Event</option>
-                    {courses.map(course => <option key={course.id} value={course.id}>{course.title}</option>)}
+                  <label className={labelCls}>Course (Optional)</label>
+                  <select 
+                    value={formData.course_id} 
+                    onChange={(e) => setFormData({...formData, course_id: e.target.value})} 
+                    className={`${inputCls} bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100`}
+                  >
+                    <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Public Event (All Students)</option>
+                    {courses.map(course => (
+                      <option key={course.id} value={course.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+                        {course.title}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
 
-              <div className="pt-4 flex gap-3">
-                <button type="button" onClick={() => setIsAdding(false)} className="flex-1 py-3 bg-slate-100 font-bold rounded-xl">Cancel</button>
-                <button disabled={isSubmitting} className="flex-[2] py-3 bg-emerald-600 text-white font-bold rounded-xl flex items-center justify-center gap-2">
-                  {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : <CalendarIcon size={18} />}
+              <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-100 dark:border-slate-800">
+                <button 
+                  type="button" 
+                  onClick={() => setIsAdding(false)} 
+                  className="px-3.5 py-2 text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit"
+                  disabled={isSubmitting} 
+                  className="px-4 py-2 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 text-xs font-medium rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  {isSubmitting ? <Loader2 className="animate-spin" size={13} /> : <CalendarIcon size={13} />}
                   Save Event
                 </button>
               </div>
@@ -129,48 +274,79 @@ export default function CalendarClient({ courses, initialEvents }: { courses: an
         </div>
       )}
 
-      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-slate-50 text-slate-400 text-[10px] uppercase font-black tracking-widest border-b border-slate-100">
-              <th className="px-6 py-4">Event</th>
-              <th className="px-6 py-4">Date & Time</th>
-              <th className="px-6 py-4">Type</th>
-              <th className="px-6 py-4 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-50">
-            {initialEvents.map((event) => (
-              <tr key={event.id} className="hover:bg-slate-50/50 transition-colors">
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                      event.type === 'holiday' ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'
-                    }`}>
-                      {event.type === 'class' ? <Video size={18} /> : event.type === 'holiday' ? <Flag size={18} /> : <CalendarIcon size={18} />}
-                    </div>
-                    <div>
-                      <p className="font-black text-slate-900 text-sm">{event.title}</p>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase">{(event.courses as any)?.title || 'Public Event'}</p>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 text-xs font-bold text-slate-600">
-                  <div className="flex items-center gap-2 mb-1"><CalendarIcon size={12} className="text-slate-400" /> {event.event_date}</div>
-                  <div className="flex items-center gap-2"><Clock size={12} className="text-slate-400" /> {event.start_time}</div>
-                </td>
-                <td className="px-6 py-4">
-                  <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-[10px] font-black uppercase tracking-widest">
-                    {event.type}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <button onClick={() => handleDelete(event.id)} className="p-2 text-slate-300 hover:text-red-500 rounded-lg"><Trash2 size={18} /></button>
-                </td>
+      {/* Events Table */}
+      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="text-slate-400 dark:text-slate-500 text-[10px] uppercase font-semibold tracking-wider border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20">
+                <th className="px-5 py-3">Event</th>
+                <th className="px-5 py-3">Date &amp; Time</th>
+                <th className="px-5 py-3">Type</th>
+                <th className="px-5 py-3 text-right">Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {filteredEvents.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-5 py-12 text-center text-xs text-slate-400 dark:text-slate-500">
+                    <CalendarIcon size={28} className="mx-auto mb-2 opacity-30" />
+                    {initialEvents.length === 0 ? "No events scheduled yet." : "No matching events found."}
+                  </td>
+                </tr>
+              ) : (
+                filteredEvents.map((event) => {
+                  const typeCfg = TYPE_CONFIG[event.type] || TYPE_CONFIG.event;
+                  const Icon = typeCfg.icon;
+
+                  return (
+                    <tr key={event.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${typeCfg.iconCls}`}>
+                            <Icon size={14} />
+                          </div>
+                          <div>
+                            <p className="font-medium text-slate-900 dark:text-slate-100 text-xs">{event.title}</p>
+                            <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+                              {(event.courses as any)?.title || "Public Event"}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3.5 text-xs text-slate-600 dark:text-slate-300">
+                        <div className="flex items-center gap-1.5 mb-1 text-slate-700 dark:text-slate-200">
+                          <CalendarIcon size={12} className="text-slate-400" />
+                          <span>{event.event_date}</span>
+                        </div>
+                        {event.start_time && (
+                          <div className="flex items-center gap-1.5 text-[11px] text-slate-400 dark:text-slate-500">
+                            <Clock size={11} />
+                            <span>{event.start_time}</span>
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium border ${typeCfg.badgeCls}`}>
+                          {typeCfg.label}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5 text-right">
+                        <button 
+                          onClick={() => handleDelete(event.id)} 
+                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition-colors cursor-pointer" 
+                          title="Delete event"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
