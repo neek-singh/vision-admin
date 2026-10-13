@@ -2,11 +2,32 @@
 
 import { revalidatePath } from "next/cache";
 import fs from "fs";
+import path from "path";
 
-const blogsFilePath = "c:\\Users\\as007\\vision-web\\features\\blog\\data\\blogs.json";
+function getBlogsFilePath() {
+  const candidates = [
+    path.resolve(process.cwd(), "..", "vision-web"),
+    "c:\\Users\\as007\\vision project\\vision-web",
+    "c:\\Users\\as007\\vision-web",
+  ];
+  let basePath = candidates[0];
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      basePath = candidate;
+      break;
+    }
+  }
+  const filePath = path.join(basePath, "features", "blog", "data", "blogs.json");
+  const dir = path.dirname(filePath);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  return filePath;
+}
 
 export async function saveBlog(formData: any) {
   try {
+    const blogsFilePath = getBlogsFilePath();
     let blogs: any[] = [];
     if (fs.existsSync(blogsFilePath)) {
       blogs = JSON.parse(fs.readFileSync(blogsFilePath, "utf-8"));
@@ -40,6 +61,7 @@ export async function saveBlog(formData: any) {
 
 export async function deleteBlog(id: string) {
   try {
+    const blogsFilePath = getBlogsFilePath();
     let blogs: any[] = [];
     if (fs.existsSync(blogsFilePath)) {
       blogs = JSON.parse(fs.readFileSync(blogsFilePath, "utf-8"));

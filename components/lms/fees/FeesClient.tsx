@@ -30,7 +30,8 @@ import {
   Copy,
   Check,
   Send,
-  Smartphone
+  Smartphone,
+  Banknote
 } from "lucide-react";
 import { setupStudentFee, recordPayment, deleteFeeRecord, deletePayment, incrementStudentFee } from "@/app/actions/lms/fees";
 
@@ -57,6 +58,7 @@ export default function FeesClient({
   const [reminderMonthlyRate, setReminderMonthlyRate] = useState<number>(1000);
   const [selectedUnpaidMonths, setSelectedUnpaidMonths] = useState<string[]>([]);
   const [reminderCustomPhone, setReminderCustomPhone] = useState<string>("");
+  const [customReminderMessage, setCustomReminderMessage] = useState<string | null>(null);
   const [copiedSMS, setCopiedSMS] = useState(false);
   
   // Search & Filter State
@@ -998,11 +1000,12 @@ export default function FeesClient({
     setSelectedUnpaidMonths(unpaid);
     setReminderMonthlyRate(1000); // Default ₹1,000 per month
     setReminderCustomPhone((fee.students as any)?.phone || "");
+    setCustomReminderMessage(null);
     setCopiedSMS(false);
     setShowReminderModal({ fee, balance });
   };
 
-  // Generated Reminder Message string
+  // Generated Reminder Message string (Devnagari Hindi)
   const generatedReminderMessage = useMemo(() => {
     if (!showReminderModal) return "";
     const student = showReminderModal.fee.students as any;
@@ -1018,7 +1021,7 @@ export default function FeesClient({
       ? selectedUnpaidMonths.length * reminderMonthlyRate 
       : reminderMonthlyRate;
 
-    return `Namaste ${studentName} ji,\n\nYeh Vision IT Computer Institute ki taraf se monthly fee reminder hai.\n\n📚 Course: ${courseTitle}\n🗓️ Pending Month(s): ${monthsText}\n💰 Monthly Due: ₹${reminderMonthlyRate.toLocaleString('en-IN')} (Total Due: ₹${totalCalculatedDue.toLocaleString('en-IN')})\n\nKripya pending monthly fee samay par institute office me jama karein ya online UPI se pay karein.\n\nKisi bhi jaankari ya sahayata ke liye contact karein:\n📞 +91 9876543210\n\nDhanyawad! 🙏\nVision IT Computer Institute`;
+    return `Dear ${studentName},\n\nयह Vision IT Computer Institute की तरफ से आपकी मासिक फीस (Monthly Fees) का रिमाइंडर नोटिस है।\n\n📚 Course: ${courseTitle}\n🗓️ बकाया माह (Pending Months): ${monthsText}\n💰 मासिक फीस (Monthly Due): ₹${reminderMonthlyRate.toLocaleString('en-IN')} (कुल बकाया: ₹${totalCalculatedDue.toLocaleString('en-IN')})\n\nकृपया अपनी बकाया मासिक फीस समय पर इंस्टीट्यूट ऑफिस में जमा करें या ऑनलाइन UPI से भुगतान करें।\n\nकिसी भी जानकारी या सहायता के लिए संपर्क करें:\n📞 +91 81031 70595\n\nThank You! 🙏\nVision IT Computer Institute`;
   }, [showReminderModal, selectedUnpaidMonths, reminderMonthlyRate]);
 
   // Send via WhatsApp from modal
@@ -1032,14 +1035,16 @@ export default function FeesClient({
     if (phone.length === 10) {
       phone = `91${phone}`;
     }
-    const url = `https://wa.me/${phone}?text=${encodeURIComponent(generatedReminderMessage)}`;
+    const messageToSend = customReminderMessage !== null ? customReminderMessage : generatedReminderMessage;
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(messageToSend)}`;
     window.open(url, "_blank");
   };
 
   // Copy SMS text from modal
   const handleCopySMS = async () => {
     try {
-      await navigator.clipboard.writeText(generatedReminderMessage);
+      const messageToSend = customReminderMessage !== null ? customReminderMessage : generatedReminderMessage;
+      await navigator.clipboard.writeText(messageToSend);
       setCopiedSMS(true);
       setTimeout(() => setCopiedSMS(false), 2500);
     } catch {
@@ -2063,109 +2068,208 @@ export default function FeesClient({
       )}
 
       {/* Payment Modal */}
-      {showPayment && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-300 max-h-[90vh] flex flex-col">
-             <div className="px-8 py-6 border-b border-slate-150 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50 shrink-0">
-               <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
-                 <CreditCard className="text-emerald-600" size={18} /> Record Student Payment
-               </h3>
-               <button onClick={() => setShowPayment(null)} className="p-2 hover:bg-slate-105 rounded-lg cursor-pointer"><X size={18}/></button>
-             </div>
-             
-             <form onSubmit={handlePayment} className="p-8 space-y-6 overflow-y-auto flex-1 custom-scrollbar">
-                <div className="space-y-2">
-                   <div className="text-xs font-bold text-slate-400 dark:text-slate-550 uppercase tracking-widest">Recording for:</div>
-                   <h4 className="text-lg font-black text-slate-900 dark:text-white">{(showPayment.students as any)?.name}</h4>
-                   <p className="text-xs font-bold text-slate-500">{(showPayment.courses as any)?.title}</p>
+      {showPayment && (() => {
+        const totalPaidSoFar = (showPayment.payments || []).reduce((acc: number, p: any) => acc + Number(p.amount || 0), 0);
+        const currentBalanceDue = Math.max(0, Number(showPayment.final_fee || 0) - totalPaidSoFar);
+        const studentName = (showPayment.students as any)?.name || "Student";
+        const courseTitle = (showPayment.courses as any)?.title || "Course";
+
+        return (
+          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-3 animate-in fade-in duration-150">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xl w-full max-w-[480px] overflow-hidden animate-in zoom-in-95 duration-150 flex flex-col">
+              
+              {/* Header */}
+              <div className="px-4 py-2.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900 shrink-0">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-100 dark:border-emerald-900/40 shrink-0">
+                    <CreditCard size={14} />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-bold text-slate-900 dark:text-white leading-tight">
+                      Record Student Payment
+                    </h3>
+                    <p className="text-[10px] text-slate-400 dark:text-slate-500">
+                      Add fee transaction entry
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  type="button"
+                  onClick={() => setShowPayment(null)} 
+                  className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer"
+                  title="Close"
+                >
+                  <X size={15} />
+                </button>
+              </div>
+              
+              <form onSubmit={handlePayment} className="p-3.5 space-y-2.5">
+                
+                {/* Student Info Compact Strip */}
+                <div className="px-3 py-1.5 bg-slate-50/90 dark:bg-slate-950/50 rounded-xl border border-slate-200/70 dark:border-slate-800/80 flex items-center justify-between gap-2.5">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-6 h-6 rounded-md bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-bold text-[11px] flex items-center justify-center shrink-0 shadow-xs">
+                      {studentName.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0 flex items-baseline gap-1.5">
+                      <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                        {studentName}
+                      </h4>
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 truncate hidden sm:inline">
+                        • {courseTitle}
+                      </span>
+                    </div>
+                  </div>
+                  {currentBalanceDue > 0 && (
+                    <div className="text-right shrink-0 flex items-center gap-1.5">
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Due:</span>
+                      <span className="text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/50 px-1.5 py-0.5 rounded border border-rose-100 dark:border-rose-900/40">
+                        ₹{currentBalanceDue.toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
-                <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-slate-400 dark:text-slate-550 uppercase tracking-widest">Payment Date</label>
-                    <input 
-                      required 
-                      type="date" 
-                      className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 outline-none font-bold text-sm text-slate-900 dark:text-slate-100 focus:border-blue-500" 
-                      value={paymentData.payment_date} 
-                      onChange={(e) => setPaymentData({...paymentData, payment_date: e.target.value})}
-                    />
-                 </div>
+                {/* Amount Paid & Fee Component in 2-Column Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {/* Amount Paid */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                        Amount Paid (₹) <span className="text-rose-500">*</span>
+                      </label>
+                      {currentBalanceDue > 0 && currentBalanceDue !== paymentData.amount && (
+                        <button
+                          type="button"
+                          onClick={() => setPaymentData({ ...paymentData, amount: currentBalanceDue })}
+                          className="text-[9px] font-bold text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 cursor-pointer"
+                        >
+                          Full Due (₹{currentBalanceDue.toLocaleString('en-IN')})
+                        </button>
+                      )}
+                    </div>
+                    <div className="relative flex items-center">
+                      <span className="absolute left-2.5 text-xs font-bold text-slate-400 select-none">
+                        ₹
+                      </span>
+                      <input 
+                        required 
+                        type="number" 
+                        min="1"
+                        placeholder="0"
+                        className="w-full pl-6 pr-3 py-1.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg outline-none font-bold text-sm text-slate-900 dark:text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all placeholder:text-slate-300" 
+                        value={paymentData.amount || ""} 
+                        onChange={(e) => setPaymentData({...paymentData, amount: Number(e.target.value)})}
+                      />
+                    </div>
+                  </div>
 
-                 <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-slate-400 dark:text-slate-550 uppercase tracking-widest">Fee Component / Type</label>
+                  {/* Fee Component */}
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                      Fee Component
+                    </label>
                     <select 
                       required 
-                      className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 outline-none font-bold text-sm text-slate-900 dark:text-slate-100 focus:border-blue-500 cursor-pointer"
+                      className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg outline-none font-semibold text-xs text-slate-900 dark:text-slate-100 focus:border-emerald-500 transition-all cursor-pointer h-[34px]"
                       value={paymentData.fee_type} 
                       onChange={(e) => setPaymentData({...paymentData, fee_type: e.target.value})}
                     >
-                      <option value="course" className="dark:bg-slate-900">Course Fee</option>
-                      <option value="registration" className="dark:bg-slate-900">Registration Fee (One Time)</option>
-                      <option value="exam" className="dark:bg-slate-900">Exam Fee (One Time)</option>
+                      <option value="course">Course Fee</option>
+                      <option value="registration">Registration Fee</option>
+                      <option value="exam">Exam Fee</option>
                     </select>
-                 </div>
-
-                 <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-slate-400 dark:text-slate-550 uppercase tracking-widest">Amount Paid (₹)</label>
-                    <input 
-                      required 
-                      type="number" 
-                      className="w-full px-5 py-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 outline-none font-black text-xl text-slate-900 dark:text-slate-100 focus:border-blue-500" 
-                      value={paymentData.amount || ""} 
-                      onChange={(e) => setPaymentData({...paymentData, amount: Number(e.target.value)})}
-                    />
-                 </div>
-
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-550 uppercase tracking-widest mb-1.5 block">Payment Mode</label>
-                  <div className="grid grid-cols-3 gap-2">
-                     {['cash', 'upi', 'bank'].map(mode => (
-                       <button 
-                         key={mode} 
-                         type="button" 
-                         onClick={() => setPaymentData({...paymentData, payment_mode: mode})} 
-                         className={`py-2.5 rounded-xl text-[10px] font-black uppercase border transition-all cursor-pointer ${
-                           paymentData.payment_mode === mode 
-                             ? 'bg-emerald-600 border-emerald-605 text-white shadow-sm shadow-emerald-500/20' 
-                             : 'bg-white dark:bg-slate-950 text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-50'
-                         }`}
-                       >
-                         {mode}
-                       </button>
-                     ))}
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                   <label className="text-[10px] font-bold text-slate-400 dark:text-slate-550 uppercase tracking-widest">Transaction / Reference ID (Optional)</label>
-                   <input 
-                     type="text" 
-                     className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 outline-none font-bold text-sm text-slate-900 dark:text-slate-100 focus:border-blue-500" 
-                     placeholder="e.g. TXN987654321"
-                     value={paymentData.transaction_id}
-                     onChange={(e) => setPaymentData({...paymentData, transaction_id: e.target.value})}
-                   />
+                {/* Payment Date & Payment Mode in 2-Column Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {/* Payment Date */}
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                      Payment Date
+                    </label>
+                    <input 
+                      required 
+                      type="date" 
+                      className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg outline-none font-semibold text-xs text-slate-900 dark:text-slate-100 focus:border-emerald-500 transition-all h-[34px]" 
+                      value={paymentData.payment_date || new Date().toISOString().split('T')[0]} 
+                      onChange={(e) => setPaymentData({...paymentData, payment_date: e.target.value})}
+                    />
+                  </div>
+
+                  {/* Payment Mode */}
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                      Payment Mode
+                    </label>
+                    <div className="grid grid-cols-3 gap-1">
+                      {[
+                        { id: 'cash', label: 'Cash', icon: Banknote },
+                        { id: 'upi', label: 'UPI / QR', icon: Smartphone },
+                        { id: 'bank', label: 'Bank', icon: Receipt },
+                      ].map(({ id, label, icon: IconComponent }) => {
+                        const isActive = paymentData.payment_mode === id;
+                        return (
+                          <button 
+                            key={id} 
+                            type="button" 
+                            onClick={() => setPaymentData({...paymentData, payment_mode: id})} 
+                            className={`h-[34px] px-1 rounded-lg text-[11px] font-bold border flex items-center justify-center gap-1 transition-all cursor-pointer ${
+                              isActive 
+                                ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs' 
+                                : 'bg-white dark:bg-slate-950 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900'
+                            }`}
+                          >
+                            <IconComponent size={12} className={isActive ? 'text-white' : 'text-slate-400'} />
+                            <span>{label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
 
-                <div className="pt-4 flex gap-4">
+                {/* Reference ID (Optional) */}
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                      Transaction / Reference ID
+                    </label>
+                    <span className="text-[9px] text-slate-400 font-normal">Optional</span>
+                  </div>
+                  <input 
+                    type="text" 
+                    className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg outline-none font-medium text-xs text-slate-900 dark:text-slate-100 focus:border-emerald-500 transition-all placeholder:text-slate-400" 
+                    placeholder={paymentData.payment_mode === 'cash' ? "Receipt / Voucher No. (optional)" : "e.g. UPI Ref / UTR / TXN12345"}
+                    value={paymentData.transaction_id}
+                    onChange={(e) => setPaymentData({...paymentData, transaction_id: e.target.value})}
+                  />
+                </div>
+
+                {/* Action Buttons */}
+                <div className="pt-1 flex items-center gap-2">
                   <button 
                     type="button"
                     onClick={() => setShowPayment(null)}
-                    className="flex-1 py-3.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-655 dark:text-slate-300 font-bold uppercase tracking-wider rounded-xl transition-all cursor-pointer text-xs"
+                    className="flex-1 py-2 px-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider rounded-lg transition-all cursor-pointer text-[11px]"
                   >
                     Cancel
                   </button>
                   <button 
+                    type="submit"
                     disabled={loading || paymentData.amount <= 0} 
-                    className="flex-[2] py-3.5 bg-emerald-600 hover:bg-emerald-705 text-white rounded-xl font-bold uppercase tracking-wider transition-all shadow-lg shadow-emerald-500/10 flex items-center justify-center gap-2 cursor-pointer text-xs disabled:opacity-40"
+                    className="flex-[2] py-2 px-3 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white rounded-lg font-bold uppercase tracking-wider transition-all shadow-md shadow-emerald-600/20 flex items-center justify-center gap-1.5 cursor-pointer text-[11px] disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                    {loading ? <Loader2 className="animate-spin" size={16} /> : <CheckCircle2 size={16} />} Record Transaction
+                    {loading ? <Loader2 className="animate-spin" size={13} /> : <CheckCircle2 size={13} />}
+                    <span>Record Payment</span>
                   </button>
                 </div>
-             </form>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* History Modal */}
       {showHistory && (
@@ -2557,8 +2661,22 @@ export default function FeesClient({
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
                   Message Preview (SMS / WhatsApp):
                 </label>
-                <div className="p-3.5 bg-slate-50 dark:bg-slate-950/70 border border-slate-200/80 dark:border-slate-800 rounded-xl font-mono text-[11px] text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed select-all max-h-48 overflow-y-auto">
-                  {generatedReminderMessage}
+                <div className="relative">
+                  <textarea
+                    rows={8}
+                    value={customReminderMessage !== null ? customReminderMessage : generatedReminderMessage}
+                    onChange={(e) => setCustomReminderMessage(e.target.value)}
+                    className="w-full p-3.5 bg-slate-50 dark:bg-slate-950/70 border border-slate-200/80 dark:border-slate-800 rounded-xl font-mono text-[11px] text-slate-800 dark:text-slate-200 leading-relaxed outline-none focus:border-emerald-500 focus:bg-white dark:focus:bg-slate-900 transition-all resize-y select-all"
+                  />
+                  {customReminderMessage !== null && customReminderMessage !== generatedReminderMessage && (
+                    <button
+                      type="button"
+                      onClick={() => setCustomReminderMessage(null)}
+                      className="absolute right-2.5 bottom-3 text-[10px] font-bold text-amber-600 hover:text-amber-700 bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded cursor-pointer"
+                    >
+                      Reset to Template
+                    </button>
+                  )}
                 </div>
               </div>
 

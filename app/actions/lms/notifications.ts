@@ -20,7 +20,7 @@ export async function sendNotification(data: {
     query = query.eq("batch", data.target_value);
   } else if (data.target_type === "course") {
     query = query.eq("course", data.target_value);
-  } else if (data.target_type === "student") {
+  } else if (data.target_type === "student" || data.target_type === "individual") {
     query = query.eq("id", data.target_value);
   }
 
@@ -106,9 +106,15 @@ export async function sendBatchNotification(data: {
 }
 
 export async function deleteNotification(id: string) {
-  const supabase = await createServerSupabaseClient();
-  const { error } = await supabase.from("notification_history").delete().eq("id", id);
-  if (error) return { error: error.message };
-  revalidatePath("/admin/notifications");
-  return { success: true };
+  try {
+    const supabase = await createServerSupabaseClient();
+    await supabase.from("user_notifications").delete().eq("notification_id", id);
+    await supabase.from("notification_history").delete().eq("id", id);
+    const { error } = await supabase.from("notifications").delete().eq("id", id);
+    if (error) return { error: error.message };
+    revalidatePath("/admin/notifications");
+    return { success: true };
+  } catch (err: any) {
+    return { error: err.message || "Failed to delete notification" };
+  }
 }

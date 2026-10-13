@@ -139,7 +139,7 @@ export default function LessonPreviewModal({
                       <h4 className="text-sm font-bold text-white mb-4 font-sans uppercase tracking-wider">Class Notes</h4>
                       <div 
                         dangerouslySetInnerHTML={{ __html: lesson.notes_content.replace(/<!-- THEORY_DATA_JSON:(.*?) -->/, "").replace(/<!-- THEORY_BLOCKS_JSON:(.*?) -->/, "") }} 
-                        className="rich-content text-sm text-slate-200 leading-relaxed [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-white [&_h2]:mb-2 [&_h2]:mt-3 [&_p]:mb-3 [&_p]:text-slate-200 [&_ul]:list-disc [&_ul]:list-inside [&_ul]:space-y-1 [&_ul]:mb-3 [&_ol]:list-decimal [&_ol]:list-inside [&_ol]:space-y-1 [&_ol]:mb-3 [&_li]:pl-1 [&_li]:text-slate-200 [&_img]:rounded-xl [&_img]:max-h-72 [&_img]:object-cover [&_img]:my-3 [&_strong]:font-bold [&_strong]:text-white [&_em]:italic [&_u]:underline [&_span]:text-slate-200 [&_td]:text-slate-200 [&_th]:text-white"
+                        className="rich-content text-sm text-slate-200 leading-relaxed [&_h2]:text-lg [&_h2]:font-normal [&_h2]:text-white [&_h2]:mb-2 [&_h2]:mt-3 [&_p]:mb-3 [&_p]:text-slate-200 [&_ul]:list-disc [&_ul]:list-inside [&_ul]:space-y-1 [&_ul]:mb-3 [&_ol]:list-decimal [&_ol]:list-inside [&_ol]:space-y-1 [&_ol]:mb-3 [&_li]:pl-1 [&_li]:text-slate-200 [&_img]:rounded-xl [&_img]:max-h-72 [&_img]:object-cover [&_img]:my-3 [&_strong]:font-bold [&_strong]:text-white [&_em]:italic [&_u]:underline [&_span]:text-slate-200 [&_td]:text-slate-200 [&_th]:text-white"
                       />
                     </article>
                   )}
@@ -174,7 +174,7 @@ export default function LessonPreviewModal({
                   
                   <article className="max-w-none text-white leading-relaxed text-base">
                     <h4 className="text-sm font-bold text-white mb-4 font-sans uppercase tracking-wider">Assignment Details & Instructions</h4>
-                    <div className="p-6 bg-slate-800 border border-slate-700 rounded-2xl rich-content text-sm text-slate-200 leading-relaxed [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-white [&_h2]:mb-2 [&_h2]:mt-3 [&_p]:mb-3 [&_p]:text-slate-200 [&_ul]:list-disc [&_ul]:list-inside [&_ul]:space-y-1 [&_ul]:mb-3 [&_ol]:list-decimal [&_ol]:list-inside [&_ol]:space-y-1 [&_ol]:mb-3 [&_li]:pl-1 [&_li]:text-slate-200 [&_img]:rounded-xl [&_img]:max-h-72 [&_img]:object-cover [&_img]:my-3 [&_strong]:font-bold [&_strong]:text-white [&_em]:italic [&_u]:underline [&_span]:text-slate-200">
+                    <div className="p-6 bg-slate-800 border border-slate-700 rounded-2xl rich-content text-sm text-slate-200 leading-relaxed [&_h2]:text-lg [&_h2]:font-normal [&_h2]:text-white [&_h2]:mb-2 [&_h2]:mt-3 [&_p]:mb-3 [&_p]:text-slate-200 [&_ul]:list-disc [&_ul]:list-inside [&_ul]:space-y-1 [&_ul]:mb-3 [&_ol]:list-decimal [&_ol]:list-inside [&_ol]:space-y-1 [&_ol]:mb-3 [&_li]:pl-1 [&_li]:text-slate-200 [&_img]:rounded-xl [&_img]:max-h-72 [&_img]:object-cover [&_img]:my-3 [&_strong]:font-bold [&_strong]:text-white [&_em]:italic [&_u]:underline [&_span]:text-slate-200">
                       {lesson.notes_content?.includes('<!-- THEORY_BLOCKS_JSON:') || lesson.notes_content?.includes('<p') || lesson.notes_content?.includes('<h2') ? (
                         <div dangerouslySetInnerHTML={{ __html: lesson.notes_content.replace(/<!-- THEORY_BLOCKS_JSON:(.*?) -->/, "") }} />
                       ) : (
@@ -213,7 +213,7 @@ export default function LessonPreviewModal({
                   
                   <article className="max-w-none text-white leading-relaxed text-base">
                     <h4 className="text-sm font-bold text-white mb-4 font-sans uppercase tracking-wider">Project Guidelines & Specifications</h4>
-                    <div className="p-6 bg-slate-800 border border-slate-700 rounded-2xl rich-content text-sm text-slate-200 leading-relaxed [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-white [&_h2]:mb-2 [&_h2]:mt-3 [&_p]:mb-3 [&_p]:text-slate-200 [&_ul]:list-disc [&_ul]:list-inside [&_ul]:space-y-1 [&_ul]:mb-3 [&_ol]:list-decimal [&_ol]:list-inside [&_ol]:space-y-1 [&_ol]:mb-3 [&_li]:pl-1 [&_li]:text-slate-200 [&_img]:rounded-xl [&_img]:max-h-72 [&_img]:object-cover [&_img]:my-3 [&_strong]:font-bold [&_strong]:text-white [&_em]:italic [&_u]:underline [&_span]:text-slate-200">
+                    <div className="p-6 bg-slate-800 border border-slate-700 rounded-2xl rich-content text-sm text-slate-200 leading-relaxed [&_h2]:text-lg [&_h2]:font-normal [&_h2]:text-white [&_h2]:mb-2 [&_h2]:mt-3 [&_p]:mb-3 [&_p]:text-slate-200 [&_ul]:list-disc [&_ul]:list-inside [&_ul]:space-y-1 [&_ul]:mb-3 [&_ol]:list-decimal [&_ol]:list-inside [&_ol]:space-y-1 [&_ol]:mb-3 [&_li]:pl-1 [&_li]:text-slate-200 [&_img]:rounded-xl [&_img]:max-h-72 [&_img]:object-cover [&_img]:my-3 [&_strong]:font-bold [&_strong]:text-white [&_em]:italic [&_u]:underline [&_span]:text-slate-200">
                       {lesson.notes_content?.includes('<!-- THEORY_BLOCKS_JSON:') || lesson.notes_content?.includes('<p') || lesson.notes_content?.includes('<h2') ? (
                         <div dangerouslySetInnerHTML={{ __html: lesson.notes_content.replace(/<!-- THEORY_BLOCKS_JSON:(.*?) -->/, "") }} />
                       ) : (
@@ -337,7 +337,7 @@ export default function LessonPreviewModal({
                       {lesson.notes_content ? (
                         <div 
                           dangerouslySetInnerHTML={{ __html: lesson.notes_content.replace(/<!-- THEORY_DATA_JSON:(.*?) -->/, "").replace(/<!-- THEORY_BLOCKS_JSON:(.*?) -->/, "") }} 
-                          className="rich-content text-sm text-slate-200 leading-relaxed [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-white [&_h2]:mb-2 [&_h2]:mt-3 [&_p]:mb-3 [&_p]:text-slate-200 [&_ul]:list-disc [&_ul]:list-inside [&_ul]:space-y-1 [&_ul]:mb-3 [&_ol]:list-decimal [&_ol]:list-inside [&_ol]:space-y-1 [&_ol]:mb-3 [&_li]:pl-1 [&_li]:text-slate-200 [&_img]:rounded-xl [&_img]:max-h-72 [&_img]:object-cover [&_img]:my-3 [&_strong]:font-bold [&_strong]:text-white [&_em]:italic [&_u]:underline [&_span]:text-slate-200 [&_td]:text-slate-200 [&_th]:text-white"
+                          className="rich-content text-sm text-slate-200 leading-relaxed [&_h2]:text-lg [&_h2]:font-normal [&_h2]:text-white [&_h2]:mb-2 [&_h2]:mt-3 [&_p]:mb-3 [&_p]:text-slate-200 [&_ul]:list-disc [&_ul]:list-inside [&_ul]:space-y-1 [&_ul]:mb-3 [&_ol]:list-decimal [&_ol]:list-inside [&_ol]:space-y-1 [&_ol]:mb-3 [&_li]:pl-1 [&_li]:text-slate-200 [&_img]:rounded-xl [&_img]:max-h-72 [&_img]:object-cover [&_img]:my-3 [&_strong]:font-bold [&_strong]:text-white [&_em]:italic [&_u]:underline [&_span]:text-slate-200 [&_td]:text-slate-200 [&_th]:text-white"
                         />
                       ) : (lesson.lesson_type || lesson.type)?.toLowerCase().includes('offline') ? (
                         <div>

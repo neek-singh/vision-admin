@@ -2,11 +2,32 @@
 
 import { revalidatePath } from "next/cache";
 import fs from "fs";
+import path from "path";
 
-const galleryFilePath = "c:\\Users\\as007\\vision-web\\features\\gallery\\data\\gallery.json";
+function getGalleryPaths() {
+  const candidates = [
+    path.resolve(process.cwd(), "..", "vision-web"),
+    "c:\\Users\\as007\\vision project\\vision-web",
+    "c:\\Users\\as007\\vision-web",
+  ];
+
+  let basePath = candidates[0];
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      basePath = candidate;
+      break;
+    }
+  }
+
+  const galleryFilePath = path.join(basePath, "features", "gallery", "data", "gallery.json");
+  const galleryDir = path.join(basePath, "public", "gallery");
+
+  return { galleryFilePath, galleryDir };
+}
 
 export async function getImages() {
   try {
+    const { galleryFilePath } = getGalleryPaths();
     if (fs.existsSync(galleryFilePath)) {
       const fileData = fs.readFileSync(galleryFilePath, "utf-8");
       return JSON.parse(fileData);
@@ -26,9 +47,19 @@ export async function uploadImage(formData: FormData) {
   }
 
   try {
+    const { galleryFilePath, galleryDir } = getGalleryPaths();
+    if (!fs.existsSync(galleryDir)) {
+      fs.mkdirSync(galleryDir, { recursive: true });
+    }
+
+    const jsonDir = path.dirname(galleryFilePath);
+    if (!fs.existsSync(jsonDir)) {
+      fs.mkdirSync(jsonDir, { recursive: true });
+    }
+
     const ext = file.name.split(".").pop();
     const fileName = `${Date.now()}.${ext}`;
-    const filePath = "c:\\Users\\as007\\vision-web\\public\\gallery\\" + fileName;
+    const filePath = path.join(galleryDir, fileName);
 
     // Save the image file
     const buffer = Buffer.from(await file.arrayBuffer());
@@ -43,7 +74,7 @@ export async function uploadImage(formData: FormData) {
     // Append new image
     const newImage = {
       id: Math.random().toString(36).slice(2),
-      title,
+      title: title.trim(),
       image_url: `/gallery/${fileName}`,
       created_at: new Date().toISOString(),
     };
@@ -66,6 +97,12 @@ export async function addImageUrl(title: string, imageUrl: string) {
   }
 
   try {
+    const { galleryFilePath } = getGalleryPaths();
+    const jsonDir = path.dirname(galleryFilePath);
+    if (!fs.existsSync(jsonDir)) {
+      fs.mkdirSync(jsonDir, { recursive: true });
+    }
+
     // Read existing JSON
     let gallery: any[] = [];
     if (fs.existsSync(galleryFilePath)) {
@@ -75,8 +112,8 @@ export async function addImageUrl(title: string, imageUrl: string) {
     // Append new image
     const newImage = {
       id: Math.random().toString(36).slice(2),
-      title,
-      image_url: imageUrl,
+      title: title.trim(),
+      image_url: imageUrl.trim(),
       created_at: new Date().toISOString(),
     };
 
@@ -94,6 +131,8 @@ export async function addImageUrl(title: string, imageUrl: string) {
 
 export async function deleteImage(id: string, imageUrl: string) {
   try {
+    const { galleryFilePath, galleryDir } = getGalleryPaths();
+
     // Read existing JSON
     let gallery: any[] = [];
     if (fs.existsSync(galleryFilePath)) {
@@ -104,10 +143,10 @@ export async function deleteImage(id: string, imageUrl: string) {
     const updatedGallery = gallery.filter((img: any) => img.id !== id);
     fs.writeFileSync(galleryFilePath, JSON.stringify(updatedGallery, null, 2), "utf-8");
 
-    // Delete local file
+    // Delete local file if it's stored locally
     const fileName = imageUrl.split("/").pop();
-    if (fileName) {
-      const filePath = "c:\\Users\\as007\\vision-web\\public\\gallery\\" + fileName;
+    if (fileName && imageUrl.startsWith("/gallery/")) {
+      const filePath = path.join(galleryDir, fileName);
       if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
       }

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ReactNode, useState, useEffect } from "react";
 import Image from "next/image";
+import AdminNavbar from "@/components/admin/AdminNavbar";
 import { supabase } from "@/lib/supabase";
 import {
   LayoutDashboard,
@@ -332,92 +333,15 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         className={`flex-1 flex flex-col transition-all duration-300 ease-in-out min-h-screen max-w-full overflow-x-hidden
         ${isCollapsed ? "lg:ml-[76px]" : "lg:ml-[260px]"}`}
       >
-        {/* Header/Navbar - Only visible on Dashboard pages */}
-        {isDashboard && (
-          <header className="h-16 bg-white/80 dark:bg-[#090f1f]/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800/80 sticky top-0 z-30 flex items-center justify-between px-4 lg:px-8 shadow-sm transition-colors duration-300">
-            <div className="flex items-center gap-4">
-              {/* Sidebar toggle for mobile drawer or desktop collapse */}
-              <button
-                onClick={toggleSidebar}
-                className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
-                title="Toggle Menu"
-              >
-                <Menu size={20} />
-              </button>
-              
-              {/* Nav Mode Slider (Web / Learn) */}
-              <div className="flex items-center gap-0.5 sm:gap-1 bg-slate-100 dark:bg-slate-900 p-0.5 sm:p-1 rounded-xl relative border border-slate-200/50 dark:border-slate-800/50 shadow-inner">
-                <Link 
-                  href="/admin" 
-                  onClick={() => setAdminMode("web")}
-                  className={`px-3 py-1 sm:px-4 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all duration-200 whitespace-nowrap z-10 ${
-                    adminMode === "web"
-                      ? "bg-white dark:bg-slate-850 text-orange-600 dark:text-orange-400 shadow-sm font-extrabold scale-105"
-                      : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
-                  }`}
-                >
-                  Web
-                </Link>
-                <Link 
-                  href="/admin/lms" 
-                  onClick={() => setAdminMode("lms")}
-                  className={`px-3 py-1 sm:px-4 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all duration-200 whitespace-nowrap z-10 ${
-                    adminMode === "lms"
-                      ? "bg-white dark:bg-slate-850 text-blue-600 dark:text-blue-400 shadow-sm font-extrabold scale-105"
-                      : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
-                  }`}
-                >
-                  Learn
-                </Link>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-1 sm:gap-2 lg:gap-4">
-              {/* Search Bar */}
-              <div className="hidden sm:flex items-center relative group">
-                <Search className="absolute left-3.5 text-slate-400 dark:text-slate-500 group-focus-within:text-blue-500 transition-colors" size={16} />
-                <input 
-                  type="text" 
-                  placeholder="Search everything..." 
-                  className="pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-900 border border-transparent focus:border-blue-500/50 dark:focus:border-blue-500/50 focus:bg-white dark:focus:bg-slate-950 text-slate-900 dark:text-slate-100 text-sm rounded-full w-40 lg:w-60 transition-all outline-none"
-                />
-              </div>
-
-              {/* Light/Dark Mode Switcher */}
-              <button
-                onClick={toggleTheme}
-                className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-all duration-200 relative overflow-hidden"
-                aria-label="Toggle Theme"
-                title={theme === "light" ? "Switch to Dark Mode" : "Switch to Light Mode"}
-              >
-                {theme === "light" ? (
-                  <Moon size={20} className="text-slate-600" />
-                ) : (
-                  <Sun size={20} className="text-amber-400 animate-pulse" />
-                )}
-              </button>
-
-              {/* Notification Center */}
-              <button className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors relative">
-                <Bell size={20} />
-                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-[#090f1f]"></span>
-              </button>
-
-              <div className="h-8 w-[1px] bg-slate-200 dark:bg-slate-800 mx-1 hidden sm:block"></div>
-
-              {/* User Profile */}
-              <button className="flex items-center gap-2 pl-2 pr-1 py-1 hover:bg-slate-100 dark:hover:bg-slate-900/60 rounded-full transition-colors">
-                <div className="hidden text-right lg:block">
-                  <p className="text-xs font-bold text-slate-900 dark:text-slate-100 leading-tight">Admin User</p>
-                  <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">Super Admin</p>
-                </div>
-                <div className="w-8 h-8 bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center rounded-full shadow-md">
-                  <User size={18} />
-                </div>
-              </button>
-            </div>
-          </header>
-        )}
+        {/* Global Upgraded Top Navbar */}
+        <AdminNavbar
+          toggleSidebar={toggleSidebar}
+          adminMode={adminMode}
+          setAdminMode={setAdminMode}
+          theme={theme}
+          toggleTheme={toggleTheme}
+          handleLogout={handleLogout}
+        />
 
         {/* Content Container */}
         <main className={`flex-1 ${pathname.startsWith('/admin/calendar') ? 'p-0 h-screen overflow-hidden' : 'overflow-y-auto p-4 lg:p-8'}`}>

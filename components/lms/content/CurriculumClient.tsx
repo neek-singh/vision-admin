@@ -1603,22 +1603,26 @@ export default function CourseContentManagement({
                                         return (
                                           <div
                                             key={lesson.id}
-                                            className="group/lesson flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 py-2 px-2 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                                            className="group/lesson flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 py-2 px-2.5 rounded-lg hover:bg-slate-100/80 dark:hover:bg-slate-800/60 transition-all cursor-pointer border border-transparent hover:border-slate-200/60 dark:hover:border-slate-700/50"
                                             draggable={reorderEnabled}
                                             onDragStart={(e) => { e.stopPropagation(); reorderEnabled && onDragStart(e, lesson.id, 'lesson', chapter.id); }}
                                             onDragEnd={(e) => { e.stopPropagation(); onDragEnd(e); }}
                                             onDragOver={(e) => e.preventDefault()}
                                             onDragEnter={(e) => { e.stopPropagation(); reorderEnabled && handleDragEnter(e, lesson.id, 'lesson', chapter.id); }}
+                                            onClick={() => setLessonModal({ show: true, moduleId: module.id, chapterId: chapter.id, isEditing: true, lessonId: lesson.id, initialData: lesson })}
+                                            title="Click to open lesson"
                                           >
                                             <div className="flex items-center gap-3 w-full sm:w-auto">
                                               {reorderEnabled ? (
-                                                <GripVertical size={14} className="text-slate-200 dark:text-slate-700 group-hover/lesson:text-slate-455 cursor-grab shrink-0" />
+                                                <div onClick={(e) => e.stopPropagation()} className="cursor-grab shrink-0">
+                                                  <GripVertical size={14} className="text-slate-300 dark:text-slate-700 group-hover/lesson:text-slate-500 shrink-0" />
+                                                </div>
                                               ) : (
                                                 <div className="text-slate-200 dark:text-slate-800/80 p-0.5 shrink-0" title="Reordering disabled during filtering">
                                                   <Lock size={10} className="opacity-60" />
                                                 </div>
                                               )}
-                                              <div className={`p-1.5 rounded-lg ${typeColor} shrink-0`}>
+                                              <div className={`p-1.5 rounded-lg ${typeColor} shrink-0 group-hover/lesson:scale-105 transition-transform`}>
                                                 <TypeIcon size={14} />
                                               </div>
                                               <div className="shrink-0 text-xs text-slate-400 dark:text-slate-500 whitespace-nowrap">
@@ -1627,14 +1631,14 @@ export default function CourseContentManagement({
                                               
                                               {/* Mobile Title - wraps inside the top row on mobile */}
                                               <div className="flex-1 min-w-0 sm:hidden">
-                                                <h4 className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">{lesson.title}</h4>
+                                                <h4 className="text-sm font-medium text-slate-800 dark:text-slate-200 group-hover/lesson:text-blue-600 dark:group-hover/lesson:text-blue-400 transition-colors truncate">{lesson.title}</h4>
                                               </div>
                                             </div>
 
                                             {/* Desktop Title & Badges */}
                                             <div className="hidden sm:block flex-1 min-w-0">
                                               <div className="flex flex-wrap items-center gap-2">
-                                                <h4 className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">{lesson.title}</h4>
+                                                <h4 className="text-sm font-medium text-slate-800 dark:text-slate-200 group-hover/lesson:text-blue-600 dark:group-hover/lesson:text-blue-400 transition-colors truncate">{lesson.title}</h4>
                                                 <span className={`text-[10px] text-slate-400 dark:text-slate-500`}>
                                                   {typeLabel}
                                                 </span>
@@ -1709,10 +1713,10 @@ export default function CourseContentManagement({
                                               <div className="flex items-center gap-1 sm:opacity-0 sm:group-hover/lesson:opacity-100 transition-opacity">
                                                 <button onClick={(e) => { e.stopPropagation(); moveItem('lesson', lesson.id, 'up', chapter.id); }} className="w-7 h-7 rounded-md flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-all cursor-pointer" title="Move Up"><ArrowUp size={12} /></button>
                                                 <button onClick={(e) => { e.stopPropagation(); moveItem('lesson', lesson.id, 'down', chapter.id); }} className="w-7 h-7 rounded-md flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-all cursor-pointer" title="Move Down"><ArrowDown size={12} /></button>
-                                                <button onClick={() => setPreviewLesson(lesson)} className="w-7 h-7 rounded-md flex items-center justify-center text-slate-400 dark:text-slate-555 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all cursor-pointer" title="Preview Class"><Eye size={12} /></button>
-                                                <button onClick={() => setLessonModal({ show: true, moduleId: module.id, chapterId: chapter.id, isEditing: true, lessonId: lesson.id, initialData: lesson })} className="w-7 h-7 rounded-md flex items-center justify-center text-slate-400 dark:text-slate-555 hover:text-blue-600 dark:hover:text-blue-400 transition-all cursor-pointer" title="Edit Class"><Edit2 size={12} /></button>
+                                                <button onClick={(e) => { e.stopPropagation(); setPreviewLesson(lesson); }} className="w-7 h-7 rounded-md flex items-center justify-center text-slate-400 dark:text-slate-555 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all cursor-pointer" title="Preview Class"><Eye size={12} /></button>
+                                                <button onClick={(e) => { e.stopPropagation(); setLessonModal({ show: true, moduleId: module.id, chapterId: chapter.id, isEditing: true, lessonId: lesson.id, initialData: lesson }); }} className="w-7 h-7 rounded-md flex items-center justify-center text-slate-400 dark:text-slate-555 hover:text-blue-600 dark:hover:text-blue-400 transition-all cursor-pointer" title="Edit Class"><Edit2 size={12} /></button>
                                                 <button
-                                                  onClick={() => handleDeleteItem(lesson.id, "lessons", lesson.title, lesson)}
+                                                  onClick={(e) => { e.stopPropagation(); handleDeleteItem(lesson.id, "lessons", lesson.title, lesson); }}
                                                   disabled={deletingId === lesson.id}
                                                   className="w-7 h-7 rounded-md flex items-center justify-center text-slate-400 dark:text-slate-555 hover:text-rose-600 hover:border-rose-100 hover:bg-rose-50 dark:hover:text-rose-455 dark:hover:border-rose-900/40 dark:hover:bg-rose-950/30 transition-all cursor-pointer disabled:opacity-50"
                                                   title="Delete Class"
@@ -1773,12 +1777,14 @@ export default function CourseContentManagement({
                               return (
                                 <div
                                   key={lesson.id}
-                                  className="group/lesson flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 py-2 px-2 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                                  className="group/lesson flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 py-2 px-2.5 rounded-lg hover:bg-slate-100/80 dark:hover:bg-slate-800/60 transition-all cursor-pointer border border-transparent hover:border-slate-200/60 dark:hover:border-slate-700/50"
                                   draggable={reorderEnabled}
                                   onDragStart={(e) => { e.stopPropagation(); reorderEnabled && onDragStart(e, lesson.id, 'lesson', module.id); }}
                                   onDragEnd={(e) => { e.stopPropagation(); onDragEnd(e); }}
                                   onDragOver={(e) => e.preventDefault()}
                                   onDragEnter={(e) => { e.stopPropagation(); reorderEnabled && handleDragEnter(e, lesson.id, 'lesson', module.id); }}
+                                  onClick={() => setLessonModal({ show: true, moduleId: module.id, isEditing: true, lessonId: lesson.id, initialData: lesson })}
+                                  title="Click to open lesson"
                                 >
                                   <div className="flex items-center gap-3 w-full sm:w-auto">
                                     {reorderEnabled ? (
@@ -1879,10 +1885,10 @@ export default function CourseContentManagement({
                                     <div className="flex items-center gap-1 sm:opacity-0 sm:group-hover/lesson:opacity-100 transition-opacity">
                                       <button onClick={(e) => { e.stopPropagation(); moveItem('lesson', lesson.id, 'up', module.id); }} className="w-7 h-7 rounded-md flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-all cursor-pointer" title="Move Up"><ArrowUp size={12} /></button>
                                       <button onClick={(e) => { e.stopPropagation(); moveItem('lesson', lesson.id, 'down', module.id); }} className="w-7 h-7 rounded-md flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-all cursor-pointer" title="Move Down"><ArrowDown size={12} /></button>
-                                      <button onClick={() => setPreviewLesson(lesson)} className="w-7 h-7 rounded-md flex items-center justify-center text-slate-400 dark:text-slate-555 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all cursor-pointer" title="Preview Class"><Eye size={12} /></button>
-                                      <button onClick={() => setLessonModal({ show: true, moduleId: module.id, isEditing: true, lessonId: lesson.id, initialData: lesson })} className="w-7 h-7 rounded-md flex items-center justify-center text-slate-400 dark:text-slate-555 hover:text-blue-600 dark:hover:text-blue-400 transition-all cursor-pointer" title="Edit Class"><Edit2 size={12} /></button>
+                                      <button onClick={(e) => { e.stopPropagation(); setPreviewLesson(lesson); }} className="w-7 h-7 rounded-md flex items-center justify-center text-slate-400 dark:text-slate-555 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all cursor-pointer" title="Preview Class"><Eye size={12} /></button>
+                                      <button onClick={(e) => { e.stopPropagation(); setLessonModal({ show: true, moduleId: module.id, isEditing: true, lessonId: lesson.id, initialData: lesson }); }} className="w-7 h-7 rounded-md flex items-center justify-center text-slate-400 dark:text-slate-555 hover:text-blue-600 dark:hover:text-blue-400 transition-all cursor-pointer" title="Edit Class"><Edit2 size={12} /></button>
                                       <button
-                                        onClick={() => handleDeleteItem(lesson.id, "lessons", lesson.title, lesson)}
+                                        onClick={(e) => { e.stopPropagation(); handleDeleteItem(lesson.id, "lessons", lesson.title, lesson); }}
                                         disabled={deletingId === lesson.id}
                                         className="w-7 h-7 rounded-md flex items-center justify-center text-slate-400 dark:text-slate-555 hover:text-rose-600 hover:border-rose-100 hover:bg-rose-50 dark:hover:text-rose-455 dark:hover:border-rose-900/40 dark:hover:bg-rose-950/30 transition-all cursor-pointer disabled:opacity-50"
                                         title="Delete Class"

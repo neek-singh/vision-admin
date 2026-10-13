@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Search, X, Pencil, Clock, Users, BookOpen } from "lucide-react";
+import { Search, X, Pencil, Clock, BookOpen, Loader2, Eye, EyeOff } from "lucide-react";
 import DeleteButton from "@/components/ui/DeleteButton";
+import { toggleCourseVisibility, setAllCoursesVisibility } from "@/app/actions/lms/courses";
 
 type Course = {
   id: string;
@@ -14,37 +15,114 @@ type Course = {
   discount_fee?: number;
   learning_format?: string;
   category?: string;
+  is_published?: boolean;
   enrollments?: { count: number }[];
 };
 
 export default function CoursesTableClient({ initialCourses }: { initialCourses: Course[] }) {
+  const [courses, setCourses] = useState<Course[]>(initialCourses);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [statusFilter, setStatusFilter] = useState<"All" | "Visible" | "Hidden">("All");
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [isBulkUpdating, setIsBulkUpdating] = useState(false);
+
+  useEffect(() => {
+    setCourses(initialCourses);
+  }, [initialCourses]);
 
   // Dynamically collect all unique categories from courses
   const categoriesList = Array.from(
     new Set(
-      initialCourses
+      courses
         .map((c) => c.category)
         .filter((cat): cat is string => !!cat)
     )
   ).sort();
 
-  // Search and category filter matching
-  const filteredCourses = initialCourses.filter((course) => {
-    const q = searchTerm.trim().toLowerCase();
-    const matchesSearch =
-      !q ||
-      course.title.toLowerCase().includes(q) ||
-      course.course_code.toLowerCase().includes(q) ||
-      (course.category && course.category.toLowerCase().includes(q)) ||
-      (course.duration && course.duration.toLowerCase().includes(q));
+  const visibleCount = courses.filter((c) => c.is_published !== false).length;
+  const hiddenCount = courses.filter((c) => c.is_published === false).length;
 
-    const matchesCategory =
-      selectedCategory === "All" || course.category === selectedCategory;
+  // Toggle single course visibility with optimistic update
+  const handleToggleVisibility = async (courseId: string, currentStatus?: boolean) => {
+    const isCurrentlyPublished = currentStatus !== false;
+    const newStatus = !isCurrentlyPublished;
 
-    return matchesSearch && matchesCategory;
-  });
+    setTogglingId(courseId);
+
+    // Optimistic UI update
+    setCourses((prev) =>
+      prev.map((c) => (c.id === courseId ? { ...c, is_published: newStatus } : c))
+    );
+
+    try {
+      const res = await toggleCourseVisibility(courseId, newStatus);
+      if (res?.error) {
+        // Rollback
+        setCourses((prev) =>
+          prev.map((c) => (c.id === courseId ? { ...c, is_published: isCurrentlyPublished } : c))
+        );
+        alert("Failed to update visibility: " + res.error);
+      }
+    } catch (err: any) {
+      // Rollback
+      setCourses((prev) =>
+        prev.map((c) => (c.id === courseId ? { ...c, is_published: isCurrentlyPublished } : c))
+      );
+      alert("Error: " + err.message);
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
+  // Bulk make all visible or hidden
+  const handleBulkSetVisibility = async (makeVisible: boolean) => {
+    setIsBulkUpdating(true);
+    setCourses((prev) => prev.map((c) => ({ ...c, is_published: makeVisible })));
+
+    try {
+      const res = await setAllCoursesVisibility(makeVisible);
+      if (res?.error) {
+        setCourses(initialCourses);
+        alert("Failed to update courses: " + res.error);
+      }
+    } catch (err: any) {
+      setCourses(initialCourses);
+      alert("Error: " + err.message);
+    } finally {
+      setIsBulkUpdating(false);
+    }
+  };
+
+  // Search, category, status filter and enrolled-wise sorting (highest enrolled on top)
+  const filteredCourses = courses
+    .filter((course) => {
+      const q = searchTerm.trim().toLowerCase();
+      const matchesSearch =
+        !q ||
+        course.title.toLowerCase().includes(q) ||
+        course.course_code.toLowerCase().includes(q) ||
+        (course.category && course.category.toLowerCase().includes(q)) ||
+        (course.duration && course.duration.toLowerCase().includes(q));
+
+      const matchesCategory =
+        selectedCategory === "All" || course.category === selectedCategory;
+
+      const matchesStatus =
+        statusFilter === "All" ||
+        (statusFilter === "Visible" && course.is_published !== false) ||
+        (statusFilter === "Hidden" && course.is_published === false);
+
+      return matchesSearch && matchesCategory && matchesStatus;
+    })
+    .sort((a, b) => {
+      const countA = a.enrollments?.[0]?.count || 0;
+      const countB = b.enrollments?.[0]?.count || 0;
+      if (countB !== countA) {
+        return countB - countA; // Highest enrolled courses first
+      }
+      return a.title.localeCompare(b.title);
+    });
 
   const hasDiscount = (c: Course) => !!c.discount_fee && c.discount_fee > 0;
 
@@ -87,7 +165,7 @@ export default function CoursesTableClient({ initialCourses }: { initialCourses:
               type="text"
               id="course-search-input"
               placeholder="Search by name, category, duration..."
-              className="w-full pl-8 pr-7 py-1.5 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
+              className="w-full pl-8 pr-7 py-1.5 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 font-medium"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -103,15 +181,28 @@ export default function CoursesTableClient({ initialCourses }: { initialCourses:
             )}
           </div>
 
-          {/* Category Filter & Counter */}
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+          {/* Filters: Status & Category & Action Button & Counter */}
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end flex-wrap">
+            {/* Website Visibility Filter */}
+            <select
+              id="course-status-select"
+              className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 focus:outline-none focus:border-blue-500 text-xs text-slate-700 dark:text-slate-300 font-medium cursor-pointer"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as "All" | "Visible" | "Hidden")}
+            >
+              <option value="All">All Status ({courses.length})</option>
+              <option value="Visible">Visible ({visibleCount})</option>
+              <option value="Hidden">Hidden ({hiddenCount})</option>
+            </select>
+
+            {/* Category Filter */}
             <select
               id="course-category-select"
-              className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 focus:outline-none focus:border-blue-500 text-xs text-slate-700 dark:text-slate-300 cursor-pointer"
+              className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 focus:outline-none focus:border-blue-500 text-xs text-slate-700 dark:text-slate-300 font-medium cursor-pointer"
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
             >
-              <option value="All">All Categories ({initialCourses.length})</option>
+              <option value="All">All Categories ({courses.length})</option>
               {categoriesList.map((cat) => (
                 <option key={cat} value={cat}>
                   {cat}
@@ -119,7 +210,40 @@ export default function CoursesTableClient({ initialCourses }: { initialCourses:
               ))}
             </select>
 
-            <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500 whitespace-nowrap">
+            {/* Bulk Visibility Action Button */}
+            {hiddenCount > 0 ? (
+              <button
+                type="button"
+                disabled={isBulkUpdating}
+                onClick={() => handleBulkSetVisibility(true)}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 border border-emerald-200/80 dark:border-emerald-800 transition-all cursor-pointer shadow-2xs active:scale-95 disabled:opacity-50"
+                title="Make all courses live on the website"
+              >
+                {isBulkUpdating ? (
+                  <Loader2 size={13} className="animate-spin" />
+                ) : (
+                  <Eye size={13} />
+                )}
+                <span>Make All Live</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled={isBulkUpdating}
+                onClick={() => handleBulkSetVisibility(false)}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700 transition-all cursor-pointer shadow-2xs active:scale-95 disabled:opacity-50"
+                title="Hide all courses from the website"
+              >
+                {isBulkUpdating ? (
+                  <Loader2 size={13} className="animate-spin" />
+                ) : (
+                  <EyeOff size={13} />
+                )}
+                <span>Hide All</span>
+              </button>
+            )}
+
+            <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 whitespace-nowrap">
               {filteredCourses.length} {filteredCourses.length === 1 ? "course" : "courses"}
             </span>
           </div>
@@ -135,18 +259,19 @@ export default function CoursesTableClient({ initialCourses }: { initialCourses:
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="bg-slate-50/75 dark:bg-slate-950/40 text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800/80 text-[10px] font-bold uppercase tracking-wider">
-                <th className="px-3.5 py-2.5 w-72">Course Name</th>
-                <th className="px-3.5 py-2.5 w-52">Category</th>
-                <th className="px-3.5 py-2.5 w-40">Duration</th>
-                <th className="px-3.5 py-2.5 w-32 text-center">Enrolled</th>
-                <th className="px-3.5 py-2.5 w-36 text-right">Fees</th>
+                <th className="px-3.5 py-2.5 w-64">Course Name</th>
+                <th className="px-3.5 py-2.5 w-44">Category</th>
+                <th className="px-3.5 py-2.5 w-36">Duration</th>
+                <th className="px-3.5 py-2.5 w-24 text-center">Enrolled</th>
+                <th className="px-3.5 py-2.5 w-32 text-right">Fees</th>
+                <th className="px-3.5 py-2.5 w-24 text-center">Website</th>
                 <th className="px-3.5 py-2.5 text-right w-24">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
               {filteredCourses.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center">
+                  <td colSpan={7} className="px-4 py-12 text-center">
                     <div className="flex flex-col items-center justify-center max-w-sm mx-auto text-center">
                       <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mb-2">
                         <BookOpen size={16} />
@@ -155,14 +280,15 @@ export default function CoursesTableClient({ initialCourses }: { initialCourses:
                         No courses found
                       </p>
                       <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
-                        Try adjusting your search criteria or category filter.
+                        Try adjusting your search criteria or filters.
                       </p>
-                      {(searchTerm || selectedCategory !== "All") && (
+                      {(searchTerm || selectedCategory !== "All" || statusFilter !== "All") && (
                         <button
                           type="button"
                           onClick={() => {
                             setSearchTerm("");
                             setSelectedCategory("All");
+                            setStatusFilter("All");
                           }}
                           className="mt-3 px-3 py-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-lg transition-colors cursor-pointer"
                         >
@@ -175,6 +301,8 @@ export default function CoursesTableClient({ initialCourses }: { initialCourses:
               ) : (
                 filteredCourses.map((course) => {
                   const enrolledCount = course.enrollments?.[0]?.count || 0;
+                  const isLive = course.is_published !== false;
+                  const isToggling = togglingId === course.id;
 
                   return (
                     <tr 
@@ -187,11 +315,6 @@ export default function CoursesTableClient({ initialCourses }: { initialCourses:
                           <p className="text-xs font-semibold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate">
                             {course.title}
                           </p>
-                          {course.course_code && (
-                            <span className="inline-block mt-0.5 text-[10px] font-mono text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800/80 px-1.5 py-0.2 rounded border border-slate-200/50 dark:border-slate-800">
-                              {course.course_code}
-                            </span>
-                          )}
                         </div>
                       </td>
 
@@ -210,11 +333,13 @@ export default function CoursesTableClient({ initialCourses }: { initialCourses:
                         </div>
                       </td>
 
-                      {/* 4. Enrolled */}
+                      {/* 4. Enrolled (Only Number) */}
                       <td className="px-3.5 py-3 text-center">
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700">
-                          <Users size={11} className="text-slate-400" />
-                          <span>{enrolledCount} enrolled</span>
+                        <span 
+                          className="inline-flex items-center justify-center min-w-[26px] h-[22px] px-2 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700 tabular-nums"
+                          title={`${enrolledCount} students enrolled`}
+                        >
+                          {enrolledCount}
                         </span>
                       </td>
 
@@ -238,7 +363,34 @@ export default function CoursesTableClient({ initialCourses }: { initialCourses:
                         </div>
                       </td>
 
-                      {/* 6. Actions */}
+                      {/* 6. Website Visibility (Only Button) */}
+                      <td className="px-3.5 py-3 text-center">
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={isLive}
+                          disabled={isToggling}
+                          onClick={() => handleToggleVisibility(course.id, course.is_published)}
+                          className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50 active:scale-95 shadow-2xs ${
+                            isLive ? "bg-emerald-500" : "bg-slate-200 dark:bg-slate-700"
+                          }`}
+                          title={isLive ? "Live on website (Click to hide)" : "Hidden from website (Click to make live)"}
+                        >
+                          {isToggling ? (
+                            <span className="w-full flex items-center justify-center">
+                              <Loader2 size={10} className="animate-spin text-white" />
+                            </span>
+                          ) : (
+                            <span
+                              className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-xs ring-0 transition duration-200 ease-in-out ${
+                                isLive ? "translate-x-4" : "translate-x-0"
+                              }`}
+                            />
+                          )}
+                        </button>
+                      </td>
+
+                      {/* 7. Actions */}
                       <td className="px-3.5 py-3 text-right">
                         <div className="flex items-center justify-end gap-1">
                           <Link
@@ -274,6 +426,8 @@ export default function CoursesTableClient({ initialCourses }: { initialCourses:
           ) : (
             filteredCourses.map((course) => {
               const enrolledCount = course.enrollments?.[0]?.count || 0;
+              const isLive = course.is_published !== false;
+              const isToggling = togglingId === course.id;
 
               return (
                 <div key={course.id} className="p-3.5 space-y-2.5">
@@ -282,11 +436,6 @@ export default function CoursesTableClient({ initialCourses }: { initialCourses:
                       <p className="font-bold text-xs text-slate-900 dark:text-white leading-tight">
                         {course.title}
                       </p>
-                      {course.course_code && (
-                        <p className="text-[10px] font-mono text-slate-400 mt-0.5">
-                          {course.course_code}
-                        </p>
-                      )}
                     </div>
                     
                     <div className="text-right shrink-0">
@@ -308,6 +457,31 @@ export default function CoursesTableClient({ initialCourses }: { initialCourses:
                   </div>
 
                   <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
+                    {/* Status Toggle Button (Only Button) */}
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={isLive}
+                      disabled={isToggling}
+                      onClick={() => handleToggleVisibility(course.id, course.is_published)}
+                      className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer items-center rounded-full border border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50 active:scale-95 ${
+                        isLive ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-700"
+                      }`}
+                      title={isLive ? "Live on website (Click to hide)" : "Hidden from website (Click to make live)"}
+                    >
+                      {isToggling ? (
+                        <span className="w-full flex items-center justify-center">
+                          <Loader2 size={8} className="animate-spin text-white" />
+                        </span>
+                      ) : (
+                        <span
+                          className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow-xs transition duration-200 ease-in-out ${
+                            isLive ? "translate-x-3.5" : "translate-x-0.5"
+                          }`}
+                        />
+                      )}
+                    </button>
+
                     <span className={`px-2 py-0.5 rounded-full font-semibold border ${getCategoryColor(course.category)}`}>
                       {course.category || "General"}
                     </span>
@@ -317,9 +491,12 @@ export default function CoursesTableClient({ initialCourses }: { initialCourses:
                       <span>{course.duration || "N/A"}</span>
                     </span>
 
-                    <span className="inline-flex items-center gap-1 text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
-                      <Users size={10} />
-                      <span>{enrolledCount} enrolled</span>
+                    {/* Enrolled (Only Number) */}
+                    <span 
+                      className="inline-flex items-center justify-center min-w-[20px] h-[18px] px-1.5 rounded-full font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700 tabular-nums"
+                      title={`${enrolledCount} enrolled`}
+                    >
+                      {enrolledCount}
                     </span>
                   </div>
 

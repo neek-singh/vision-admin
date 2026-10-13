@@ -127,3 +127,59 @@ export async function getAvailableTrainers() {
     return { error: e.message || "Failed to fetch trainers", trainers: [] };
   }
 }
+
+export async function toggleCourseVisibility(id: string, is_published: boolean) {
+  try {
+    const supabase = await createServerSupabaseClient();
+
+    const { error } = await supabase
+      .from("courses")
+      .update({ is_published, updated_at: new Date().toISOString() })
+      .eq("id", id);
+
+    if (error) {
+      console.error("Error toggling course visibility in Supabase:", error);
+      throw new Error(error.message);
+    }
+
+    revalidatePath("/admin/courses");
+    revalidatePath("/courses");
+    if (id) {
+      revalidatePath(`/courses/${id}`);
+    }
+    return { success: true, is_published };
+  } catch (e: any) {
+    console.error("Failed to toggle course visibility:", e);
+    return { error: e.message || "Failed to toggle visibility" };
+  }
+}
+
+export async function setAllCoursesVisibility(is_published: boolean) {
+  try {
+    const supabase = await createServerSupabaseClient();
+
+    const { data: courses, error: fetchErr } = await supabase
+      .from("courses")
+      .select("id");
+
+    if (fetchErr) throw fetchErr;
+
+    const ids = (courses || []).map((c: any) => c.id);
+    if (ids.length > 0) {
+      const { error } = await supabase
+        .from("courses")
+        .update({ is_published, updated_at: new Date().toISOString() })
+        .in("id", ids);
+
+      if (error) throw error;
+    }
+
+    revalidatePath("/admin/courses");
+    revalidatePath("/courses");
+    return { success: true, count: ids.length, is_published };
+  } catch (e: any) {
+    console.error("Failed to set all courses visibility:", e);
+    return { error: e.message || "Failed to update courses" };
+  }
+}
+

@@ -1,12 +1,33 @@
 "use server";
 
 import fs from "fs";
+import path from "path";
 import { revalidatePath } from "next/cache";
 
-const statsFilePath = "c:\\Users\\as007\\vision-web\\features\\admin\\data\\stats.json";
+function getStatsFilePath() {
+  const candidates = [
+    path.resolve(process.cwd(), "..", "vision-web"),
+    "c:\\Users\\as007\\vision project\\vision-web",
+    "c:\\Users\\as007\\vision-web",
+  ];
+  let basePath = candidates[0];
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      basePath = candidate;
+      break;
+    }
+  }
+  const filePath = path.join(basePath, "features", "admin", "data", "stats.json");
+  const dir = path.dirname(filePath);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  return filePath;
+}
 
 export async function updateStats(formData: FormData) {
   try {
+    const statsFilePath = getStatsFilePath();
     const expert_mentors = formData.get("expert_mentors") as string;
     const students_trained = formData.get("students_trained") as string;
     const practical_learning = formData.get("practical_learning") as string;
