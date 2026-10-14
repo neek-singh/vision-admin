@@ -35,6 +35,143 @@ import {
 } from "lucide-react";
 import { setupStudentFee, recordPayment, deleteFeeRecord, deletePayment, incrementStudentFee } from "@/app/actions/lms/fees";
 
+// Helper: Get the latest due month key (YYYY-MM) and name
+// Students pay fee for Month M in Month M+1 (e.g. September fee is paid in October)
+export const getLatestDueMonth = (date = new Date()) => {
+  const due = new Date(date.getFullYear(), date.getMonth() - 1, 1);
+  const yyyy = due.getFullYear();
+  const mm = String(due.getMonth() + 1).padStart(2, "0");
+  return {
+    key: `${yyyy}-${mm}`,
+    shortName: due.toLocaleDateString("en-US", { month: "short" }),
+    longName: due.toLocaleDateString("en-US", { month: "long" }),
+    year: yyyy,
+    monthNum: due.getMonth() + 1,
+    formatted: due.toLocaleDateString("en-IN", { month: "long", year: "numeric" })
+  };
+};
+
+// Helper: Calculate complete month-by-month status adhering to 1-month delayed billing (M paid in M+1)
+export const getStudentMonthStatus = (fee: any, currentDate = new Date()) => {
+  const studentInfo = fee.students as any;
+  const isDropout = studentInfo?.status === "dropped_out";
+  const totalPaid = (fee.payments || []).reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
+  const totalPayable = Number(fee.final_fee || 0) + Number(fee.increment_amount || 0);
+  const balance = totalPayable - totalPaid;
+
+  // If entire course fee is cleared, no unpaid months
+  if (balance <= 0) {
+    return {
+      unpaidMonths: [] as string[],
+      allDueMonths: [] as string[],
+      isMonthPaid: (_targetKey?: string) => true,
+      paidMonthsCount: 999,
+      dueMonths: []
+    };
+  }
+
+  // 1. If explicit installments exist
+  if (fee.installments && fee.installments.length > 0) {
+    const pendingInst = fee.installments.filter((inst: any) => inst.status === "pending");
+    const todayStr = currentDate.toISOString().split("T")[0];
+    const dueInst = pendingInst.filter((inst: any) => !inst.due_date || inst.due_date <= todayStr);
+    const unpaidMonths = dueInst.map((inst: any) => {
+      if (!inst.due_date) return "Installment Due";
+      const [y, m] = inst.due_date.split("-");
+      const d = new Date(Number(y), Number(m) - 1, 1);
+      return d.toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+    });
+    return {
+      unpaidMonths,
+      allDueMonths: unpaidMonths,
+      isMonthPaid: (targetKey?: string) => {
+        if (!targetKey) return false;
+        return !dueInst.some((inst: any) => inst.due_date && inst.due_date.startsWith(targetKey));
+      },
+      paidMonthsCount: fee.installments.length - pendingInst.length,
+      dueMonths: []
+    };
+  }
+
+  // 2. Standard monthly tuition tracking (Month M is paid in Month M+1)
+  const monthlyRate = 1000;
+  const courseFeePaid = (fee.payments || []).reduce((sum: number, p: any) => {
+    const cf = Number(p.course_fee || 0);
+    if (cf > 0) return sum + cf;
+    const reg = Number(p.registration_fee || 0);
+    const exam = Number(p.exam_fee || 0);
+    if (reg === 0 && exam === 0) return sum + Number(p.amount || 0);
+    return sum;
+  }, 0);
+
+  const paidMonthsCount = Math.floor(courseFeePaid / monthlyRate);
+
+  const createdDate = fee.created_at ? new Date(fee.created_at) : new Date();
+  const start = new Date(createdDate.getFullYear(), createdDate.getMonth(), 1);
+  // In month M+1, fee for month M is due. So latest due month is currentDate - 1 month
+  let end = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+
+  if (isDropout && studentInfo?.dropout_date) {
+    const dropDate = new Date(studentInfo.dropout_date);
+    if (!isNaN(dropDate.getTime())) {
+      const dropMonth = new Date(dropDate.getFullYear(), dropDate.getMonth(), 1);
+      if (dropMonth < end) end = dropMonth;
+    }
+  }
+
+  if (start > end) {
+    return {
+      unpaidMonths: [] as string[],
+      allDueMonths: [] as string[],
+      isMonthPaid: (_targetKey?: string) => true,
+      paidMonthsCount,
+      dueMonths: []
+    };
+  }
+
+  const dueMonths: { key: string; label: string; shortName: string }[] = [];
+  const iter = new Date(start);
+  while (iter <= end) {
+    const yyyy = iter.getFullYear();
+    const mm = String(iter.getMonth() + 1).padStart(2, "0");
+    dueMonths.push({
+      key: `${yyyy}-${mm}`,
+      label: iter.toLocaleDateString("en-IN", { month: "long", year: "numeric" }),
+      shortName: iter.toLocaleDateString("en-US", { month: "short" })
+    });
+    iter.setMonth(iter.getMonth() + 1);
+  }
+
+  const unpaidMonths: string[] = [];
+  dueMonths.forEach((m, idx) => {
+    if (idx >= paidMonthsCount) {
+      unpaidMonths.push(m.label);
+    }
+  });
+
+  const allDueMonths = dueMonths.map(m => m.label);
+
+  const isMonthPaid = (targetKey?: string) => {
+    if (!targetKey) return false;
+    const idx = dueMonths.findIndex(m => m.key === targetKey);
+    if (idx === -1) {
+      const [ty, tm] = targetKey.split("-");
+      const targetDate = new Date(Number(ty), Number(tm) - 1, 1);
+      if (targetDate < start) return true; // not yet enrolled in that month
+      return false;
+    }
+    return idx < paidMonthsCount;
+  };
+
+  return {
+    unpaidMonths,
+    allDueMonths,
+    isMonthPaid,
+    paidMonthsCount,
+    dueMonths
+  };
+};
+
 export default function FeesClient({ 
   initialFees, 
   students,
@@ -57,6 +194,7 @@ export default function FeesClient({
   const [showReminderModal, setShowReminderModal] = useState<any | null>(null);
   const [reminderMonthlyRate, setReminderMonthlyRate] = useState<number>(1000);
   const [selectedUnpaidMonths, setSelectedUnpaidMonths] = useState<string[]>([]);
+  const [reminderCandidateMonths, setReminderCandidateMonths] = useState<string[]>([]);
   const [reminderCustomPhone, setReminderCustomPhone] = useState<string>("");
   const [customReminderMessage, setCustomReminderMessage] = useState<string | null>(null);
   const [copiedSMS, setCopiedSMS] = useState(false);
@@ -213,7 +351,8 @@ export default function FeesClient({
 
   // Memoized Filtered & Sorted Fees
   const filteredFees = useMemo(() => {
-    const targetMonth = monthFilter === "all" ? new Date().toISOString().substring(0, 7) : monthFilter;
+    const defaultDue = getLatestDueMonth();
+    const targetMonthKey = monthFilter === "all" ? defaultDue.key : monthFilter;
 
     const list = initialFees.filter(fee => {
       const student = fee.students as any;
@@ -238,15 +377,14 @@ export default function FeesClient({
       // Smart dynamic status: resolves discrepancy when balance is 0 or advance
       const computedStatus = isDropout ? "dropped_out" : balance <= 0 ? "paid" : totalPaid > 0 ? "partial" : "due";
 
-      // Calculate payments made in the selected month
-      const totalPaidInMonth = fee.payments
-        ?.filter((p: any) => p.payment_date && p.payment_date.substring(0, 7) === targetMonth)
-        ?.reduce((acc: number, p: any) => acc + Number(p.amount), 0) || 0;
+      // Check whether targetMonth fee is paid
+      const monthStatus = getStudentMonthStatus(fee);
+      const isMonthPaid = monthStatus.isMonthPaid(targetMonthKey);
 
       const matchesStatus = 
         statusFilter === "all" || 
         (statusFilter === "unpaid_month" 
-          ? (!isDropout && hasBalance && totalPaidInMonth === 0) 
+          ? (!isDropout && hasBalance && !isMonthPaid) 
           : computedStatus === statusFilter);
 
       const matchesCourse = 
@@ -404,6 +542,339 @@ export default function FeesClient({
     }
   }, [initialFees, showHistory]);
 
+  const receiptSharedCSS = `
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      font-size: 12px;
+      color: #1e293b;
+      background: #ffffff;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      padding: 24px;
+    }
+    .receipt-container {
+      max-width: 680px;
+      margin: 0 auto;
+      background: #ffffff;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+    .hd {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px dashed #cbd5e1;
+      margin-bottom: 14px;
+    }
+    .hd img {
+      width: 46px;
+      height: 46px;
+      object-fit: contain;
+      flex-shrink: 0;
+    }
+    .hd-info { flex: 1; }
+    .hd-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: #0f172a;
+      letter-spacing: -0.01em;
+    }
+    .hd-addr {
+      font-size: 10px;
+      color: #64748b;
+      margin-top: 2px;
+    }
+    .title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .doc-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #0f172a;
+    }
+    .doc-date {
+      font-size: 10px;
+      color: #64748b;
+      font-weight: 500;
+    }
+    .student-info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px 20px;
+      background: #f8fafc;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 18px;
+    }
+    .info-cell {
+      display: flex;
+      flex-direction: column;
+    }
+    .info-cell.full {
+      grid-column: span 2;
+    }
+    .info-lbl {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: #64748b;
+      margin-bottom: 2px;
+    }
+    .info-val {
+      font-size: 12px;
+      font-weight: 600;
+      color: #0f172a;
+    }
+    .info-val.mono {
+      font-family: 'Courier New', monospace;
+      font-size: 11.5px;
+    }
+    .sec-head {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #475569;
+      margin-bottom: 8px;
+    }
+    .pay-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 14px;
+    }
+    .pay-table th {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #64748b;
+      background: #f8fafc;
+      padding: 8px 10px;
+      border-top: 1px solid #e2e8f0;
+      border-bottom: 1px solid #e2e8f0;
+      text-align: left;
+    }
+    .pay-table th:last-child {
+      text-align: right;
+    }
+    .pay-table td {
+      font-size: 11px;
+      color: #334155;
+      padding: 8px 10px;
+      border-bottom: 1px solid #f1f5f9;
+      vertical-align: middle;
+    }
+    .pay-table td:last-child {
+      text-align: right;
+    }
+    .ref-no {
+      font-family: 'Courier New', monospace;
+      font-size: 9.5px;
+      color: #64748b;
+      margin-top: 2px;
+    }
+    .breakdown-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .bd-chip {
+      font-size: 9.5px;
+      color: #475569;
+      background: #f1f5f9;
+      padding: 2px 6px;
+      border-radius: 4px;
+      display: inline-block;
+    }
+    .total-box {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #f8fafc;
+      padding: 10px 16px;
+      border-radius: 6px;
+      margin-bottom: 22px;
+    }
+    .total-box-lbl {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #334155;
+    }
+    .total-box-val {
+      font-size: 16px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .footer {
+      padding-top: 10px;
+      border-top: 1px dashed #cbd5e1;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+    .footer-msg {
+      font-size: 9.5px;
+      color: #94a3b8;
+      font-weight: 500;
+    }
+    .sig-block {
+      text-align: center;
+      font-size: 9.5px;
+      color: #64748b;
+    }
+    .sig-line {
+      width: 90px;
+      border-top: 1px solid #94a3b8;
+      margin: 0 auto 4px auto;
+    }
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 12mm 10mm;
+      }
+      body {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+      }
+      .receipt-container {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 auto !important;
+        padding: 0 !important;
+      }
+    }
+  `;
+
+  const renderStudentReceiptStatementHtml = (data: {
+    studentName: string;
+    studentId: string;
+    courseTitle: string;
+    payments: Array<{
+      paymentDate: string;
+      paymentMode: string;
+      transactionId?: string | null;
+      amount: number;
+      registrationFee?: number;
+      courseFee?: number;
+      examFee?: number;
+    }>;
+    receiptTitle?: string;
+  }, index = 0, total = 1) => {
+    const logoUrl = typeof window !== "undefined" ? `${window.location.origin}/logo.png` : "/logo.png";
+    const totalAmountPaid = data.payments.reduce((acc, p) => acc + Number(p.amount || 0), 0);
+
+    const formatBreakdown = (p: any) => {
+      const parts: string[] = [];
+      const reg = Number(p.registrationFee || 0);
+      const crs = Number(p.courseFee || 0);
+      const exm = Number(p.examFee || 0);
+      if (reg > 0) parts.push(`Registration Fee`);
+      if (crs > 0) parts.push(`Course Fee`);
+      if (exm > 0) parts.push(`Exam Fee`);
+      if (parts.length === 0) {
+        parts.push(`Course Fee`);
+      }
+      return parts.map(t => `<span class="bd-chip">${t}</span>`).join(' ');
+    };
+
+    const formatPaymentMode = (mode: string) => {
+      if (!mode) return 'N/A';
+      const clean = String(mode).trim();
+      if (clean.toLowerCase() === 'upi') return 'UPI';
+      return clean.charAt(0).toUpperCase() + clean.slice(1).toLowerCase();
+    };
+
+    return `
+      <div class="receipt-container" style="${index > 0 ? 'page-break-before: always; margin-top: 30px;' : ''}">
+        <div class="hd">
+          <img src="${logoUrl}" alt="Logo" />
+          <div class="hd-info">
+            <div class="hd-name">VISION IT COMPUTER INSTITUTE</div>
+            <div class="hd-addr">Kadampara Chowk, Pratappur, Surajpur (C.G.) — 497223</div>
+          </div>
+        </div>
+
+        <div class="title-row">
+          <div class="doc-title">${data.receiptTitle || "PAYMENT RECEIPT"}</div>
+          <div class="doc-date">Date: ${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
+        </div>
+
+        <div class="student-info-grid">
+          <div class="info-cell">
+            <span class="info-lbl">STUDENT NAME</span>
+            <span class="info-val">${data.studentName}</span>
+          </div>
+          <div class="info-cell">
+            <span class="info-lbl">STUDENT ID</span>
+            <span class="info-val mono">${data.studentId}</span>
+          </div>
+          <div class="info-cell full">
+            <span class="info-lbl">COURSE ENROLLED</span>
+            <span class="info-val">${data.courseTitle}</span>
+          </div>
+        </div>
+
+        <div class="sec-head">PAYMENT HISTORY</div>
+        <table class="pay-table">
+          <thead>
+            <tr>
+              <th style="width: 28px;">#</th>
+              <th>PAYMENT DATE</th>
+              <th>PAYMENT MODE</th>
+              <th>FEE BREAKDOWN</th>
+              <th style="text-align: right;">AMOUNT PAID</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${data.payments.map((p, idx) => `
+              <tr>
+                <td style="color: #94a3b8; font-size: 10px;">${idx + 1}</td>
+                <td style="font-weight: 500;">${p.paymentDate}</td>
+                <td>
+                  ${formatPaymentMode(p.paymentMode)}
+                  ${p.transactionId ? `<div class="ref-no">Ref: ${p.transactionId}</div>` : ''}
+                </td>
+                <td>
+                  <div class="breakdown-tags">
+                    ${formatBreakdown(p)}
+                  </div>
+                </td>
+                <td style="font-weight: 700; color: #0f172a;">₹${Number(p.amount || 0).toLocaleString('en-IN')}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+
+        <div class="total-box">
+          <span class="total-box-lbl">TOTAL AMOUNT PAID</span>
+          <span class="total-box-val">₹${totalAmountPaid.toLocaleString('en-IN')}</span>
+        </div>
+
+        <div class="footer">
+          <div class="footer-msg">Thank you for your payment!</div>
+          <div class="sig-block">
+            <div class="sig-line"></div>
+            Authorised Signatory
+          </div>
+        </div>
+      </div>
+    `;
+  };
+
   const handleDownloadReceipt = (pay: any, student: any, course: any) => {
     const printWindow = window.open("", "_blank", "width=800,height=700");
     if (!printWindow) {
@@ -411,236 +882,36 @@ export default function FeesClient({
       return;
     }
 
+    const studentData = {
+      studentName: student?.name || "Student",
+      studentId: student?.student_id || student?.roll_no || "N/A",
+      courseTitle: course?.title || "N/A",
+      receiptTitle: "PAYMENT RECEIPT",
+      payments: [{
+        paymentDate: pay.payment_date ? new Date(pay.payment_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' }) : 'N/A',
+        paymentMode: pay.payment_mode || 'N/A',
+        transactionId: pay.transaction_id,
+        amount: Number(pay.amount || 0),
+        registrationFee: Number(pay.registration_fee || 0),
+        courseFee: Number(pay.course_fee || 0),
+        examFee: Number(pay.exam_fee || 0)
+      }]
+    };
+
     const receiptHtml = `
       <!DOCTYPE html>
-      <html>
+      <html lang="en">
       <head>
-        <title>Receipt_${pay.transaction_id || pay.id || 'payment'}</title>
-        <style>
-          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
-          body {
-            font-family: 'Inter', sans-serif;
-            color: #1e293b;
-            margin: 0;
-            padding: 40px;
-            background-color: #ffffff;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-          }
-          .receipt-container {
-            max-width: 600px;
-            margin: 0 auto;
-            border: 1px solid #e2e8f0;
-            padding: 40px;
-            border-radius: 24px;
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
-          }
-          .header {
-            display: flex;
-            align-items: center;
-            border-bottom: 2px dashed #e2e8f0;
-            padding-bottom: 24px;
-            margin-bottom: 24px;
-            gap: 20px;
-          }
-          .logo-img {
-            width: 70px;
-            height: 70px;
-            object-fit: contain;
-          }
-          .header-text {
-            flex: 1;
-            text-align: center;
-            margin-right: 70px;
-          }
-          .logo {
-            font-size: 20px;
-            font-weight: 900;
-            color: #000000;
-            letter-spacing: -0.02em;
-            margin: 0;
-            line-height: 1.2;
-          }
-          .address {
-            font-size: 11px;
-            font-weight: 600;
-            color: #475569;
-            margin-top: 4px;
-            line-height: 1.4;
-          }
-          .subtitle {
-            font-size: 10px;
-            font-weight: 700;
-            color: #94a3b8;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            margin-top: 6px;
-          }
-          .receipt-title {
-            text-align: center;
-            font-size: 16px;
-            font-weight: 800;
-            color: #0f172a;
-            margin-bottom: 24px;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-          }
-          .meta-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-            margin-bottom: 24px;
-            font-size: 13px;
-          }
-          .meta-item {
-            display: flex;
-            flex-direction: column;
-          }
-          .meta-label {
-            font-size: 10px;
-            font-weight: 700;
-            color: #94a3b8;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 2px;
-          }
-          .meta-value {
-            font-weight: 600;
-            color: #334155;
-          }
-          .section-title {
-            font-size: 11px;
-            font-weight: 800;
-            color: #64748b;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            border-bottom: 1px solid #f1f5f9;
-            padding-bottom: 6px;
-            margin-bottom: 12px;
-            margin-top: 24px;
-          }
-          .details-list {
-            margin-bottom: 24px;
-          }
-          .details-row {
-            display: flex;
-            justify-content: space-between;
-            font-size: 13px;
-            padding: 8px 0;
-            border-bottom: 1px solid #f8fafc;
-          }
-          .details-row.total {
-            border-top: 2px solid #e2e8f0;
-            border-bottom: 2px solid #e2e8f0;
-            font-weight: 800;
-            font-size: 16px;
-            padding: 12px 0;
-            color: #0f172a;
-            margin-top: 12px;
-          }
-          .footer {
-            text-align: center;
-            margin-top: 40px;
-            font-size: 10px;
-            color: #94a3b8;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-          }
-          @media print {
-            body {
-              padding: 20px;
-            }
-            .receipt-container {
-              border: none;
-              box-shadow: none;
-              padding: 0;
-            }
-          }
-        </style>
+        <meta charset="UTF-8" />
+        <title>Receipt — ${pay.transaction_id || pay.id || 'payment'}</title>
+        <style>${receiptSharedCSS}</style>
       </head>
       <body>
-        <div class="receipt-container">
-          <div class="header">
-            <img src="${window.location.origin}/logo.png" alt="Logo" class="logo-img" />
-            <div class="header-text">
-              <div class="logo">VISION IT COMPUTER INSTITUTE</div>
-              <div class="address">Kadampara Chowk, Pratappur, Surajpur (C.G.) - 497223</div>
-              <div class="subtitle">Center for Excellence & Learning</div>
-            </div>
-          </div>
-          <div class="receipt-title">Payment Receipt</div>
-          
-          <div class="meta-grid">
-            <div class="meta-item">
-              <span class="meta-label">Student Name</span>
-              <span class="meta-value">${student?.name || 'N/A'}</span>
-            </div>
-            <div class="meta-item">
-              <span class="meta-label">Student ID</span>
-              <span class="meta-value">${student?.student_id || 'N/A'}</span>
-            </div>
-            <div class="meta-item" style="grid-column: span 2;">
-              <span class="meta-label">Course Enrolled</span>
-              <span class="meta-value">${course?.title || 'N/A'}</span>
-            </div>
-            <div class="meta-item">
-              <span class="meta-label">Payment Date</span>
-              <span class="meta-value">${pay.payment_date ? new Date(pay.payment_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' }) : 'N/A'}</span>
-            </div>
-            <div class="meta-item">
-              <span class="meta-label">Payment Mode</span>
-              <span class="meta-value" style="text-transform: uppercase;">${pay.payment_mode || 'N/A'}</span>
-            </div>
-            ${pay.transaction_id ? `
-            <div class="meta-item" style="grid-column: span 2;">
-              <span class="meta-label">Transaction ID / Reference</span>
-              <span class="meta-value" style="font-family: monospace;">${pay.transaction_id}</span>
-            </div>` : ''}
-          </div>
-          
-          <div class="section-title">Fee Breakdown</div>
-          <div class="details-list">
-            ${Number(pay.registration_fee) > 0 ? `
-            <div class="details-row">
-              <span>Registration Fee (One-Time)</span>
-              <span>₹${Number(pay.registration_fee).toLocaleString('en-IN')}</span>
-            </div>` : ''}
-            ${Number(pay.course_fee) > 0 ? `
-            <div class="details-row">
-              <span>Course Fee</span>
-              <span>₹${Number(pay.course_fee).toLocaleString('en-IN')}</span>
-            </div>` : ''}
-            ${Number(pay.exam_fee) > 0 ? `
-            <div class="details-row">
-              <span>Examination Fee (One-Time)</span>
-              <span>₹${Number(pay.exam_fee).toLocaleString('en-IN')}</span>
-            </div>` : ''}
-            
-            <!-- Fallback if breakdown not populated -->
-            ${(!pay.registration_fee && !pay.course_fee && !pay.exam_fee) ? `
-            <div class="details-row">
-              <span>Fee Payment</span>
-              <span>₹${Number(pay.amount).toLocaleString('en-IN')}</span>
-            </div>` : ''}
-
-            <div class="details-row total">
-              <span>Total Amount Paid</span>
-              <span>₹${Number(pay.amount).toLocaleString('en-IN')}</span>
-            </div>
-          </div>
-          
-          <div class="footer">
-            Thank you for your payment!<br>
-            This is a computer generated receipt, no signature required.
-          </div>
-        </div>
+        ${renderStudentReceiptStatementHtml(studentData, 0, 1)}
         <script>
           window.onload = function() {
             window.print();
-            setTimeout(function() {
-              window.close();
-            }, 500);
+            setTimeout(function() { window.close(); }, 500);
           }
         </script>
       </body>
@@ -652,30 +923,9 @@ export default function FeesClient({
   };
 
   const handleDownloadAllCourseReceipts = (courseId: string) => {
-    const courseFees = initialFees.filter(fee => fee.course_id === courseId);
-    const allPaymentsToPrint: any[] = [];
-    
-    courseFees.forEach(fee => {
-      if (fee.payments && fee.payments.length > 0) {
-        fee.payments.forEach((pay: any) => {
-          allPaymentsToPrint.push({
-            id: pay.id,
-            amount: Number(pay.amount),
-            paymentDate: pay.payment_date ? new Date(pay.payment_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' }) : 'N/A',
-            paymentMode: pay.payment_mode || 'N/A',
-            transactionId: pay.transaction_id,
-            registrationFee: Number(pay.registration_fee || 0),
-            courseFee: Number(pay.course_fee || 0),
-            examFee: Number(pay.exam_fee || 0),
-            studentName: fee.students?.name || 'N/A',
-            studentId: fee.students?.student_id || 'N/A',
-            courseTitle: fee.courses?.title || 'N/A'
-          });
-        });
-      }
-    });
+    const courseFees = initialFees.filter(fee => fee.course_id === courseId && fee.payments && fee.payments.length > 0);
 
-    if (allPaymentsToPrint.length === 0) {
+    if (courseFees.length === 0) {
       alert("No payment transactions recorded for students in this course.");
       return;
     }
@@ -686,242 +936,94 @@ export default function FeesClient({
       return;
     }
 
-    const selectedCourseTitle = courses.find(c => c.id === courseId)?.title || 'course';
+    const selectedCourseTitle = courses.find(c => c.id === courseId)?.title || 'Course';
+
+    const studentsToPrint = courseFees.map(fee => ({
+      studentName: fee.students?.name || 'Student',
+      studentId: fee.students?.student_id || fee.students?.roll_no || 'N/A',
+      courseTitle: fee.courses?.title || selectedCourseTitle,
+      receiptTitle: "COURSE FEE RECEIPT STATEMENT",
+      payments: fee.payments.map((pay: any) => ({
+        paymentDate: pay.payment_date ? new Date(pay.payment_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' }) : 'N/A',
+        paymentMode: pay.payment_mode || 'N/A',
+        transactionId: pay.transaction_id,
+        amount: Number(pay.amount || 0),
+        registrationFee: Number(pay.registration_fee || 0),
+        courseFee: Number(pay.course_fee || 0),
+        examFee: Number(pay.exam_fee || 0)
+      }))
+    }));
 
     const receiptHtml = `
       <!DOCTYPE html>
-      <html>
+      <html lang="en">
       <head>
-        <title>Receipts_${selectedCourseTitle.replace(/\s+/g, '_')}</title>
-        <style>
-          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
-          body {
-            font-family: 'Inter', sans-serif;
-            color: #1e293b;
-            margin: 0;
-            padding: 20px;
-            background-color: #ffffff;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-          }
-          .receipt-container {
-            max-width: 600px;
-            margin: 0 auto;
-            border: 1px solid #e2e8f0;
-            padding: 16px 24px;
-            border-radius: 16px;
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
-            page-break-inside: avoid;
-            break-inside: avoid;
-          }
-          .header {
-            display: flex;
-            align-items: center;
-            border-bottom: 2px dashed #e2e8f0;
-            padding-bottom: 10px;
-            margin-bottom: 10px;
-            gap: 16px;
-          }
-          .logo-img {
-            width: 48px;
-            height: 48px;
-            object-fit: contain;
-          }
-          .header-text {
-            flex: 1;
-            text-align: center;
-            margin-right: 48px;
-          }
-          .logo {
-            font-size: 15px;
-            font-weight: 900;
-            color: #000000;
-            letter-spacing: -0.02em;
-            margin: 0;
-            line-height: 1.2;
-          }
-          .address {
-            font-size: 9px;
-            font-weight: 600;
-            color: #475569;
-            margin-top: 2px;
-            line-height: 1.3;
-          }
-          .subtitle {
-            font-size: 8px;
-            font-weight: 700;
-            color: #94a3b8;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            margin-top: 3px;
-          }
-          .receipt-title {
-            text-align: center;
-            font-size: 12px;
-            font-weight: 800;
-            color: #0f172a;
-            margin-bottom: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-          }
-          .meta-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            margin-bottom: 12px;
-            font-size: 11px;
-          }
-          .meta-item {
-            display: flex;
-            flex-direction: column;
-          }
-          .meta-label {
-            font-size: 9px;
-            font-weight: 700;
-            color: #94a3b8;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 1px;
-          }
-          .meta-value {
-            font-weight: 600;
-            color: #334155;
-          }
-          .section-title {
-            font-size: 9px;
-            font-weight: 800;
-            color: #64748b;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            border-bottom: 1px solid #f1f5f9;
-            padding-bottom: 4px;
-            margin-bottom: 8px;
-            margin-top: 12px;
-          }
-          .details-list {
-            margin-bottom: 12px;
-          }
-          .details-row {
-            display: flex;
-            justify-content: space-between;
-            font-size: 11px;
-            padding: 5px 0;
-            border-bottom: 1px solid #f8fafc;
-          }
-          .details-row.total {
-            border-top: 2px solid #e2e8f0;
-            border-bottom: 2px solid #e2e8f0;
-            font-weight: 800;
-            font-size: 13px;
-            padding: 8px 0;
-            color: #0f172a;
-            margin-top: 8px;
-          }
-          .footer {
-            text-align: center;
-            margin-top: 20px;
-            font-size: 9px;
-            color: #94a3b8;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-          }
-          @media print {
-            body {
-              padding: 0;
-            }
-            .receipt-container {
-              border: none;
-              box-shadow: none;
-              padding: 10px 0;
-            }
-          }
-        </style>
+        <meta charset="UTF-8" />
+        <title>Receipts — ${selectedCourseTitle.replace(/\\s+/g, '_')}</title>
+        <style>${receiptSharedCSS}</style>
       </head>
       <body>
-        ${allPaymentsToPrint.map((item, idx) => `
-          <div class="receipt-container" style="${(idx > 0 && idx % 3 === 0) ? 'page-break-before: always;' : (idx > 0 ? 'margin-top: 20px;' : '')}">
-            <div class="header">
-              <img src="${window.location.origin}/logo.png" alt="Logo" class="logo-img" />
-              <div class="header-text">
-                <div class="logo">VISION IT COMPUTER INSTITUTE</div>
-                <div class="address">Kadampara Chowk, Pratappur, Surajpur (C.G.) - 497223</div>
-                <div class="subtitle">Center for Excellence & Learning</div>
-              </div>
-            </div>
-            <div class="receipt-title">Payment Receipt</div>
-            
-            <div class="meta-grid">
-              <div class="meta-item">
-                <span class="meta-label">Student Name</span>
-                <span class="meta-value">${item.studentName}</span>
-              </div>
-              <div class="meta-item">
-                <span class="meta-label">Student ID</span>
-                <span class="meta-value">${item.studentId}</span>
-              </div>
-              <div class="meta-item" style="grid-column: span 2;">
-                <span class="meta-label">Course Enrolled</span>
-                <span class="meta-value">${item.courseTitle}</span>
-              </div>
-              <div class="meta-item">
-                <span class="meta-label">Payment Date</span>
-                <span class="meta-value">${item.paymentDate}</span>
-              </div>
-              <div class="meta-item">
-                <span class="meta-label">Payment Mode</span>
-                <span class="meta-value" style="text-transform: uppercase;">${item.paymentMode}</span>
-              </div>
-              ${item.transactionId ? `
-              <div class="meta-item" style="grid-column: span 2;">
-                <span class="meta-label">Transaction ID / Reference</span>
-                <span class="meta-value" style="font-family: monospace;">${item.transactionId}</span>
-              </div>` : ''}
-            </div>
-            
-            <div class="section-title">Fee Breakdown</div>
-            <div class="details-list">
-              ${item.registrationFee > 0 ? `
-              <div class="details-row">
-                <span>Registration Fee (One-Time)</span>
-                <span>₹${item.registrationFee.toLocaleString('en-IN')}</span>
-              </div>` : ''}
-              ${item.courseFee > 0 ? `
-              <div class="details-row">
-                <span>Course Fee</span>
-                <span>₹${item.courseFee.toLocaleString('en-IN')}</span>
-              </div>` : ''}
-              ${item.examFee > 0 ? `
-              <div class="details-row">
-                <span>Examination Fee (One-Time)</span>
-                <span>₹${item.examFee.toLocaleString('en-IN')}</span>
-              </div>` : ''}
-              
-              <!-- Fallback if breakdown not populated -->
-              ${(!item.registrationFee && !item.courseFee && !item.examFee) ? `
-              <div class="details-row">
-                <span>Fee Payment</span>
-                <span>₹${item.amount.toLocaleString('en-IN')}</span>
-              </div>` : ''}
-
-              <div class="details-row total">
-                <span>Total Amount Paid</span>
-                <span>₹${item.amount.toLocaleString('en-IN')}</span>
-              </div>
-            </div>
-            
-            <div class="footer">
-              Thank you for your payment!<br>
-              This is a computer generated receipt, no signature required.
-            </div>
-          </div>
-        `).join('')}
+        ${studentsToPrint.map((st, idx) => renderStudentReceiptStatementHtml(st, idx, studentsToPrint.length)).join('')}
         <script>
           window.onload = function() {
             window.print();
-            setTimeout(function() {
-              window.close();
-            }, 500);
+            setTimeout(function() { window.close(); }, 500);
+          }
+        </script>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(receiptHtml);
+    printWindow.document.close();
+  };
+
+  const handleDownloadAllStudentReceipts = (feeRecord: any) => {
+    if (!feeRecord?.payments || feeRecord.payments.length === 0) {
+      alert("No payment transactions recorded for this student.");
+      return;
+    }
+
+    const printWindow = window.open("", "_blank", "width=800,height=700");
+    if (!printWindow) {
+      alert("Please allow popups to download/print receipts.");
+      return;
+    }
+
+    const studentName = feeRecord.students?.name || 'Student';
+    const studentId = feeRecord.students?.student_id || feeRecord.students?.roll_no || 'N/A';
+    const courseTitle = feeRecord.courses?.title || 'N/A';
+
+    const studentData = {
+      studentName,
+      studentId,
+      courseTitle,
+      receiptTitle: "FEE PAYMENT STATEMENT",
+      payments: feeRecord.payments.map((pay: any) => ({
+        paymentDate: pay.payment_date ? new Date(pay.payment_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' }) : 'N/A',
+        paymentMode: pay.payment_mode || 'N/A',
+        transactionId: pay.transaction_id,
+        amount: Number(pay.amount || 0),
+        registrationFee: Number(pay.registration_fee || 0),
+        courseFee: Number(pay.course_fee || 0),
+        examFee: Number(pay.exam_fee || 0)
+      }))
+    };
+
+    const receiptHtml = `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <title>Receipt Statement — ${studentName.replace(/\\s+/g, '_')}</title>
+        <style>${receiptSharedCSS}</style>
+      </head>
+      <body>
+        ${renderStudentReceiptStatementHtml(studentData, 0, 1)}
+        <script>
+          window.onload = function() {
+            window.print();
+            setTimeout(function() { window.close(); }, 500);
           }
         </script>
       </body>
@@ -934,70 +1036,14 @@ export default function FeesClient({
 
   // Helper: Detect unpaid months for a student
   const getUnpaidMonths = (fee: any) => {
-    // 1. If explicit installments exist
-    if (fee.installments && fee.installments.length > 0) {
-      const pendingInst = fee.installments.filter((inst: any) => inst.status === 'pending');
-      if (pendingInst.length > 0) {
-        return pendingInst.map((inst: any) => {
-          if (!inst.due_date) return "Installment Due";
-          const [y, m] = inst.due_date.split("-");
-          const d = new Date(Number(y), Number(m) - 1, 1);
-          return d.toLocaleDateString("en-IN", { month: "long", year: "numeric" });
-        });
-      }
-    }
-
-    // 2. Scan calendar months from enrollment (fee.created_at) to current month (or dropout date)
-    const unpaid: string[] = [];
-    const createdDate = fee.created_at ? new Date(fee.created_at) : new Date();
-    const currentDate = new Date();
-    
-    const start = new Date(createdDate.getFullYear(), createdDate.getMonth(), 1);
-    let end = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-
-    // If student has dropped out, cap dues generation to the month they dropped out!
-    const studentInfo = fee.students as any;
-    if (studentInfo?.status === "dropped_out" && studentInfo?.dropout_date) {
-      const dropDate = new Date(studentInfo.dropout_date);
-      if (!isNaN(dropDate.getTime())) {
-        end = new Date(dropDate.getFullYear(), dropDate.getMonth(), 1);
-      }
-    }
-
-    if (start > end) {
-      end = new Date(start);
-    }
-
-    const paidMonthsSet = new Set<string>();
-    fee.payments?.forEach((p: any) => {
-      if (p.payment_date) {
-        paidMonthsSet.add(p.payment_date.substring(0, 7)); // "YYYY-MM"
-      }
-    });
-
-    const iter = new Date(start);
-    while (iter <= end) {
-      const yyyy = iter.getFullYear();
-      const mm = String(iter.getMonth() + 1).padStart(2, '0');
-      const key = `${yyyy}-${mm}`;
-      
-      if (!paidMonthsSet.has(key)) {
-        unpaid.push(iter.toLocaleDateString("en-IN", { month: "long", year: "numeric" }));
-      }
-      iter.setMonth(iter.getMonth() + 1);
-    }
-
-    if (unpaid.length === 0) {
-      unpaid.push(currentDate.toLocaleDateString("en-IN", { month: "long", year: "numeric" }));
-    }
-
-    return unpaid;
+    return getStudentMonthStatus(fee).unpaidMonths;
   };
 
   // Open the Reminder Modal with intelligent defaults
   const handleOpenReminderModal = (fee: any, balance: number) => {
-    const unpaid = getUnpaidMonths(fee);
-    setSelectedUnpaidMonths(unpaid);
+    const { unpaidMonths, allDueMonths } = getStudentMonthStatus(fee);
+    setSelectedUnpaidMonths(unpaidMonths);
+    setReminderCandidateMonths(allDueMonths.length > 0 ? allDueMonths : (unpaidMonths.length > 0 ? unpaidMonths : [getLatestDueMonth().formatted]));
     setReminderMonthlyRate(1000); // Default ₹1,000 per month
     setReminderCustomPhone((fee.students as any)?.phone || "");
     setCustomReminderMessage(null);
@@ -1021,7 +1067,7 @@ export default function FeesClient({
       ? selectedUnpaidMonths.length * reminderMonthlyRate 
       : reminderMonthlyRate;
 
-    return `Dear ${studentName},\n\nयह Vision IT Computer Institute की तरफ से आपकी मासिक फीस (Monthly Fees) का रिमाइंडर नोटिस है।\n\n📚 Course: ${courseTitle}\n🗓️ बकाया माह (Pending Months): ${monthsText}\n💰 मासिक फीस (Monthly Due): ₹${reminderMonthlyRate.toLocaleString('en-IN')} (कुल बकाया: ₹${totalCalculatedDue.toLocaleString('en-IN')})\n\nकृपया अपनी बकाया मासिक फीस समय पर इंस्टीट्यूट ऑफिस में जमा करें या ऑनलाइन UPI से भुगतान करें।\n\nकिसी भी जानकारी या सहायता के लिए संपर्क करें:\n📞 +91 81031 70595\n\nThank You! 🙏\nVision IT Computer Institute`;
+    return `Dear ${studentName},\n\nयह Vision IT Computer Institute की तरफ से आपकी मासिक फीस (Monthly Fees) का रिमाइंडर नोटिस है।\n\n📚 Course: ${courseTitle}\n🗓️ बकाया माह (Pending Months): ${monthsText}\n💰 मासिक फीस (Monthly Due): ₹${reminderMonthlyRate.toLocaleString('en-IN')} (कुल fee: ₹${totalCalculatedDue.toLocaleString('en-IN')})\n\nकृपया अपनी मासिक फीस समय पर इंस्टीट्यूट ऑफिस में जमा करें या ऑनलाइन UPI से भुगतान करें।\n\nकिसी भी जानकारी या सहायता के लिए संपर्क करें:\n📞 +91 81031 70595\n\nThank You! 🙏\nVision IT Computer Institute`;
   }, [showReminderModal, selectedUnpaidMonths, reminderMonthlyRate]);
 
   // Send via WhatsApp from modal
@@ -1468,7 +1514,7 @@ export default function FeesClient({
                  { id: "due", label: "Due" },
                  { 
                     id: "unpaid_month", 
-                    label: monthFilter === "all" ? "Unpaid (Month)" : "Unpaid" 
+                    label: monthFilter === "all" ? `Unpaid (${getLatestDueMonth().shortName})` : "Unpaid" 
                   }
                ].map(tab => (
                  <button
@@ -1538,13 +1584,14 @@ export default function FeesClient({
                   const balance = totalPayable - totalPaid;
                   const computedStatus = isDropout ? "dropped_out" : balance <= 0 ? "paid" : totalPaid > 0 ? "partial" : "due";
 
-                  // Active month fee tracking
-                  const activeMonthKey = monthFilter === "all" ? new Date().toISOString().substring(0, 7) : monthFilter;
+                  // Active month fee tracking (Month M is paid in Month M+1, e.g. September fee in October)
+                  const defaultDue = getLatestDueMonth();
+                  const activeMonthKey = monthFilter === "all" ? defaultDue.key : monthFilter;
                   const [activeYear, activeMonthNum] = activeMonthKey.split("-");
                   const activeMonthName = new Date(Number(activeYear), Number(activeMonthNum) - 1, 1).toLocaleDateString("en-US", { month: "short" });
-                  const monthPaidAmount = fee.payments
-                    ?.filter((p: any) => p.payment_date && p.payment_date.substring(0, 7) === activeMonthKey)
-                    ?.reduce((sum: number, p: any) => sum + Number(p.amount), 0) || 0;
+                  
+                  const monthStatus = getStudentMonthStatus(fee);
+                  const isTargetMonthPaid = monthStatus.isMonthPaid(activeMonthKey);
 
                   return (
                     <tr key={fee.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-850/40 transition-colors">
@@ -1576,16 +1623,16 @@ export default function FeesClient({
                           <span className="text-[9px] text-slate-400 dark:text-slate-500 font-medium block mt-0.5">
                             Left on {(fee.students as any)?.dropout_date || "N/A"}
                           </span>
-                        ) : monthPaidAmount > 0 ? (
-                          <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-400 px-1.5 py-0.5 rounded-md mt-0.5 border border-emerald-200/50 dark:border-emerald-800/40" title={`Paid in ${activeMonthName}`}>
-                            ✓ {activeMonthName}: ₹{monthPaidAmount.toLocaleString()}
-                          </span>
                         ) : balance <= 0 ? (
                           <span className="text-[9px] text-slate-400 dark:text-slate-500 font-medium block mt-0.5">
                             Cleared
                           </span>
+                        ) : isTargetMonthPaid ? (
+                          <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-400 px-1.5 py-0.5 rounded-md mt-0.5 border border-emerald-200/50 dark:border-emerald-800/40" title={`${activeMonthName} fee is paid`}>
+                            ✓ {activeMonthName}: Paid
+                          </span>
                         ) : (
-                          <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold text-rose-600 bg-rose-50 dark:bg-rose-950/40 dark:text-rose-400 px-1.5 py-0.5 rounded-md mt-0.5 border border-rose-200/50 dark:border-rose-800/40" title={`No payment in ${activeMonthName}`}>
+                          <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold text-rose-600 bg-rose-50 dark:bg-rose-950/40 dark:text-rose-400 px-1.5 py-0.5 rounded-md mt-0.5 border border-rose-200/50 dark:border-rose-800/40" title={`${activeMonthName} fee is due/unpaid`}>
                             ✗ {activeMonthName}: Unpaid
                           </span>
                         )}
@@ -1663,6 +1710,15 @@ export default function FeesClient({
                            >
                              <History size={15} />
                            </button>
+                           {fee.payments && fee.payments.length > 0 && (
+                             <button 
+                              onClick={() => handleDownloadAllStudentReceipts(fee)}
+                              className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-lg transition-all cursor-pointer"
+                              title="Download All Receipts"
+                             >
+                               <Download size={15} />
+                             </button>
+                           )}
                            <button 
                             onClick={() => handleDelete(fee.id)}
                             className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition-all cursor-pointer"
@@ -1694,13 +1750,14 @@ export default function FeesClient({
               const balance = totalPayable - totalPaid;
               const computedStatus = isDropout ? "dropped_out" : balance <= 0 ? "paid" : totalPaid > 0 ? "partial" : "due";
 
-              // Active month fee tracking
-              const activeMonthKey = monthFilter === "all" ? new Date().toISOString().substring(0, 7) : monthFilter;
+              // Active month fee tracking (Month M is paid in Month M+1, e.g. September fee in October)
+              const defaultDue = getLatestDueMonth();
+              const activeMonthKey = monthFilter === "all" ? defaultDue.key : monthFilter;
               const [activeYear, activeMonthNum] = activeMonthKey.split("-");
               const activeMonthName = new Date(Number(activeYear), Number(activeMonthNum) - 1, 1).toLocaleDateString("en-US", { month: "short" });
-              const monthPaidAmount = fee.payments
-                ?.filter((p: any) => p.payment_date && p.payment_date.substring(0, 7) === activeMonthKey)
-                ?.reduce((sum: number, p: any) => sum + Number(p.amount), 0) || 0;
+              
+              const monthStatus = getStudentMonthStatus(fee);
+              const isTargetMonthPaid = monthStatus.isMonthPaid(activeMonthKey);
 
               return (
                 <div key={fee.id} className="p-4 space-y-3">
@@ -1743,12 +1800,12 @@ export default function FeesClient({
                           <span className="text-[9px] text-slate-400 dark:text-slate-500 font-medium block mt-0.5">
                             Left on {(fee.students as any)?.dropout_date || "N/A"}
                           </span>
-                        ) : monthPaidAmount > 0 ? (
-                          <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-400 px-1.5 py-0.2 rounded mt-0.5">
-                            ✓ {activeMonthName}: ₹{monthPaidAmount.toLocaleString()}
-                          </span>
                         ) : balance <= 0 ? (
                           <span className="text-[9px] text-slate-400 dark:text-slate-500 font-medium block mt-0.5">Cleared</span>
+                        ) : isTargetMonthPaid ? (
+                          <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-400 px-1.5 py-0.2 rounded mt-0.5">
+                            ✓ {activeMonthName}: Paid
+                          </span>
                         ) : (
                           <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold text-rose-600 bg-rose-50 dark:bg-rose-950/40 dark:text-rose-400 px-1.5 py-0.2 rounded mt-0.5">
                             ✗ {activeMonthName}: Unpaid
@@ -1817,6 +1874,15 @@ export default function FeesClient({
                         >
                           <History size={14} />
                         </button>
+                        {fee.payments && fee.payments.length > 0 && (
+                          <button 
+                            onClick={() => handleDownloadAllStudentReceipts(fee)}
+                            className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-lg transition-all border border-slate-200 dark:border-slate-800 cursor-pointer"
+                            title="Download All Receipts"
+                          >
+                            <Download size={14} />
+                          </button>
+                        )}
                         <button 
                           onClick={() => handleDelete(fee.id)}
                           className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition-all border border-slate-200 dark:border-slate-800 cursor-pointer"
@@ -2271,185 +2337,338 @@ export default function FeesClient({
         );
       })()}
 
-      {/* History Modal */}
-      {showHistory && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-2xl w-full max-w-3xl overflow-hidden animate-in zoom-in-95 duration-300 max-h-[90vh] flex flex-col">
-             
-             {/* Header */}
-             <div className="px-8 py-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50 shrink-0">
-               <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
-                 <History className="text-indigo-600" /> Account Statement & Details
-               </h3>
-               <button onClick={() => setShowHistory(null)} className="p-2 hover:bg-slate-105 rounded-lg cursor-pointer"><X size={18} className="text-slate-900 dark:text-white" /></button>
-             </div>
+      {/* History Modal - Compact & Minimal Upgrade */}
+      {showHistory && (() => {
+        const history = showHistory;
+        const student = (history.students as any) || {};
+        const course = (history.courses as any) || {};
+        const totalFee = Number(history.final_fee) || 0;
+        const totalPaid = history.payments?.reduce((acc: number, p: any) => acc + Number(p.amount), 0) || 0;
+        const balance = Math.max(0, totalFee - totalPaid);
+        const isPaid = history.status === "paid" || balance <= 0;
+        const paymentsList = history.payments || [];
+        const installmentsList = history.installments || [];
 
-             {/* Student Card Summary */}
-             <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shrink-0 bg-white dark:bg-slate-900">
-                <div className="space-y-1">
-                  <p className="text-[10px] font-bold text-slate-400 dark:text-slate-550 uppercase tracking-widest">Student Information</p>
-                  <h4 className="text-xl font-black text-slate-900 dark:text-white">{(showHistory.students as any)?.name}</h4>
-                  <p className="text-xs font-bold text-blue-600 dark:text-blue-400">{(showHistory.courses as any)?.title}</p>
+        return (
+          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[88vh] flex flex-col">
+              
+              {/* Header */}
+              <div className="px-5 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/70 dark:bg-slate-900/80 shrink-0">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                    <History size={15} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
+                      Account Statement
+                    </h3>
+                    <p className="text-[11px] text-slate-400 font-medium">
+                      Fee statement & payment records
+                    </p>
+                  </div>
                 </div>
-                <div className="flex gap-3">
+
+                <div className="flex items-center gap-1.5">
+                  {paymentsList.length > 0 && (
+                    <button 
+                      onClick={() => handleDownloadAllStudentReceipts(history)} 
+                      className="h-7 px-2.5 flex items-center gap-1.5 text-[11px] font-semibold text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 bg-white dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-950/40 border border-slate-200 dark:border-slate-700 hover:border-blue-300 rounded-lg transition-all cursor-pointer shadow-2xs"
+                      title="Download All Receipts"
+                    >
+                      <Download size={13} className="text-blue-600 dark:text-blue-400" />
+                      <span className="hidden sm:inline">Download All</span>
+                    </button>
+                  )}
+                  <button 
+                    onClick={() => setShowHistory(null)} 
+                    className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+                    title="Close"
+                  >
+                    <X size={15} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Student Summary & Financial Chips */}
+              <div className="px-5 py-3 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                      {student?.name || "Student"}
+                    </h4>
+                    {student?.roll_no && (
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 font-semibold">
+                        #{student.roll_no}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-blue-600 dark:text-blue-400 font-medium truncate mt-0.5">
+                    {course?.title || "No course assigned"}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+                  {/* Financial Stats Pill */}
+                  <div className="flex items-center gap-2.5 bg-slate-50 dark:bg-slate-950/60 border border-slate-200/70 dark:border-slate-800 px-3 py-1 rounded-lg text-[11px]">
+                    <div>
+                      <span className="text-[9px] uppercase font-bold text-slate-400 block leading-none">Total</span>
+                      <span className="font-bold text-slate-700 dark:text-slate-200">₹{totalFee.toLocaleString()}</span>
+                    </div>
+                    <div className="w-[1px] h-4 bg-slate-200 dark:bg-slate-800" />
+                    <div>
+                      <span className="text-[9px] uppercase font-bold text-emerald-500 block leading-none">Paid</span>
+                      <span className="font-bold text-emerald-600 dark:text-emerald-400">₹{totalPaid.toLocaleString()}</span>
+                    </div>
+                    <div className="w-[1px] h-4 bg-slate-200 dark:bg-slate-800" />
+                    <div>
+                      <span className={`text-[9px] uppercase font-bold block leading-none ${balance > 0 ? "text-amber-500" : "text-slate-400"}`}>Due</span>
+                      <span className={`font-bold ${balance > 0 ? "text-amber-600 dark:text-amber-400" : "text-slate-400"}`}>₹{balance.toLocaleString()}</span>
+                    </div>
+                  </div>
+
+                  {/* Download All Receipts Button */}
+                  {paymentsList.length > 0 && (
+                    <button 
+                      onClick={() => handleDownloadAllStudentReceipts(history)}
+                      className="h-8 px-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 active:scale-95 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 shadow-2xs"
+                      title="Download All Receipts"
+                    >
+                      <Download size={13} className="text-blue-600 dark:text-blue-400" />
+                      <span>All Receipts</span>
+                    </button>
+                  )}
+
+                  {/* Record Payment Button */}
                   <button 
                     onClick={() => {
-                      const history = showHistory;
-                      const totalPaid = history.payments?.reduce((acc: number, p: any) => acc + Number(p.amount), 0) || 0;
-                      const bal = Number(history.final_fee) - totalPaid;
                       setShowHistory(null);
                       setShowPayment(history);
                       const today = new Date();
                       const formatDateStr = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
                       setPaymentData({ 
-                        amount: bal, 
+                        amount: balance, 
                         payment_mode: "cash", 
-                        transaction_id: "",
-                        payment_date: formatDateStr(today),
-                        fee_type: "course"
+                        transaction_id: "", 
+                        payment_date: formatDateStr(today), 
+                        fee_type: "course" 
                       });
                     }}
-                    disabled={showHistory.status === 'paid'}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-30 text-white rounded-xl text-[10px] font-semibold uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-blue-500/10 cursor-pointer"
+                    disabled={isPaid}
+                    className="h-8 px-3 bg-blue-600 hover:bg-blue-700 active:scale-95 disabled:opacity-40 disabled:pointer-events-none text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-sm shadow-blue-500/20 transition-all cursor-pointer shrink-0"
                   >
-                    <Plus size={12} className="stroke-[3]"/> Record Payment
+                    <Plus size={13} className="stroke-[2.5]" />
+                    <span>Record Payment</span>
                   </button>
                 </div>
-             </div>
+              </div>
 
-             {/* Timelines split panels */}
-             <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-100 dark:divide-slate-800 overflow-y-auto flex-1 custom-scrollbar">
+              {/* Split Panels: Installments & Transactions */}
+              <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-100 dark:divide-slate-800 overflow-y-auto flex-1 custom-scrollbar">
                 
                 {/* Installments Section */}
-                <div className="p-8 space-y-6">
-                   <h5 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-1.5 border-b border-slate-50 dark:border-slate-800/80 pb-2 shrink-0">
-                     <Calendar size={14} className="text-slate-400"/> Installment Schedule
-                   </h5>
-                   <div className="space-y-4">
-                      {(!showHistory.installments || showHistory.installments.length === 0) ? (
-                        <div className="py-12 text-center text-slate-350 dark:text-slate-550 text-xs font-bold bg-slate-50/50 dark:bg-slate-950/20 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center gap-2">
-                           <CalendarCheck className="opacity-30" size={24} />
-                           Full Settlement Plan
+                <div className="p-4 space-y-3">
+                  <div className="flex items-center justify-between pb-1.5 border-b border-slate-100 dark:border-slate-800/80">
+                    <span className="text-[10px] font-bold text-slate-400 dark:text-slate-550 uppercase tracking-wider flex items-center gap-1.5">
+                      <Calendar size={13} className="text-slate-400" /> Installment Plan
+                    </span>
+                    <span className="text-[10px] font-semibold text-slate-400">
+                      {installmentsList.length > 0 ? `${installmentsList.length} Splits` : "One-Time"}
+                    </span>
+                  </div>
+
+                  <div className="space-y-2">
+                    {installmentsList.length === 0 ? (
+                      <div className="py-5 px-3 text-center bg-slate-50/60 dark:bg-slate-950/30 rounded-xl border border-dashed border-slate-200/80 dark:border-slate-800 flex flex-col items-center justify-center gap-1">
+                        <div className="w-7 h-7 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                          <CalendarCheck size={14} />
                         </div>
-                      ) : (
-                        showHistory.installments.map((inst: any, idx: number) => {
-                          const isOverdue = inst.status === 'pending' && new Date(inst.due_date) < new Date();
-                          return (
-                            <div key={inst.id} className={`p-4 rounded-xl border relative transition-all ${
-                              inst.status === 'paid' 
-                                ? 'bg-emerald-50/20 border-emerald-100 dark:border-emerald-950/20' 
+                        <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                          Full Settlement Plan
+                        </p>
+                        <p className="text-[10px] text-slate-400">
+                          No recurring installments configured
+                        </p>
+                      </div>
+                    ) : (
+                      installmentsList.map((inst: any, idx: number) => {
+                        const isOverdue = inst.status === "pending" && new Date(inst.due_date) < new Date();
+                        const isInstPaid = inst.status === "paid";
+
+                        return (
+                          <div 
+                            key={inst.id} 
+                            className={`p-2.5 rounded-lg border transition-all flex items-center justify-between gap-2.5 ${
+                              isInstPaid 
+                                ? "bg-emerald-50/30 border-emerald-100 dark:border-emerald-950/30 dark:bg-emerald-950/10" 
                                 : isOverdue 
-                                  ? 'bg-rose-50/30 border-rose-200 dark:border-rose-950/30' 
-                                  : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800'
-                            }`}>
-                               <div className="flex items-center justify-between gap-4">
-                                  <div>
-                                     <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase">Installment {idx + 1}</p>
-                                     <p className="text-base font-black text-slate-900 dark:text-white mt-0.5">₹{inst.amount.toLocaleString()}</p>
-                                     <p className={`text-[10px] font-bold mt-1 ${isOverdue ? 'text-rose-500' : 'text-slate-400'}`}>
-                                       Due: {inst.due_date ? new Date(inst.due_date).toLocaleDateString() : "No Date"}
-                                       {isOverdue && " (OVERDUE)"}
-                                     </p>
-                                  </div>
-                                  
-                                  {inst.status === 'pending' ? (
-                                    <button 
-                                      onClick={() => {
-                                        const hist = showHistory;
-                                        setShowHistory(null);
-                                        setShowPayment(hist);
-                                        const today = new Date();
-                                        const formatDateStr = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-                                        setPaymentData({ 
-                                          amount: Number(inst.amount), 
-                                          payment_mode: "cash", 
-                                          transaction_id: "",
-                                          payment_date: formatDateStr(today),
-                                          fee_type: "course"
-                                        });
-                                      }}
-                                      className="px-3 py-1.5 bg-white dark:bg-slate-900 text-blue-600 border border-slate-200 dark:border-slate-800 rounded-lg text-[10px] font-black uppercase hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all shadow-sm cursor-pointer"
-                                    >
-                                      Pay Split
-                                    </button>
-                                  ) : (
-                                    <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-400 px-2.5 py-1 rounded-md uppercase tracking-wider border border-emerald-100 dark:border-emerald-900/20">Paid</span>
-                                  )}
-                               </div>
+                                  ? "bg-rose-50/40 border-rose-200 dark:border-rose-950/40 dark:bg-rose-950/10" 
+                                  : "bg-white dark:bg-slate-950/50 border-slate-200/70 dark:border-slate-800"
+                            }`}
+                          >
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase">
+                                  Inst {idx + 1}
+                                </span>
+                                <span className={`text-[9px] font-semibold ${isOverdue ? "text-rose-500 font-bold" : "text-slate-400"}`}>
+                                  • {inst.due_date ? new Date(inst.due_date).toLocaleDateString() : "No date"}
+                                  {isOverdue && " (Overdue)"}
+                                </span>
+                              </div>
+                              <p className="text-xs font-bold text-slate-900 dark:text-white mt-0.5">
+                                ₹{Number(inst.amount).toLocaleString()}
+                              </p>
                             </div>
-                          );
-                        })
-                      )}
-                   </div>
+                            
+                            {inst.status === "pending" ? (
+                              <button 
+                                onClick={() => {
+                                  setShowHistory(null);
+                                  setShowPayment(history);
+                                  const today = new Date();
+                                  const formatDateStr = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                                  setPaymentData({ 
+                                    amount: Number(inst.amount), 
+                                    payment_mode: "cash", 
+                                    transaction_id: "", 
+                                    payment_date: formatDateStr(today), 
+                                    fee_type: "course" 
+                                  });
+                                }}
+                                className="px-2.5 py-1 bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 border border-slate-200 dark:border-slate-700 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/30 rounded-md text-[10px] font-bold uppercase transition-all cursor-pointer shrink-0"
+                              >
+                                Pay Split
+                              </button>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/50 dark:text-emerald-400 px-2 py-0.5 rounded uppercase tracking-wider border border-emerald-100 dark:border-emerald-900/30">
+                                <Check size={10} /> Paid
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
                 </div>
 
                 {/* Payments Log Section */}
-                <div className="p-8 space-y-6">
-                   <h5 className="text-[10px] font-black text-slate-400 dark:text-slate-550 uppercase tracking-widest flex items-center gap-1.5 border-b border-slate-50 dark:border-slate-800/80 pb-2 shrink-0">
-                     <History size={14} className="text-slate-400"/> Transaction History Log
-                   </h5>
-                   <div className="space-y-3">
-                      {(!showHistory.payments || showHistory.payments.length === 0) ? (
-                        <div className="py-12 text-center text-slate-350 dark:text-slate-550 text-xs font-bold bg-slate-50/50 dark:bg-slate-950/20 rounded-2xl border border-dashed border-slate-200 dark:border-slate-850 flex flex-col items-center justify-center gap-2">
-                           <History className="opacity-30" size={24} />
-                           No payment transactions recorded.
-                        </div>
-                      ) : (
-                        showHistory.payments.map((pay: any, index: number) => (
-                          <div key={`${pay.id}-${index}`} className="flex items-center justify-between p-4 rounded-xl bg-slate-50/50 dark:bg-slate-950/50 border border-slate-100 dark:border-slate-850 group transition-all">
-                             <div>
-                                <p className="text-sm font-black text-slate-900 dark:text-white">₹{pay.amount.toLocaleString()}</p>
-                                <p className="text-[10px] font-bold text-slate-450 dark:text-slate-500 mt-0.5">
-                                  {pay.payment_date ? new Date(pay.payment_date).toLocaleDateString() : ""} • <span className="uppercase">{pay.payment_mode}</span>
-                                </p>
-                                {(Number(pay.registration_fee) > 0 || Number(pay.course_fee) > 0 || Number(pay.exam_fee) > 0) && (
-                                   <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-[9px] font-bold text-slate-400 dark:text-slate-550 mt-1 bg-slate-100/50 dark:bg-slate-900/50 px-2 py-0.5 rounded-md max-w-fit border border-slate-150/40 dark:border-slate-800/30">
-                                     {Number(pay.registration_fee) > 0 && <span>Reg: ₹{Number(pay.registration_fee).toLocaleString()}</span>}
-                                     {Number(pay.registration_fee) > 0 && (Number(pay.course_fee) > 0 || Number(pay.exam_fee) > 0) && <span>•</span>}
-                                     {Number(pay.course_fee) > 0 && <span>Course: ₹{Number(pay.course_fee).toLocaleString()}</span>}
-                                     {Number(pay.exam_fee) > 0 && (Number(pay.course_fee) > 0 || Number(pay.registration_fee) > 0) && <span>•</span>}
-                                     {Number(pay.exam_fee) > 0 && <span>Exam: ₹{Number(pay.exam_fee).toLocaleString()}</span>}
-                                   </div>
-                                )}
-                                {pay.transaction_id && (
-                                  <p className="text-[9px] font-mono text-slate-400 mt-1">Ref: {pay.transaction_id}</p>
-                                )}
-                             </div>
-                             <div className="flex items-center gap-1.5">
-                                <button 
-                                  onClick={() => handleDownloadReceipt(pay, showHistory.students, showHistory.courses)} 
-                                  className="p-2 text-slate-400 hover:text-blue-600 hover:bg-white dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
-                                  title="Download / Print Receipt"
-                                >
-                                  <Download size={14}/>
-                                </button>
-                                <button 
-                                  onClick={() => handleDeletePayment(pay.id, showHistory.id)} 
-                                  className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-lg transition-all cursor-pointer"
-                                  title="Delete Payment"
-                                >
-                                  <Trash2 size={14}/>
-                                </button>
-                             </div>
-                          </div>
-                        ))
+                <div className="p-4 space-y-3">
+                  <div className="flex items-center justify-between pb-1.5 border-b border-slate-100 dark:border-slate-800/80">
+                    <span className="text-[10px] font-bold text-slate-400 dark:text-slate-550 uppercase tracking-wider flex items-center gap-1.5">
+                      <History size={13} className="text-slate-400" /> Transaction History
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-semibold text-slate-400">
+                        {paymentsList.length} Entries
+                      </span>
+                      {paymentsList.length > 0 && (
+                        <button
+                          onClick={() => handleDownloadAllStudentReceipts(history)}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600 dark:hover:text-white border border-blue-200/70 dark:border-blue-800/80 text-[10px] font-semibold transition-all shadow-2xs cursor-pointer active:scale-95"
+                          title="Download All Receipts"
+                        >
+                          <Download size={10} />
+                          <span>All</span>
+                        </button>
                       )}
-                   </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 max-h-[300px] overflow-y-auto pr-0.5 custom-scrollbar">
+                    {paymentsList.length === 0 ? (
+                      <div className="py-5 px-3 text-center bg-slate-50/60 dark:bg-slate-950/30 rounded-xl border border-dashed border-slate-200/80 dark:border-slate-800 flex flex-col items-center justify-center gap-1">
+                        <History className="text-slate-300 dark:text-slate-600" size={18} />
+                        <p className="text-xs font-semibold text-slate-600 dark:text-slate-400">
+                          No transactions recorded
+                        </p>
+                        <p className="text-[10px] text-slate-400">
+                          Click "Record Payment" to log a transaction
+                        </p>
+                      </div>
+                    ) : (
+                      paymentsList.map((pay: any, index: number) => (
+                        <div 
+                          key={`${pay.id}-${index}`} 
+                          className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50/60 dark:bg-slate-950/50 border border-slate-100 dark:border-slate-800/80 hover:border-slate-200 dark:hover:border-slate-700 transition-all gap-2"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5">
+                              <p className="text-xs font-bold text-slate-900 dark:text-white">
+                                ₹{Number(pay.amount).toLocaleString()}
+                              </p>
+                              <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-slate-200/70 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                                {pay.payment_mode || "Cash"}
+                              </span>
+                            </div>
+
+                            <p className="text-[10px] text-slate-400 mt-0.5">
+                              {pay.payment_date ? new Date(pay.payment_date).toLocaleDateString() : "No date"}
+                              {pay.transaction_id && ` • Ref: ${pay.transaction_id}`}
+                            </p>
+
+                            {(Number(pay.registration_fee) > 0 || Number(pay.course_fee) > 0 || Number(pay.exam_fee) > 0) && (
+                              <div className="flex flex-wrap gap-1 text-[9px] text-slate-500 font-medium mt-1">
+                                {Number(pay.registration_fee) > 0 && (
+                                  <span className="bg-slate-100 dark:bg-slate-800/80 px-1.5 py-0.2 rounded border border-slate-200/50 dark:border-slate-700/50">
+                                    Reg: ₹{Number(pay.registration_fee).toLocaleString()}
+                                  </span>
+                                )}
+                                {Number(pay.course_fee) > 0 && (
+                                  <span className="bg-slate-100 dark:bg-slate-800/80 px-1.5 py-0.2 rounded border border-slate-200/50 dark:border-slate-700/50">
+                                    Course: ₹{Number(pay.course_fee).toLocaleString()}
+                                  </span>
+                                )}
+                                {Number(pay.exam_fee) > 0 && (
+                                  <span className="bg-slate-100 dark:bg-slate-800/80 px-1.5 py-0.2 rounded border border-slate-200/50 dark:border-slate-700/50">
+                                    Exam: ₹{Number(pay.exam_fee).toLocaleString()}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button 
+                              onClick={() => handleDownloadReceipt(pay, student, course)} 
+                              className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-white dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
+                              title="Download Receipt"
+                            >
+                              <Download size={13} />
+                            </button>
+                            <button 
+                              onClick={() => handleDeletePayment(pay.id, history.id)} 
+                              className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-md transition-colors cursor-pointer border border-transparent hover:border-rose-200 dark:hover:border-rose-900/30"
+                              title="Delete Payment"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
 
-             </div>
-             
-             {/* Footer summary */}
-             <div className="p-8 bg-slate-50 dark:bg-slate-900/60 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center shrink-0">
-                <div className="text-[10px] font-bold text-slate-450 dark:text-slate-500 uppercase">
-                  Account Billings Log: {showHistory.payments?.length || 0} payments
-                </div>
-                <button onClick={() => setShowHistory(null)} className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer">Close History</button>
-             </div>
+              </div>
+              
+              {/* Minimal Footer */}
+              <div className="px-5 py-2.5 bg-slate-50/70 dark:bg-slate-900/80 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
+                <span className="text-[11px] font-medium text-slate-400">
+                  Total {paymentsList.length} transaction{paymentsList.length === 1 ? "" : "s"} recorded
+                </span>
+                <button 
+                  onClick={() => setShowHistory(null)} 
+                  className="px-3.5 py-1.5 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
 
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Increment Modal */}
       {showIncrement && (
@@ -2632,7 +2851,7 @@ export default function FeesClient({
                     </span>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
-                    {selectedUnpaidMonths.map((m) => (
+                    {reminderCandidateMonths.map((m) => (
                       <button 
                         key={m}
                         type="button"

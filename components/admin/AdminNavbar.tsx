@@ -124,11 +124,15 @@ export default function AdminNavbar({
 
   // 1. Load user profile & notification previews on mount
   useEffect(() => {
+    let isMounted = true;
+
     async function loadData() {
       try {
         const {
           data: { user },
         } = await supabase.auth.getUser();
+
+        if (!isMounted) return;
 
         if (user) {
           const { data: profile } = await supabase
@@ -136,6 +140,8 @@ export default function AdminNavbar({
             .select("full_name, role, email")
             .eq("id", user.id)
             .maybeSingle();
+
+          if (!isMounted) return;
 
           setProfileData({
             name: profile?.full_name || user.email?.split("@")[0] || "Admin User",
@@ -151,15 +157,29 @@ export default function AdminNavbar({
           .order("created_at", { ascending: false })
           .limit(4);
 
+        if (!isMounted) return;
+
         if (notifs) {
           setRecentNotifications(notifs);
           setUnreadCount(notifs.length);
         }
-      } catch (e) {
+      } catch (e: any) {
+        if (
+          e?.name === "NavigatorLockAcquireTimeoutError" ||
+          e?.message?.includes("stole it") ||
+          e?.name === "AbortError"
+        ) {
+          // Harmless lock contest / double invocation error in dev
+          return;
+        }
         console.error("Navbar data error:", e);
       }
     }
     loadData();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // 2. Click outside listeners for popovers
