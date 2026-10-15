@@ -845,18 +845,205 @@ console.log("Config loaded:", appConfig.appName);</code></pre>
     }
   };
 
-  // ── Smart Paste Handler ──
-  const cleanPastedNode = (node: Node): string => {
+  // ── Smart Paste Handler & Markdown Parser for Direct ChatGPT Support ──
+  const markdownToHtml = (md: string): string => {
+    if (!md || !md.trim()) return '';
+
+    // Normalize line endings
+    const text = md.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+    // Helper for inline formatting
+    const formatInline = (str: string): string => {
+      let out = str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+
+      // Inline code: `code`
+      out = out.replace(/`([^`]+)`/g, '<code style="background:#f1f5f9;padding:2px 6px;border-radius:4px;font-family:monospace;font-size:0.875em;color:#e11d48;">$1</code>');
+      // Bold: **text** or __text__
+      out = out.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      out = out.replace(/__(.*?)__/g, '<strong>$1</strong>');
+      // Italic: *text* or _text_
+      out = out.replace(/\*([^\*]+)\*/g, '<em>$1</em>');
+      out = out.replace(/_([^_]+)_/g, '<em>$1</em>');
+      // Links: [text](url)
+      out = out.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" style="color:#2563eb;text-decoration:underline;">$1</a>');
+
+      return out;
+    };
+
+    const lines = text.split('\n');
+    const result: string[] = [];
+
+    let i = 0;
+    while (i < lines.length) {
+      const line = lines[i];
+      const trimmed = line.trim();
+
+      // 1. Code blocks: ```
+      if (trimmed.startsWith('```')) {
+        const codeLines: string[] = [];
+        i++;
+        while (i < lines.length && !lines[i].trim().startsWith('```')) {
+          codeLines.push(lines[i]);
+          i++;
+        }
+        if (i < lines.length) i++; // skip closing ```
+        const escapedCode = codeLines
+          .join('\n')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+        result.push(
+          `<pre style="background:#0f172a;color:#f8fafc;padding:14px 18px;border-radius:10px;font-family:monospace;font-size:0.85em;overflow-x:auto;margin:12px 0;line-height:1.5;"><code>${escapedCode}</code></pre>`
+        );
+        continue;
+      }
+
+      // 2. Markdown Tables: | col | col |
+      if (trimmed.startsWith('|') && trimmed.endsWith('|') && i + 1 < lines.length && lines[i + 1].trim().startsWith('|') && /\|[\s-:]+\|/.test(lines[i + 1])) {
+        const headerCells = trimmed.slice(1, -1).split('|').map(c => c.trim());
+        i += 2; // skip header and delimiter line
+        const bodyRows: string[][] = [];
+        while (i < lines.length && lines[i].trim().startsWith('|') && lines[i].trim().endsWith('|')) {
+          const rowCells = lines[i].trim().slice(1, -1).split('|').map(c => c.trim());
+          bodyRows.push(rowCells);
+          i++;
+        }
+        let tableHtml = '<div style="overflow-x:auto;margin:14px 0;"><table style="border-collapse:collapse;width:100%;font-size:0.875em;border:1px solid #e2e8f0;border-radius:8px;">';
+        tableHtml += '<thead><tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0;">';
+        headerCells.forEach(h => {
+          tableHtml += `<th style="border:1px solid #e2e8f0;padding:10px 14px;text-align:left;font-weight:700;color:#0f172a;">${formatInline(h)}</th>`;
+        });
+        tableHtml += '</tr></thead><tbody>';
+        bodyRows.forEach(row => {
+          tableHtml += '<tr style="border-bottom:1px solid #e2e8f0;">';
+          row.forEach(cell => {
+            tableHtml += `<td style="border:1px solid #e2e8f0;padding:8px 14px;color:#334155;">${formatInline(cell)}</td>`;
+          });
+          tableHtml += '</tr>';
+        });
+        tableHtml += '</tbody></table></div>';
+        result.push(tableHtml);
+        continue;
+      }
+
+      // 3. Headings: #, ##, ###
+      const headingMatch = trimmed.match(/^(#{1,6})\s+(.+)$/);
+      if (headingMatch) {
+        const level = headingMatch[1].length;
+        const hTag = level === 1 ? 'h2' : level === 2 ? 'h2' : 'h3';
+        result.push(`<${hTag}>${formatInline(headingMatch[2])}</${hTag}>`);
+        i++;
+        continue;
+      }
+
+      // 4. Blockquotes: > quote
+      if (trimmed.startsWith('>')) {
+        const quoteLines: string[] = [];
+        while (i < lines.length && lines[i].trim().startsWith('>')) {
+          quoteLines.push(lines[i].trim().replace(/^>\s*/, ''));
+          i++;
+        }
+        result.push(`<blockquote style="border-left:4px solid #3b82f6;padding:8px 16px;margin:12px 0;background:#f8fafc;color:#475569;border-radius:0 8px 8px 0;font-style:italic;">${formatInline(quoteLines.join(' '))}</blockquote>`);
+        continue;
+      }
+
+      // 5. Horizontal rule: ---, ***, ___
+      if (/^(\-{3,}|\*{3,}|_{3,})$/.test(trimmed)) {
+        result.push('<hr style="margin:16px 0;border:0;border-top:2px solid #e2e8f0;">');
+        i++;
+        continue;
+      }
+
+      // 6. Ordered list: 1. , 2. , etc.
+      if (/^\d+[\.\)]\s+/.test(trimmed)) {
+        const listItems: string[] = [];
+        while (i < lines.length && /^\d+[\.\)]\s+/.test(lines[i].trim())) {
+          const itemText = lines[i].trim().replace(/^\d+[\.\)]\s+/, '');
+          listItems.push(itemText);
+          i++;
+        }
+        let olHtml = '<ol>';
+        listItems.forEach(item => {
+          olHtml += `<li>${formatInline(item)}</li>`;
+        });
+        olHtml += '</ol>';
+        result.push(olHtml);
+        continue;
+      }
+
+      // 7. Unordered list: - , * , • 
+      if (/^[-*•]\s+/.test(trimmed)) {
+        const listItems: string[] = [];
+        while (i < lines.length && /^[-*•]\s+/.test(lines[i].trim())) {
+          const itemText = lines[i].trim().replace(/^[-*•]\s+/, '');
+          listItems.push(itemText);
+          i++;
+        }
+        let ulHtml = '<ul>';
+        listItems.forEach(item => {
+          ulHtml += `<li>${formatInline(item)}</li>`;
+        });
+        ulHtml += '</ul>';
+        result.push(ulHtml);
+        continue;
+      }
+
+      // 8. Empty lines
+      if (!trimmed) {
+        i++;
+        continue;
+      }
+
+      // Accumulate consecutive non-empty lines into a paragraph
+      const pLines: string[] = [];
+      while (
+        i < lines.length &&
+        lines[i].trim() &&
+        !lines[i].trim().startsWith('```') &&
+        !lines[i].trim().startsWith('#') &&
+        !lines[i].trim().startsWith('>') &&
+        !/^\d+[\.\)]\s+/.test(lines[i].trim()) &&
+        !/^[-*•]\s+/.test(lines[i].trim()) &&
+        !(lines[i].trim().startsWith('|') && lines[i].trim().endsWith('|')) &&
+        !/^(\-{3,}|\*{3,}|_{3,})$/.test(lines[i].trim())
+      ) {
+        pLines.push(lines[i].trim());
+        i++;
+      }
+
+      if (pLines.length > 0) {
+        result.push(`<p>${pLines.map(formatInline).join('<br>')}</p>`);
+      }
+    }
+
+    return result.join('');
+  };
+
+  const cleanPastedNode = (node: Node, parentTag: string = ''): string => {
     if (node.nodeType === Node.TEXT_NODE) return node.textContent || '';
     if (node.nodeType !== Node.ELEMENT_NODE) return '';
 
     const el = node as HTMLElement;
     const tag = el.tagName.toLowerCase();
-    const children = Array.from(el.childNodes).map(cleanPastedNode).join('');
+
+    // Discard noise elements (copy buttons, SVGs, styles, scripts)
+    if (['button', 'svg', 'path', 'style', 'script', 'noscript', 'meta', 'link'].includes(tag)) {
+      return '';
+    }
+    if (el.getAttribute('aria-hidden') === 'true' && !el.textContent?.trim()) {
+      return '';
+    }
+
+    const children = Array.from(el.childNodes)
+      .map(child => cleanPastedNode(child, tag))
+      .join('');
 
     switch (tag) {
       case 'h1': case 'h2': case 'h3': case 'h4': case 'h5': case 'h6':
-        return children.trim() ? `<h2>${children}</h2>` : '';
+        return children.trim() ? `<h2>${children.trim()}</h2>` : '';
       case 'strong': case 'b':
         return `<strong>${children}</strong>`;
       case 'em': case 'i':
@@ -866,6 +1053,10 @@ console.log("Config loaded:", appConfig.appName);</code></pre>
       case 's': case 'del': case 'strike':
         return children; // strip strikethrough
       case 'p':
+        // If inside a list item, DO NOT wrap with <p> block! Keep inline so the list marker and text stay on the same line
+        if (parentTag === 'li') {
+          return children.trim();
+        }
         return children.trim() ? `<p>${children}</p>` : '';
       case 'br':
         return '<br>';
@@ -875,8 +1066,17 @@ console.log("Config loaded:", appConfig.appName);</code></pre>
         return children.trim() ? `<ul>${children}</ul>` : '';
       case 'ol':
         return children.trim() ? `<ol>${children}</ol>` : '';
-      case 'li':
-        return `<li>${children}</li>`;
+      case 'li': {
+        let content = children.trim();
+        // Unwrap any nested <p> or <div> that may have been generated
+        content = content.replace(/^<p\b[^>]*>/i, '').replace(/<\/p>$/i, '');
+        content = content.replace(/^<div\b[^>]*>/i, '').replace(/<\/div>$/i, '');
+        // If parent is ol, strip redundant literal leading numbering like "1. ", "1) ", "1- "
+        if (parentTag === 'ol') {
+          content = content.replace(/^(\d+[\.\)]\s*)/, '');
+        }
+        return `<li>${content}</li>`;
+      }
       case 'code': {
         const isBlock = el.parentElement?.tagName.toLowerCase() === 'pre';
         return isBlock
@@ -884,7 +1084,7 @@ console.log("Config loaded:", appConfig.appName);</code></pre>
           : `<code style="background:#f1f5f9;padding:2px 6px;border-radius:4px;font-family:monospace;font-size:0.85em;">${children}</code>`;
       }
       case 'pre':
-        return `<pre style="background:#f1f5f9;padding:12px 16px;border-radius:8px;font-family:monospace;font-size:0.82em;overflow-x:auto;margin:8px 0;white-space:pre-wrap;">${children}</pre>`;
+        return `<pre style="background:#0f172a;color:#f8fafc;padding:12px 16px;border-radius:8px;font-family:monospace;font-size:0.82em;overflow-x:auto;margin:8px 0;white-space:pre-wrap;">${children}</pre>`;
       case 'blockquote':
         return `<blockquote style="border-left:4px solid #94a3b8;padding:8px 16px;margin:8px 0;color:#64748b;font-style:italic;">${children}</blockquote>`;
       case 'a': {
@@ -945,6 +1145,7 @@ console.log("Config loaded:", appConfig.appName);</code></pre>
                 false,
                 `<img src="${base64}" alt="Pasted Image" class="rounded-xl max-h-72 object-cover border border-slate-100 my-3 block" />`
               );
+              syncEditorState();
             }
           };
           reader.readAsDataURL(file);
@@ -960,14 +1161,28 @@ console.log("Config loaded:", appConfig.appName);</code></pre>
     if (htmlData) {
       const parser = new DOMParser();
       const doc = parser.parseFromString(htmlData, 'text/html');
-      const cleaned = Array.from(doc.body.childNodes).map(cleanPastedNode).join('');
-      document.execCommand('insertHTML', false, cleaned || plainText);
-    } else if (plainText) {
+      const cleaned = Array.from(doc.body.childNodes).map(n => cleanPastedNode(n)).join('').trim();
+      if (cleaned) {
+        document.execCommand('insertHTML', false, cleaned);
+        syncEditorState();
+        return;
+      }
+    }
+
+    if (plainText) {
+      const htmlFromMarkdown = markdownToHtml(plainText);
+      if (htmlFromMarkdown) {
+        document.execCommand('insertHTML', false, htmlFromMarkdown);
+        syncEditorState();
+        return;
+      }
       const escaped = plainText
         .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
       document.execCommand('insertHTML', false, escaped.split('\n').map(l => l ? `<p>${l}</p>` : '<br>').join(''));
+      syncEditorState();
     }
   };
+
 
   const addBlock = (type: 'header' | 'paragraph' | 'image' | 'list', index?: number) => {
     const newBlock: TheoryBlock = {
@@ -1228,12 +1443,16 @@ console.log("Config loaded:", appConfig.appName);</code></pre>
     const tagName = listEl.tagName.toLowerCase();
     const isOrdered = tagName === 'ol';
     const listClass = isOrdered 
-      ? 'list-decimal list-inside space-y-1.5 text-slate-655 dark:text-slate-400 my-2' 
-      : 'list-disc list-inside space-y-1.5 text-slate-655 dark:text-slate-400 my-2';
+      ? 'list-decimal list-outside pl-5 space-y-1.5 text-slate-655 dark:text-slate-400 my-2' 
+      : 'list-disc list-outside pl-5 space-y-1.5 text-slate-655 dark:text-slate-400 my-2';
     
     let html = `<${tagName} class="${listClass}">\n`;
     listEl.querySelectorAll('li').forEach(li => {
-      html += `  <li class="pl-1">${cleanInlineHTML(li.innerHTML)}</li>\n`;
+      let content = cleanInlineHTML(li.innerHTML).trim();
+      if (isOrdered) {
+        content = content.replace(/^(\d+[\.\)]\s*)/, '');
+      }
+      html += `  <li class="pl-1">${content}</li>\n`;
     });
     html += `</${tagName}>`;
     return html;
@@ -1295,7 +1514,7 @@ console.log("Config loaded:", appConfig.appName);</code></pre>
               newBlocks.push({
                 id: `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                 type: 'paragraph',
-                value: `<ul class="list-disc list-inside space-y-1.5 text-slate-655 dark:text-slate-400 my-2"><li class="pl-1">${cleanInlineHTML(el.innerHTML)}</li></ul>`
+                value: `<ul class="list-disc list-outside pl-5 space-y-1.5 text-slate-655 dark:text-slate-400 my-2"><li class="pl-1">${cleanInlineHTML(el.innerHTML)}</li></ul>`
               });
             } else if (tagName === 'img') {
               newBlocks.push({
@@ -1384,8 +1603,8 @@ console.log("Config loaded:", appConfig.appName);</code></pre>
         const flushList = () => {
           if (currentListPoints.length > 0 && activeListType) {
             const listClass = activeListType === 'ol'
-              ? 'list-decimal list-inside space-y-1.5 text-slate-655 dark:text-slate-400 my-2'
-              : 'list-disc list-inside space-y-1.5 text-slate-655 dark:text-slate-400 my-2';
+              ? 'list-decimal list-outside pl-5 space-y-1.5 text-slate-655 dark:text-slate-400 my-2'
+              : 'list-disc list-outside pl-5 space-y-1.5 text-slate-655 dark:text-slate-400 my-2';
             
             let listHtml = `<${activeListType} class="${listClass}">\n`;
             currentListPoints.forEach(pt => {
@@ -1743,7 +1962,7 @@ console.log("Config loaded:", appConfig.appName);</code></pre>
       } else if (block.type === 'image' && block.value.trim()) {
         html += `<div class="my-4"><img src="${block.value}" alt="Theory Content Image" class="rounded-xl max-h-96 object-cover border border-slate-100" /></div>\n`;
       } else if (block.type === 'list' && block.points && block.points.length > 0) {
-        html += `<ul class="list-disc list-inside space-y-2 text-slate-600 mb-4">\n`;
+        html += `<ul class="list-disc list-outside pl-5 space-y-2 text-slate-600 mb-4">\n`;
         block.points.forEach(point => {
           if (point.trim()) {
             html += `  <li>${point}</li>\n`;
