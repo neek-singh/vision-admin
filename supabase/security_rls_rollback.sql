@@ -13,8 +13,13 @@ declare
     'students', 'fees', 'payments', 'installments', 'expenses', 
     'attendance', 'attendance_sessions', 'enrollments', 'notifications', 
     'user_notifications', 'notification_history', 'lms_modules', 
-    'lms_chapters', 'lessons', 'tests', 'materials', 'schedules', 'events',
-    'blogs', 'gallery', 'batches', 'courses', 'stats',
+    'lms_chapters', 'lessons', 'tests', 'test_questions', 'test_results',
+    'materials', 'schedules', 'schedule', 'events', 'assignments', 
+    'submissions', 'assignment_courses', 'student_daily_activity', 
+    'batch_lesson_overrides', 'lesson_progress', 'bookmarks', 
+    'admission_payments', 'admission_otps', 'password_reset_otps', 
+    'lms_chat_rooms', 'lms_messages', 'lms_pinned_rooms', 'user_progress',
+    'blogs', 'gallery', 'batches', 'courses', 'stats', 'verifications', 'blog_likes',
     'contacts', 'admissions', 'contact_messages', 'profiles', 'push_subscriptions'
   ];
 begin

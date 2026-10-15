@@ -1,5 +1,5 @@
 -- ==========================================================
--- VISION IT SECURITY & RLS LOCKDOWN MIGRATION
+-- VISION IT SECURITY & RLS LOCKDOWN MIGRATION (COMPLETE AUDITED)
 -- File: supabase/security_rls_migration.sql
 -- ==========================================================
 
@@ -44,28 +44,19 @@ $$;
 revoke all on function public.is_admin() from public;
 grant execute on function public.is_admin() to authenticated, anon;
 
--- 2. Drop all over-permissive policies
+-- 2. Drop all over-permissive and existing policies across all public tables
 do $$
 declare r record;
 begin
   for r in
     select schemaname, tablename, policyname from pg_policies
     where schemaname = 'public'
-      and (
-        policyname in (
-          'Allow all for anon', 'Allow all for authenticated',
-          'Admin all', 'Student select', 'Enable all access', 'Public Access',
-          'allow_all', 'public_read', 'public_insert'
-        )
-      )
   loop
     execute format('drop policy if exists %I on %I.%I', r.policyname, r.schemaname, r.tablename);
   end loop;
 end $$;
 
--- 3. CLASS A: Admin-only tables
--- Students, fees, payments, installments, expenses, attendance, attendance_sessions, enrollments, 
--- notifications, user_notifications, notification_history, lms_modules, lms_chapters, lessons, tests, materials, schedules, events
+-- 3. CLASS A: Admin-only tables (Students, financial records, LMS master data, analytics)
 do $$
 declare
   t text;
@@ -73,39 +64,38 @@ declare
     'students', 'fees', 'payments', 'installments', 'expenses', 
     'attendance', 'attendance_sessions', 'enrollments', 'notifications', 
     'user_notifications', 'notification_history', 'lms_modules', 
-    'lms_chapters', 'lessons', 'tests', 'materials', 'schedules', 'events'
+    'lms_chapters', 'lessons', 'tests', 'test_questions', 'test_results',
+    'materials', 'schedules', 'schedule', 'events', 'assignments', 
+    'submissions', 'assignment_courses', 'student_daily_activity', 
+    'batch_lesson_overrides', 'lesson_progress', 'bookmarks', 
+    'admission_payments', 'admission_otps', 'password_reset_otps', 
+    'lms_chat_rooms', 'lms_messages', 'lms_pinned_rooms', 'user_progress'
   ];
 begin
   foreach t in array tables loop
     if exists (select 1 from pg_tables where schemaname = 'public' and tablename = t) then
       execute format('alter table public.%I enable row level security', t);
-      execute format('drop policy if exists "admin all" on public.%I', t);
       execute format('create policy "admin all" on public.%I for all to authenticated using (public.is_admin()) with check (public.is_admin())', t);
     end if;
   end loop;
 end $$;
 
--- 4. CLASS B: Public read, Admin write
--- blogs, gallery, batches, courses, stats
+-- 4. CLASS B: Public read, Admin write (Public website & course directory)
 do $$
 declare
   t text;
-  tables text[] := array['blogs', 'gallery', 'batches', 'courses', 'stats'];
+  tables text[] := array['blogs', 'gallery', 'batches', 'courses', 'stats', 'verifications', 'blog_likes'];
 begin
   foreach t in array tables loop
     if exists (select 1 from pg_tables where schemaname = 'public' and tablename = t) then
       execute format('alter table public.%I enable row level security', t);
-      execute format('drop policy if exists "public read" on public.%I', t);
-      execute format('drop policy if exists "admin write" on public.%I', t);
-      
       execute format('create policy "public read" on public.%I for select to anon, authenticated using (true)', t);
       execute format('create policy "admin write" on public.%I for all to authenticated using (public.is_admin()) with check (public.is_admin())', t);
     end if;
   end loop;
 end $$;
 
--- 5. CLASS C: Public insert, Admin read/modify/delete
--- contacts, admissions, contact_messages
+-- 5. CLASS C: Public insert, Admin manage (Inquiries, admissions, chats)
 do $$
 declare
   t text;
@@ -114,11 +104,6 @@ begin
   foreach t in array tables loop
     if exists (select 1 from pg_tables where schemaname = 'public' and tablename = t) then
       execute format('alter table public.%I enable row level security', t);
-      execute format('drop policy if exists "public insert" on public.%I', t);
-      execute format('drop policy if exists "admin read" on public.%I', t);
-      execute format('drop policy if exists "admin modify" on public.%I', t);
-      execute format('drop policy if exists "admin delete" on public.%I', t);
-
       execute format('create policy "public insert" on public.%I for insert to anon, authenticated with check (true)', t);
       execute format('create policy "admin read" on public.%I for select to authenticated using (public.is_admin())', t);
       execute format('create policy "admin modify" on public.%I for update to authenticated using (public.is_admin()) with check (public.is_admin())', t);
@@ -127,14 +112,12 @@ begin
   end loop;
 end $$;
 
--- 6. CLASS D: Own-row
+-- 6. CLASS D: Own-row (Profiles, push subscriptions)
 -- profiles
 do $$
 begin
   if exists (select 1 from pg_tables where schemaname = 'public' and tablename = 'profiles') then
     alter table public.profiles enable row level security;
-    drop policy if exists "own read" on public.profiles;
-    drop policy if exists "admin all profiles" on public.profiles;
     create policy "own read" on public.profiles
       for select to authenticated using (id = auth.uid() or public.is_admin());
     create policy "admin all profiles" on public.profiles
@@ -147,8 +130,6 @@ do $$
 begin
   if exists (select 1 from pg_tables where schemaname = 'public' and tablename = 'push_subscriptions') then
     alter table public.push_subscriptions enable row level security;
-    drop policy if exists "own subs" on public.push_subscriptions;
-    drop policy if exists "admin subs" on public.push_subscriptions;
     create policy "own subs" on public.push_subscriptions
       for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
     create policy "admin subs" on public.push_subscriptions
