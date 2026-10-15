@@ -31,14 +31,25 @@ export async function loginStudent(formData: FormData) {
     // If student_login_attempts table is not yet created, proceed without crashing
   }
 
-  // 1. Fetch student with privileged supabaseAdmin client (selecting only required columns)
-  const { data: student, error } = await supabaseAdmin
-    .from("students")
-    .select("id, student_id, name, status, password_hash, is_blocked, is_deleted")
-    .eq("student_id", student_id)
-    .single();
+  // 1. Fetch student with get_student_for_auth RPC
+  let student: any = null;
+  const { data: students, error: rpcErr } = await supabaseAdmin.rpc("get_student_for_auth", {
+    p_student_id: student_id,
+  });
 
-  if (error || !student || student.is_deleted || student.is_blocked) {
+  if (students && students.length > 0) {
+    student = students[0];
+  } else {
+    // Fallback direct select
+    const { data: s } = await supabaseAdmin
+      .from("students")
+      .select("id, student_id, name, status, password_hash, is_blocked, is_deleted")
+      .eq("student_id", student_id)
+      .single();
+    student = s;
+  }
+
+  if (!student || student.is_deleted || student.is_blocked) {
     // Record failed attempt
     try {
       await supabaseAdmin.from("student_login_attempts").insert({
