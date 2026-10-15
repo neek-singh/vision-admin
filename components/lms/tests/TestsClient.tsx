@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
+import { notifyTestPublished } from "@/app/actions/lms/tests";
 import { 
   FileText, 
   Plus, 
@@ -119,6 +120,7 @@ export default function TestsClient({ courses, initialTests, availableBatches = 
         batches: batch ? [batch] : null
       };
 
+      let testId = editingId;
       if (editingId) {
         const { error } = await supabase
           .from("tests")
@@ -126,10 +128,19 @@ export default function TestsClient({ courses, initialTests, availableBatches = 
           .eq("id", editingId);
         if (error) throw error;
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("tests")
-          .insert([payload]);
+          .insert([payload])
+          .select("id")
+          .single();
         if (error) throw error;
+        testId = data?.id;
+      }
+
+      if (testId && payload.is_published) {
+        notifyTestPublished(testId).catch(err => {
+          console.error("Failed to notify students on test publish:", err);
+        });
       }
 
       closeForm();
@@ -144,12 +155,20 @@ export default function TestsClient({ courses, initialTests, availableBatches = 
 
   const handleTogglePublish = async (id: string, currentStatus: boolean) => {
     try {
+      const nextStatus = !currentStatus;
       const { error } = await supabase
         .from("tests")
-        .update({ is_published: !currentStatus })
+        .update({ is_published: nextStatus })
         .eq("id", id);
       
       if (error) throw error;
+
+      if (nextStatus) {
+        notifyTestPublished(id).catch(err => {
+          console.error("Failed to notify students on test toggle publish:", err);
+        });
+      }
+
       router.refresh();
     } catch (err) {
       console.error("Error toggling publish status:", err);
@@ -297,6 +316,15 @@ export default function TestsClient({ courses, initialTests, availableBatches = 
                 <FileText size={20} />
               </div>
               <div className="flex items-center gap-1">
+                <button
+                  onClick={() => handleTogglePublish(test.id, !!test.is_published)}
+                  className={`p-2 rounded-lg transition-all ${
+                    test.is_published ? "text-emerald-500 hover:text-emerald-600" : "text-slate-300 hover:text-slate-600"
+                  }`}
+                  title={test.is_published ? "Published (click to unpublish)" : "Draft (click to publish)"}
+                >
+                  <CheckCircle2 size={18} />
+                </button>
                 <button onClick={() => handleEdit(test)} className="p-2 text-slate-300 hover:text-indigo-600 rounded-lg transition-all"><Pencil size={18} /></button>
                 <button onClick={() => handleDelete(test.id)} className="p-2 text-slate-300 hover:text-red-500 rounded-lg transition-all"><Trash2 size={18} /></button>
               </div>

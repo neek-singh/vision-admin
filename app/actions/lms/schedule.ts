@@ -2,6 +2,23 @@
 
 import { requireAdmin } from "@/lib/require-admin";
 import { revalidatePath } from "next/cache";
+import { notifyStudents } from "@/lib/notify";
+import { supabaseAdmin } from "@/lib/supabase-admin";
+
+async function getStudentIdsForBatch(batch?: string, courseId?: string): Promise<string[]> {
+  const ids = new Set<string>();
+  if (batch) {
+    const { data: sData } = await supabaseAdmin.from("students").select("id").eq("batch", batch);
+    sData?.forEach((s: { id: string }) => ids.add(s.id));
+
+    const { data: eData } = await supabaseAdmin.from("enrollments").select("student_id").eq("batch", batch);
+    eData?.forEach((e: { student_id: string }) => ids.add(e.student_id));
+  } else if (courseId) {
+    const { data: eData } = await supabaseAdmin.from("enrollments").select("student_id").eq("course_id", courseId);
+    eData?.forEach((e: { student_id: string }) => ids.add(e.student_id));
+  }
+  return Array.from(ids);
+}
 
 export async function createSchedule(data: {
   course_id: string;
@@ -48,12 +65,27 @@ export async function createSchedule(data: {
 
     if (error) return { error: "Failed to create schedule" };
 
+    // Trigger 3: Send notification to related batch students
+    try {
+      const studentIds = await getStudentIdsForBatch(data.batch, data.course_id);
+      if (studentIds.length > 0) {
+        await notifyStudents(studentIds, {
+          title: "Nayi Class Schedule 📅",
+          body: `${data.title}: ${data.date} ko ${data.start_time} par hai.`,
+          url: "/student/schedule",
+          type: "schedule"
+        });
+      }
+    } catch (notifErr) {
+      console.error("[createSchedule] Failed to notify students:", notifErr);
+    }
+
     revalidatePath("/admin/schedule");
     revalidatePath("/admin/calendar");
     return { success: true };
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("createSchedule error:", err);
-    return { error: err.message || "Unauthorized" };
+    return { error: err instanceof Error ? err.message : "Unauthorized" };
   }
 }
 
@@ -68,9 +100,9 @@ export async function deleteSchedule(id: string) {
     revalidatePath("/admin/schedule");
     revalidatePath("/admin/calendar");
     return { success: true };
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("deleteSchedule error:", err);
-    return { error: err.message || "Unauthorized" };
+    return { error: err instanceof Error ? err.message : "Unauthorized" };
   }
 }
 
@@ -81,6 +113,13 @@ export async function updateScheduleDate(data: {
 }) {
   try {
     const { supabase } = await requireAdmin();
+
+    // Fetch existing schedule details for notification
+    const { data: sched } = await supabase
+      .from("schedules")
+      .select("title, batch, course_id, start_time")
+      .eq("id", data.id)
+      .single();
 
     if (data.isEvent) {
       const { error } = await supabase
@@ -107,12 +146,29 @@ export async function updateScheduleDate(data: {
       }
     }
 
+    // Trigger 3: Send reschedule notification to related batch students
+    try {
+      const batch = sched?.batch;
+      const courseId = sched?.course_id;
+      const studentIds = await getStudentIdsForBatch(batch, courseId);
+      if (studentIds.length > 0) {
+        await notifyStudents(studentIds, {
+          title: "Class Reschedule Hui ⏰",
+          body: `${sched?.title || "Class"} reschedule hui: Nayi date ${data.date} hai.`,
+          url: "/student/schedule",
+          type: "schedule"
+        });
+      }
+    } catch (notifErr) {
+      console.error("[updateScheduleDate] Failed to notify students:", notifErr);
+    }
+
     revalidatePath("/admin/schedule");
     revalidatePath("/admin/calendar");
     return { success: true };
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("updateScheduleDate error:", err);
-    return { error: err.message || "Unauthorized" };
+    return { error: err instanceof Error ? err.message : "Unauthorized" };
   }
 }
 

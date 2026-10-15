@@ -3,8 +3,21 @@
 import { revalidatePath } from "next/cache";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { requireAdmin } from "@/lib/require-admin";
+import { notifyAdmins } from "@/lib/notify";
 
-export async function submitAdmission(formData: any) {
+export interface AdmissionFormData {
+  name?: string;
+  father_name?: string;
+  email?: string;
+  phone?: string;
+  dob?: string;
+  course_id?: string;
+  address?: string;
+  qualification?: string;
+  [key: string]: unknown;
+}
+
+export async function submitAdmission(formData: AdmissionFormData) {
   try {
     const supabase = await createServerSupabaseClient();
     
@@ -56,10 +69,83 @@ export async function submitAdmission(formData: any) {
     }
 
     revalidatePath("/admin/admissions");
+
+    // Send push notification to all admins (Trigger 1)
+    try {
+      let courseTitle = "";
+      if (course_id) {
+        const { data: courseData } = await supabase
+          .from("courses")
+          .select("title")
+          .eq("id", course_id)
+          .single();
+        if (courseData?.title) courseTitle = courseData.title;
+      }
+      const courseLabel = courseTitle ? `, ${courseTitle}` : "";
+      await notifyAdmins({
+        title: "Nayi Admission 📋",
+        body: `Nayi Admission: ${name.trim()}${courseLabel}`,
+        url: "/admin/admissions",
+      });
+    } catch (notifErr) {
+      console.error("[submitAdmission] Failed to notify admins:", notifErr);
+    }
+
     return { success: true, data };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error("Admission saving error:", e);
     return { error: "Failed to process application" };
+  }
+}
+
+export async function updateAdmissionStatus(
+  id: string,
+  status: "approved" | "rejected"
+) {
+  try {
+    const { supabase } = await requireAdmin();
+
+    const { error } = await supabase
+      .from("admissions")
+      .update({ status })
+      .eq("id", id);
+
+    if (error) {
+      console.error("updateAdmissionStatus DB error:", error);
+      return { error: "Failed to update admission status." };
+    }
+
+    revalidatePath("/admin/admissions");
+    revalidatePath("/admin/students");
+
+    return { 
+      success: true
+    };
+  } catch (e: unknown) {
+    console.error("updateAdmissionStatus auth error:", e);
+    return { error: e instanceof Error ? e.message : "Unauthorized" };
+  }
+}
+
+export async function verifyAdmissionDocuments(admissionId: string, verified: boolean) {
+  try {
+    const { supabase } = await requireAdmin();
+
+    const { error } = await supabase
+      .from("admissions")
+      .update({
+        document_verified: verified,
+        flow_step: verified ? "payment" : "review",
+      })
+      .eq("id", admissionId);
+
+    if (error) throw error;
+
+    revalidatePath("/admin/admissions");
+    return { success: true };
+  } catch (e: unknown) {
+    console.error("verifyAdmissionDocuments error:", e);
+    return { error: e instanceof Error ? e.message : "Failed to update document verification" };
   }
 }
 
@@ -79,8 +165,8 @@ export async function deleteAdmissionEntry(id: string) {
 
     revalidatePath("/admin/admissions");
     return { success: true };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error("deleteAdmissionEntry auth error:", e);
-    return { error: e.message || "Unauthorized" };
+    return { error: e instanceof Error ? e.message : "Unauthorized" };
   }
 }

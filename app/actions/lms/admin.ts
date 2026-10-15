@@ -2,34 +2,14 @@
 
 import { requireAdmin } from "@/lib/require-admin";
 import { revalidatePath } from "next/cache";
+import { updateAdmissionStatus as _updateAdmissionStatus, verifyAdmissionDocuments as _verifyAdmissionDocuments } from "./admissions";
 
-export async function updateAdmissionStatus(
-    id: string,
-    status: "approved" | "rejected"
-) {
-    try {
-        const { supabase } = await requireAdmin();
+export async function updateAdmissionStatus(id: string, status: "approved" | "rejected") {
+    return _updateAdmissionStatus(id, status);
+}
 
-        const { error } = await supabase
-            .from("admissions")
-            .update({ status })
-            .eq("id", id);
-
-        if (error) {
-            console.error("updateAdmissionStatus DB error:", error);
-            return { error: "Failed to update admission status." };
-        }
-
-        revalidatePath("/admin/admissions");
-        revalidatePath("/admin/students");
-
-        return { 
-            success: true
-        };
-    } catch (e: any) {
-        console.error("updateAdmissionStatus auth error:", e);
-        return { error: e.message || "Unauthorized" };
-    }
+export async function verifyAdmissionDocuments(admissionId: string, verified: boolean) {
+    return _verifyAdmissionDocuments(admissionId, verified);
 }
 
 export async function assignCourseToStudent(studentId: string, courseId: string, batch?: string) {
@@ -171,27 +151,6 @@ export async function updateStudentBatch(studentId: string, batch: string | null
     }
 }
 
-export async function verifyAdmissionDocuments(admissionId: string, verified: boolean) {
-    try {
-        const { supabase } = await requireAdmin();
-
-        const { error } = await supabase
-            .from("admissions")
-            .update({
-                document_verified: verified,
-                flow_step: verified ? "payment" : "review",
-            })
-            .eq("id", admissionId);
-
-        if (error) throw error;
-
-        revalidatePath("/admin/admissions");
-        return { success: true };
-    } catch (e: any) {
-        console.error("Document verification error:", e);
-        return { error: e.message || "Failed to verify documents" };
-    }
-}
 
 // Student Trash & Soft Delete Actions
 export async function moveToTrashStudent(id: string) {

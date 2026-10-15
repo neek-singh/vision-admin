@@ -1,6 +1,6 @@
 import "server-only";
 import webpush from "web-push";
-import { createServerSupabaseClient } from "@/lib/supabase-server";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 
 const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 const privateKey = process.env.VAPID_PRIVATE_KEY;
@@ -26,9 +26,7 @@ export async function sendPushNotification(
     return { success: false, error: "VAPID keys not configured" };
   }
 
-  const supabase = await createServerSupabaseClient();
-
-  const { data: subscriptions, error } = await supabase
+  const { data: subscriptions, error } = await supabaseAdmin
     .from("push_subscriptions")
     .select("subscription")
     .eq("user_id", userId);
@@ -48,8 +46,8 @@ export async function sendPushNotification(
       } catch (err: unknown) {
         const webpushErr = err as { statusCode?: number; message?: string };
         if (webpushErr.statusCode === 410 || webpushErr.statusCode === 404) {
-          // Subscription has expired or is no longer valid, delete it
-          await supabase
+          // Subscription has expired or is no longer valid, delete it via supabaseAdmin
+          await supabaseAdmin
             .from("push_subscriptions")
             .delete()
             .match({ user_id: userId, subscription: sub.subscription });

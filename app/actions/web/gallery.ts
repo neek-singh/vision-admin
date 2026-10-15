@@ -28,6 +28,7 @@ function getGalleryPaths() {
 
 export async function getImages() {
   try {
+    await requireAdmin();
     const { galleryFilePath } = getGalleryPaths();
     if (fs.existsSync(galleryFilePath)) {
       const fileData = fs.readFileSync(galleryFilePath, "utf-8");

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
+import { notifyAssignmentPublished } from "@/app/actions/lms/projects";
 import { 
   PenTool, 
   Calendar as CalendarIcon, 
@@ -427,6 +428,13 @@ export default function ProjectsClient({ courses, initialProjects, availableBatc
         if (relError) throw relError;
       }
 
+      // Notify students if published
+      if (assignmentId && formData.is_published) {
+        notifyAssignmentPublished(assignmentId).catch(err => {
+          console.error("Failed to notify students on publish:", err);
+        });
+      }
+
       closeForm();
       router.refresh();
     } catch (err) {
@@ -439,12 +447,20 @@ export default function ProjectsClient({ courses, initialProjects, availableBatc
 
   const handleTogglePublish = async (id: string, currentStatus: boolean) => {
     try {
+      const nextStatus = !currentStatus;
       const { error } = await supabase
         .from("assignments")
-        .update({ is_published: !currentStatus })
+        .update({ is_published: nextStatus })
         .eq("id", id);
       
       if (error) throw error;
+
+      if (nextStatus) {
+        notifyAssignmentPublished(id).catch(err => {
+          console.error("Failed to notify students on toggle publish:", err);
+        });
+      }
+
       router.refresh();
     } catch (err) {
       console.error("Error toggling publish status:", err);
@@ -783,6 +799,15 @@ export default function ProjectsClient({ courses, initialProjects, availableBatc
 
                 {/* Actions */}
                 <div className="flex items-center gap-0.5 md:opacity-0 md:group-hover:opacity-100 md:focus-within:opacity-100 transition-opacity shrink-0 pl-1 md:pl-0">
+                  <button
+                    onClick={() => handleTogglePublish(project.id, !!project.is_published)}
+                    className={`p-2 rounded-md transition-colors cursor-pointer ${
+                      project.is_published ? "text-emerald-500 hover:text-emerald-600" : "text-slate-400 hover:text-slate-600"
+                    }`}
+                    title={project.is_published ? "Published (click to unpublish)" : "Draft (click to publish)"}
+                  >
+                    <CheckCircle2 size={15} />
+                  </button>
                   <button
                     onClick={() => handleOpenSchedule(project)}
                     className="p-2 text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-md transition-colors cursor-pointer"

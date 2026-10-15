@@ -88,9 +88,9 @@ export async function sendNotification(data: {
 
     revalidatePath("/admin/notifications");
     return { success: true, count: students.length };
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("sendNotification error:", err);
-    return { error: err.message || "Unauthorized" };
+    return { error: err instanceof Error ? err.message : "Unauthorized" };
   }
 }
 
@@ -101,6 +101,7 @@ export async function sendBatchNotification(data: {
   body: string;
   url?: string;
 }) {
+  await requireAdmin();
   return sendNotification({
     title: data.title,
     message: data.body,
@@ -119,8 +120,8 @@ export async function deleteNotification(id: string) {
     if (error) return { error: "Failed to delete notification" };
     revalidatePath("/admin/notifications");
     return { success: true };
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("deleteNotification error:", err);
-    return { error: err.message || "Unauthorized" };
+    return { error: err instanceof Error ? err.message : "Unauthorized" };
   }
 }
