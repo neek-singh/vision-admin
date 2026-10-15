@@ -3,6 +3,7 @@
 import fs from "fs";
 import path from "path";
 import { revalidatePath } from "next/cache";
+import { requireAdmin } from "@/lib/require-admin";
 
 function getStatsFilePath() {
   const candidates = [
@@ -27,6 +28,8 @@ function getStatsFilePath() {
 
 export async function updateStats(formData: FormData) {
   try {
+    await requireAdmin();
+
     const statsFilePath = getStatsFilePath();
     const expert_mentors = formData.get("expert_mentors") as string;
     const students_trained = formData.get("students_trained") as string;
@@ -45,8 +48,6 @@ export async function updateStats(formData: FormData) {
 
     revalidatePath("/about");
     revalidatePath("/admin/stats");
-
-    return;
   } catch (error: any) {
     console.error("Failed to update stats:", error);
   }

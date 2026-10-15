@@ -1,7 +1,8 @@
 "use server";
 
-import { createServerSupabaseClient } from "@/lib/supabase-server";
+import { requireAdmin } from "@/lib/require-admin";
 import { revalidatePath } from "next/cache";
+import { sendPushNotification } from "@/lib/push";
 
 export async function setupStudentFee(data: {
   student_id: string;
@@ -11,39 +12,44 @@ export async function setupStudentFee(data: {
   final_fee: number;
   installments: { amount: number; due_date: string }[];
 }) {
-  const supabase = await createServerSupabaseClient();
+  try {
+    const { supabase } = await requireAdmin();
 
-  // 1. Create main fee record
-  const { data: fee, error: feeError } = await supabase
-    .from("fees")
-    .insert({
-      student_id: data.student_id,
-      course_id: data.course_id,
-      total_fee: data.total_fee,
-      discount: data.discount,
-      final_fee: data.final_fee,
-      status: 'due'
-    })
-    .select()
-    .single();
+    // 1. Create main fee record
+    const { data: fee, error: feeError } = await supabase
+      .from("fees")
+      .insert({
+        student_id: data.student_id,
+        course_id: data.course_id,
+        total_fee: data.total_fee,
+        discount: data.discount,
+        final_fee: data.final_fee,
+        status: 'due'
+      })
+      .select()
+      .single();
 
-  if (feeError) return { error: feeError.message };
+    if (feeError) return { error: "Failed to create fee record" };
 
-  // 2. Create installments
-  if (data.installments.length > 0) {
-    const installmentData = data.installments.map(inst => ({
-      fee_id: fee.id,
-      amount: inst.amount,
-      due_date: inst.due_date,
-      status: 'pending'
-    }));
+    // 2. Create installments
+    if (data.installments.length > 0) {
+      const installmentData = data.installments.map(inst => ({
+        fee_id: fee.id,
+        amount: inst.amount,
+        due_date: inst.due_date,
+        status: 'pending'
+      }));
 
-    const { error: instError } = await supabase.from("installments").insert(installmentData);
-    if (instError) return { error: instError.message };
+      const { error: instError } = await supabase.from("installments").insert(installmentData);
+      if (instError) return { error: "Failed to create installments" };
+    }
+
+    revalidatePath("/admin/fees");
+    return { success: true };
+  } catch (err: any) {
+    console.error("setupStudentFee error:", err);
+    return { error: err.message || "Unauthorized" };
   }
-
-  revalidatePath("/admin/fees");
-  return { success: true };
 }
 
 export async function recordPayment(data: {
@@ -57,231 +63,242 @@ export async function recordPayment(data: {
   course_fee?: number;
   exam_fee?: number;
 }) {
-  const supabase = await createServerSupabaseClient();
+  try {
+    const { supabase } = await requireAdmin();
 
-  // 1. Record transaction
-  const { error: payError } = await supabase.from("payments").insert({
-    fee_id: data.fee_id,
-    student_id: data.student_id,
-    amount: data.amount,
-    payment_mode: data.payment_mode,
-    transaction_id: data.transaction_id,
-    payment_date: data.payment_date || new Date().toISOString().split('T')[0],
-    registration_fee: data.registration_fee || 0,
-    course_fee: data.course_fee || 0,
-    exam_fee: data.exam_fee || 0
-  });
+    // 1. Record transaction
+    const { error: payError } = await supabase.from("payments").insert({
+      fee_id: data.fee_id,
+      student_id: data.student_id,
+      amount: data.amount,
+      payment_mode: data.payment_mode,
+      transaction_id: data.transaction_id,
+      payment_date: data.payment_date || new Date().toISOString().split('T')[0],
+      registration_fee: data.registration_fee || 0,
+      course_fee: data.course_fee || 0,
+      exam_fee: data.exam_fee || 0
+    });
 
-  if (payError) return { error: payError.message };
+    if (payError) return { error: "Failed to record payment" };
 
-  // 2. Calculate Total Paid to update status
-  const { data: allPayments } = await supabase
-    .from("payments")
-    .select("amount")
-    .eq("fee_id", data.fee_id);
+    // 2. Calculate Total Paid to update status
+    const { data: allPayments } = await supabase
+      .from("payments")
+      .select("amount")
+      .eq("fee_id", data.fee_id);
 
-  const totalPaid = allPayments?.reduce((acc, p) => acc + Number(p.amount), 0) || 0;
+    const totalPaid = allPayments?.reduce((acc, p) => acc + Number(p.amount), 0) || 0;
 
-  // 3. Update fee status
-  const { data: fee } = await supabase.from("fees").select("final_fee, increment_amount").eq("id", data.fee_id).single();
-  if (fee) {
-    const totalPayable = Number(fee.final_fee) + Number(fee.increment_amount || 0);
-    let newStatus = 'partial';
-    if (totalPaid >= totalPayable) newStatus = 'paid';
-    else if (totalPaid === 0) newStatus = 'due';
+    // 3. Update fee status
+    const { data: fee } = await supabase.from("fees").select("final_fee, increment_amount").eq("id", data.fee_id).single();
+    if (fee) {
+      const totalPayable = Number(fee.final_fee) + Number(fee.increment_amount || 0);
+      let newStatus = 'partial';
+      if (totalPaid >= totalPayable) newStatus = 'paid';
+      else if (totalPaid === 0) newStatus = 'due';
 
-    await supabase.from("fees").update({
-      status: newStatus
-    }).eq("id", data.fee_id);
+      await supabase.from("fees").update({
+        status: newStatus
+      }).eq("id", data.fee_id);
 
-    // 4. Update installments status
-    const { data: installments } = await supabase
-      .from("installments")
-      .select("*")
-      .eq("fee_id", data.fee_id)
-      .eq("status", "pending")
-      .order("due_date", { ascending: true });
+      // 4. Update installments status
+      const { data: installments } = await supabase
+        .from("installments")
+        .select("*")
+        .eq("fee_id", data.fee_id)
+        .eq("status", "pending")
+        .order("due_date", { ascending: true });
 
-    if (installments) {
-      let remainingPaid = totalPaid;
-      for (const inst of installments) {
-        if (remainingPaid >= Number(inst.amount)) {
-          await supabase.from("installments").update({ status: 'paid' }).eq("id", inst.id);
-          remainingPaid -= Number(inst.amount);
-        } else {
-          break;
+      if (installments) {
+        let remainingPaid = totalPaid;
+        for (const inst of installments) {
+          if (remainingPaid >= Number(inst.amount)) {
+            await supabase.from("installments").update({ status: 'paid' }).eq("id", inst.id);
+            remainingPaid -= Number(inst.amount);
+          } else {
+            break;
+          }
         }
       }
     }
-  }
 
-  // Trigger push notifications asynchronously (do not block client response)
-  try {
-    // 1. Fetch student profile to get the student's name
-    const { data: studentProfile } = await supabase
-      .from("profiles")
-      .select("full_name")
-      .eq("id", data.student_id)
-      .single();
-    
-    const studentName = studentProfile?.full_name || "A student";
+    // Trigger push notifications asynchronously
+    try {
+      const { data: studentProfile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", data.student_id)
+        .single();
+      
+      const studentName = studentProfile?.full_name || "A student";
 
-    // 2. Fetch all admins
-    const { data: admins } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("role", "admin");
+      const { data: admins } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("role", "admin");
 
-    const { sendPushNotification } = await import("@/app/actions/lms/push");
+      const notifyPromises = [];
 
-    // 3. Prepare notifications
-    const notifyPromises = [];
+      notifyPromises.push(
+        sendPushNotification(data.student_id, {
+          title: "Fee Payment Recorded 💳",
+          body: `Thank you! Your payment of ₹${data.amount} has been successfully recorded.`,
+          url: "/student/fees"
+        }).catch(err => {
+          console.error(`Failed to send push notification to student ${data.student_id}:`, err);
+          return null;
+        })
+      );
 
-    // Send confirmation to the student
-    notifyPromises.push(
-      sendPushNotification(data.student_id, {
-        title: "Fee Payment Recorded 💳",
-        body: `Thank you! Your payment of ₹${data.amount} has been successfully recorded.`,
-        url: "/student/fees"
-      }).catch(err => {
-        console.error(`Failed to send push notification to student ${data.student_id}:`, err);
-        return null;
-      })
-    );
+      if (admins && admins.length > 0) {
+        admins.forEach(admin => {
+          notifyPromises.push(
+            sendPushNotification(admin.id, {
+              title: "New Fee Payment Received 💰",
+              body: `₹${data.amount} payment received from ${studentName} (${data.payment_mode}).`,
+              url: "/admin/fees"
+            }).catch(err => {
+              console.error(`Failed to send push notification to admin ${admin.id}:`, err);
+              return null;
+            })
+          );
+        });
+      }
 
-    // Send notification to all admins
-    if (admins && admins.length > 0) {
-      admins.forEach(admin => {
-        notifyPromises.push(
-          sendPushNotification(admin.id, {
-            title: "New Fee Payment Received 💰",
-            body: `₹${data.amount} payment received from ${studentName} (${data.payment_mode}).`,
-            url: "/admin/fees"
-          }).catch(err => {
-            console.error(`Failed to send push notification to admin ${admin.id}:`, err);
-            return null;
-          })
-        );
-      });
+      await Promise.all(notifyPromises);
+    } catch (pushError) {
+      console.error("Failed to process fee payment push notifications:", pushError);
     }
 
-    await Promise.all(notifyPromises);
-  } catch (pushError) {
-    console.error("Failed to process fee payment push notifications:", pushError);
+    revalidatePath("/admin/fees");
+    return { success: true };
+  } catch (err: any) {
+    console.error("recordPayment error:", err);
+    return { error: err.message || "Unauthorized" };
   }
-
-  revalidatePath("/admin/fees");
-  return { success: true };
 }
 
 export async function deleteFeeRecord(id: string) {
-  const supabase = await createServerSupabaseClient();
-  const { error } = await supabase.from("fees").delete().eq("id", id);
-  if (error) return { error: error.message };
-  revalidatePath("/admin/fees");
-  return { success: true };
+  try {
+    const { supabase } = await requireAdmin();
+    const { error } = await supabase.from("fees").delete().eq("id", id);
+    if (error) return { error: "Failed to delete fee record" };
+    revalidatePath("/admin/fees");
+    return { success: true };
+  } catch (err: any) {
+    console.error("deleteFeeRecord error:", err);
+    return { error: err.message || "Unauthorized" };
+  }
 }
 
 export async function deletePayment(paymentId: string, feeId: string) {
-  const supabase = await createServerSupabaseClient();
+  try {
+    const { supabase } = await requireAdmin();
 
-  // 1. Delete payment
-  const { error: deleteError } = await supabase
-    .from("payments")
-    .delete()
-    .eq("id", paymentId);
+    // 1. Delete payment
+    const { error: deleteError } = await supabase
+      .from("payments")
+      .delete()
+      .eq("id", paymentId);
 
-  if (deleteError) return { error: deleteError.message };
+    if (deleteError) return { error: "Failed to delete payment" };
 
-  // 2. Calculate new Total Paid
-  const { data: allPayments } = await supabase
-    .from("payments")
-    .select("amount")
-    .eq("fee_id", feeId);
+    // 2. Calculate new Total Paid
+    const { data: allPayments } = await supabase
+      .from("payments")
+      .select("amount")
+      .eq("fee_id", feeId);
 
-  const totalPaid = allPayments?.reduce((acc, p) => acc + Number(p.amount), 0) || 0;
+    const totalPaid = allPayments?.reduce((acc, p) => acc + Number(p.amount), 0) || 0;
 
-  // 3. Update fee status
-  const { data: fee } = await supabase.from("fees").select("final_fee, increment_amount").eq("id", feeId).single();
-  if (fee) {
-    const totalPayable = Number(fee.final_fee) + Number(fee.increment_amount || 0);
+    // 3. Update fee status
+    const { data: fee } = await supabase.from("fees").select("final_fee, increment_amount").eq("id", feeId).single();
+    if (fee) {
+      const totalPayable = Number(fee.final_fee) + Number(fee.increment_amount || 0);
+      let newStatus = 'partial';
+      if (totalPaid >= totalPayable) newStatus = 'paid';
+      else if (totalPaid === 0) newStatus = 'due';
+
+      await supabase.from("fees").update({
+        status: newStatus
+      }).eq("id", feeId);
+
+      // 4. Reset installments to pending
+      await supabase.from("installments").update({ status: 'pending' }).eq("fee_id", feeId);
+
+      // 5. Re-allocate remaining totalPaid
+      const { data: installments } = await supabase
+        .from("installments")
+        .select("*")
+        .eq("fee_id", feeId)
+        .order("due_date", { ascending: true });
+
+      if (installments) {
+        let remainingPaid = totalPaid;
+        for (const inst of installments) {
+          if (remainingPaid >= Number(inst.amount)) {
+            await supabase.from("installments").update({ status: 'paid' }).eq("id", inst.id);
+            remainingPaid -= Number(inst.amount);
+          } else {
+            break;
+          }
+        }
+      }
+    }
+
+    revalidatePath("/admin/fees");
+    return { success: true };
+  } catch (err: any) {
+    console.error("deletePayment error:", err);
+    return { error: err.message || "Unauthorized" };
+  }
+}
+
+export async function incrementStudentFee(feeId: string, incrementAmount: number) {
+  try {
+    const { supabase } = await requireAdmin();
+
+    // 1. Get current fee details
+    const { data: fee, error: getError } = await supabase
+      .from("fees")
+      .select("final_fee, increment_amount")
+      .eq("id", feeId)
+      .single();
+
+    if (getError || !fee) return { error: "Fee record not found" };
+
+    const newIncrement = Number(fee.increment_amount || 0) + Number(incrementAmount);
+
+    // 2. Update increment_amount in database
+    const { error: updateError } = await supabase
+      .from("fees")
+      .update({ increment_amount: newIncrement })
+      .eq("id", feeId);
+
+    if (updateError) return { error: "Failed to update fee increment" };
+
+    // 3. Recalculate status
+    const { data: allPayments } = await supabase
+      .from("payments")
+      .select("amount")
+      .eq("fee_id", feeId);
+
+    const totalPaid = allPayments?.reduce((acc, p) => acc + Number(p.amount), 0) || 0;
+    const totalPayable = Number(fee.final_fee) + newIncrement;
+
     let newStatus = 'partial';
     if (totalPaid >= totalPayable) newStatus = 'paid';
     else if (totalPaid === 0) newStatus = 'due';
 
-    await supabase.from("fees").update({
-      status: newStatus
-    }).eq("id", feeId);
+    await supabase
+      .from("fees")
+      .update({ status: newStatus })
+      .eq("id", feeId);
 
-    // 4. Reset installments to pending
-    await supabase.from("installments").update({ status: 'pending' }).eq("fee_id", feeId);
-
-    // 5. Re-allocate remaining totalPaid
-    const { data: installments } = await supabase
-      .from("installments")
-      .select("*")
-      .eq("fee_id", feeId)
-      .order("due_date", { ascending: true });
-
-    if (installments) {
-      let remainingPaid = totalPaid;
-      for (const inst of installments) {
-        if (remainingPaid >= Number(inst.amount)) {
-          await supabase.from("installments").update({ status: 'paid' }).eq("id", inst.id);
-          remainingPaid -= Number(inst.amount);
-        } else {
-          break;
-        }
-      }
-    }
+    revalidatePath("/admin/fees");
+    return { success: true };
+  } catch (err: any) {
+    console.error("incrementStudentFee error:", err);
+    return { error: err.message || "Unauthorized" };
   }
-
-  revalidatePath("/admin/fees");
-  return { success: true };
 }
-
-export async function incrementStudentFee(feeId: string, incrementAmount: number) {
-  const supabase = await createServerSupabaseClient();
-
-  // 1. Get current fee details
-  const { data: fee, error: getError } = await supabase
-    .from("fees")
-    .select("final_fee, increment_amount")
-    .eq("id", feeId)
-    .single();
-
-  if (getError || !fee) return { error: getError?.message || "Fee record not found" };
-
-  const newIncrement = Number(fee.increment_amount || 0) + Number(incrementAmount);
-
-  // 2. Update increment_amount in database
-  const { error: updateError } = await supabase
-    .from("fees")
-    .update({ increment_amount: newIncrement })
-    .eq("id", feeId);
-
-  if (updateError) return { error: updateError.message };
-
-  // 3. Recalculate status (since increment_amount has changed, we need to check if the status needs to update)
-  // Fetch total paid
-  const { data: allPayments } = await supabase
-    .from("payments")
-    .select("amount")
-    .eq("fee_id", feeId);
-
-  const totalPaid = allPayments?.reduce((acc, p) => acc + Number(p.amount), 0) || 0;
-  const totalPayable = Number(fee.final_fee) + newIncrement;
-
-  let newStatus = 'partial';
-  if (totalPaid >= totalPayable) newStatus = 'paid';
-  else if (totalPaid === 0) newStatus = 'due';
-
-  await supabase
-    .from("fees")
-    .update({ status: newStatus })
-    .eq("id", feeId);
-
-  revalidatePath("/admin/fees");
-  return { success: true };
-}
-

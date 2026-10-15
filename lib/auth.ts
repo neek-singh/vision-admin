@@ -63,10 +63,18 @@ export const AuthServices = {
   },
 
   async getUserRole() {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { role: null, error: new Error("No authenticated user") }
+
     const { data, error } = await supabase
       .from('profiles')
-      .select('role')
+      .select('role, is_blocked')
+      .eq('id', user.id)
       .single()
+
+    if (error || data?.is_blocked) {
+      return { role: null, error: error || new Error("Account is blocked") }
+    }
 
     return { role: data?.role, error }
   },

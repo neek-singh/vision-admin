@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { requireAdmin } from "@/lib/require-admin";
 import fs from "fs";
 import path from "path";
 
@@ -27,6 +28,8 @@ function getBlogsFilePath() {
 
 export async function saveBlog(formData: any) {
   try {
+    await requireAdmin();
+
     const blogsFilePath = getBlogsFilePath();
     let blogs: any[] = [];
     if (fs.existsSync(blogsFilePath)) {
@@ -55,12 +58,14 @@ export async function saveBlog(formData: any) {
     return { success: true };
   } catch (e: any) {
     console.error("Failed to save blog to JSON:", e);
-    return { error: e.message || "Failed to save blog" };
+    return { error: e.message || "Unauthorized" };
   }
 }
 
 export async function deleteBlog(id: string) {
   try {
+    await requireAdmin();
+
     const blogsFilePath = getBlogsFilePath();
     let blogs: any[] = [];
     if (fs.existsSync(blogsFilePath)) {
@@ -75,6 +80,6 @@ export async function deleteBlog(id: string) {
     return { success: true };
   } catch (e: any) {
     console.error("Failed to delete blog from JSON:", e);
-    return { error: e.message || "Failed to delete blog" };
+    return { error: e.message || "Unauthorized" };
   }
 }

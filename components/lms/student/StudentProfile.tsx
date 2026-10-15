@@ -1,18 +1,19 @@
-import { createServerSupabaseClient } from "@/lib/supabase-server";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 
 interface StudentProfileProps {
   studentId: string;
 }
 
 export default async function StudentProfile({ studentId }: StudentProfileProps) {
-  const supabase = await createServerSupabaseClient();
-  const { data: student } = await supabase
+  const { data: student } = await supabaseAdmin
     .from("students")
-    .select("*, admissions(father_name, address, dob, qualification)")
+    .select("id, name, student_id, course, created_at, email, phone, admissions(father_name, address, dob, qualification)")
     .eq("id", studentId)
     .single();
 
   if (!student) return null;
+
+  const admission = Array.isArray(student.admissions) ? student.admissions[0] : student.admissions;
 
   return (
     <div className="flex flex-col md:flex-row gap-8">
@@ -58,18 +59,18 @@ export default async function StudentProfile({ studentId }: StudentProfileProps)
             <div className="space-y-4">
               <h3 className="text-lg font-bold text-blue-950 border-b border-gray-50 pb-2">Personal Details</h3>
               <div className="space-y-3">
-                <DetailRow label="Father's Name" value={student.admissions?.father_name} />
+                <DetailRow label="Father's Name" value={admission?.father_name} />
                 <DetailRow label="Email" value={student.email} />
                 <DetailRow label="Phone" value={student.phone} />
-                <DetailRow label="Date of Birth" value={student.admissions?.dob ? new Date(student.admissions.dob).toLocaleDateString() : "—"} />
+                <DetailRow label="Date of Birth" value={admission?.dob ? new Date(admission.dob).toLocaleDateString() : "—"} />
               </div>
             </div>
             
             <div className="space-y-4">
               <h3 className="text-lg font-bold text-blue-950 border-b border-gray-50 pb-2">Academic Info</h3>
               <div className="space-y-3">
-                <DetailRow label="Qualification" value={student.admissions?.qualification} />
-                <DetailRow label="Address" value={student.admissions?.address} />
+                <DetailRow label="Qualification" value={admission?.qualification} />
+                <DetailRow label="Address" value={admission?.address} />
               </div>
             </div>
           </div>

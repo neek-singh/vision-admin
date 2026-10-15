@@ -1,38 +1,44 @@
 import { NextResponse } from "next/server";
-import { createServerSupabaseClient } from "@/lib/supabase-server";
+import { timingSafeEqual } from "crypto";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 
 /**
  * API Route: /api/cron/attendance
  * Purpose: Automatically runs daily to initialize the attendance sheet 
  * (as 'absent' by default) for all active student enrollments.
  * 
- * Supports both GET and POST requests.
- * Optional protection: If process.env.CRON_SECRET is set, requests must include
- * `?token=<secret>` query parameter or an Authorization header.
+ * Strict protection (T5.1):
+ * - Fails closed if CRON_SECRET is not configured.
+ * - Only accepts 'Authorization: Bearer <CRON_SECRET>' header.
+ * - Uses constant-time comparison against timing attacks.
+ * - Uses privileged supabaseAdmin client.
  */
 export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const token = searchParams.get("token");
-    const authHeader = request.headers.get("authorization");
-    
     const cronSecret = process.env.CRON_SECRET;
-    if (cronSecret) {
-      const isTokenValid = token === cronSecret;
-      const isAuthValid = authHeader === `Bearer ${cronSecret}`;
-      if (!isTokenValid && !isAuthValid) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
+    if (!cronSecret) {
+      console.error("CRON_SECRET environment variable is missing.");
+      return NextResponse.json({ error: "Server misconfiguration" }, { status: 500 });
     }
 
-    const supabase = await createServerSupabaseClient();
-    
-    // Call the database function to initialize daily attendance
-    const { data, error } = await supabase.rpc("initialize_daily_attendance");
+    const authHeader = request.headers.get("authorization") || "";
+    const expectedHeader = `Bearer ${cronSecret}`;
+
+    const bufA = Buffer.from(authHeader);
+    const bufB = Buffer.from(expectedHeader);
+
+    const isAuthorized = bufA.length === bufB.length && timingSafeEqual(bufA, bufB);
+
+    if (!isAuthorized) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Call stored procedure using supabaseAdmin (since public execution is revoked)
+    const { data, error } = await supabaseAdmin.rpc("initialize_daily_attendance");
 
     if (error) {
       console.error("Cron RPC Error in daily attendance initialization:", error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: "Cron execution failed" }, { status: 500 });
     }
 
     return NextResponse.json({
@@ -43,7 +49,7 @@ export async function GET(request: Request) {
   } catch (error: any) {
     console.error("Cron daily attendance initialization API Error:", error);
     return NextResponse.json(
-      { error: error.message || "Internal Server Error" },
+      { error: "Internal Server Error" },
       { status: 500 }
     );
   }

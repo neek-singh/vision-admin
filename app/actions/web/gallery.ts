@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { requireAdmin } from "@/lib/require-admin";
 import fs from "fs";
 import path from "path";
 
@@ -39,14 +40,16 @@ export async function getImages() {
 }
 
 export async function uploadImage(formData: FormData) {
-  const title = formData.get("title") as string;
-  const file = formData.get("file") as File;
-
-  if (!title || !file || file.size === 0) {
-    return { error: "Title and image file are required." };
-  }
-
   try {
+    await requireAdmin();
+
+    const title = formData.get("title") as string;
+    const file = formData.get("file") as File;
+
+    if (!title || !file || file.size === 0) {
+      return { error: "Title and image file are required." };
+    }
+
     const { galleryFilePath, galleryDir } = getGalleryPaths();
     if (!fs.existsSync(galleryDir)) {
       fs.mkdirSync(galleryDir, { recursive: true });
@@ -87,16 +90,18 @@ export async function uploadImage(formData: FormData) {
     return { success: true };
   } catch (error: any) {
     console.error("Failed to upload image to JSON:", error);
-    return { error: error.message || "Failed to upload image" };
+    return { error: error.message || "Unauthorized" };
   }
 }
 
 export async function addImageUrl(title: string, imageUrl: string) {
-  if (!title || !imageUrl) {
-    return { error: "Title and Image URL are required." };
-  }
-
   try {
+    await requireAdmin();
+
+    if (!title || !imageUrl) {
+      return { error: "Title and Image URL are required." };
+    }
+
     const { galleryFilePath } = getGalleryPaths();
     const jsonDir = path.dirname(galleryFilePath);
     if (!fs.existsSync(jsonDir)) {
@@ -125,12 +130,14 @@ export async function addImageUrl(title: string, imageUrl: string) {
     return { success: true };
   } catch (error: any) {
     console.error("Failed to add image URL to JSON:", error);
-    return { error: error.message || "Failed to add image URL" };
+    return { error: error.message || "Unauthorized" };
   }
 }
 
 export async function deleteImage(id: string, imageUrl: string) {
   try {
+    await requireAdmin();
+
     const { galleryFilePath, galleryDir } = getGalleryPaths();
 
     // Read existing JSON
@@ -157,6 +164,6 @@ export async function deleteImage(id: string, imageUrl: string) {
     return { success: true };
   } catch (error: any) {
     console.error("Failed to delete image from JSON:", error);
-    return { error: error.message || "Failed to delete image" };
+    return { error: error.message || "Unauthorized" };
   }
 }

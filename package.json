@@ -6,13 +6,14 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
-    "cleanup": "node scratch/cleanup.js"
+    "lint": "eslint"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.105.1",
     "bcryptjs": "^3.0.3",
+    "isomorphic-dompurify": "^3.19.0",
+    "jose": "^6.2.12",
     "jsqr": "^1.4.0",
     "lucide-react": "^1.14.0",
     "next": "16.2.4",

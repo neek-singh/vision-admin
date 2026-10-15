@@ -1,15 +1,15 @@
 "use server";
 
-import { createServerSupabaseClient } from "@/lib/supabase-server";
+import { requireAdmin } from "@/lib/require-admin";
 
 /**
  * Initializes daily attendance records (as 'absent' by default) for all active 
  * enrolled students across all courses for the specified date (defaults to today).
- * This function uses the `initialize_daily_attendance` PostgreSQL stored procedure.
+ * Requires admin authentication.
  */
 export async function initializeDailyAttendance(dateStr?: string) {
   try {
-    const supabase = await createServerSupabaseClient();
+    const { supabase } = await requireAdmin();
     
     // Call the stored database function using RPC
     const { data, error } = await supabase.rpc("initialize_daily_attendance", {
@@ -18,13 +18,12 @@ export async function initializeDailyAttendance(dateStr?: string) {
 
     if (error) {
       console.error("RPC Error in initializeDailyAttendance:", error);
-      return { error: error.message };
+      return { error: "Failed to initialize daily attendance" };
     }
 
     return { success: true, count: data };
   } catch (err: any) {
     console.error("Exception in initializeDailyAttendance:", err);
-    return { error: err.message || "Failed to initialize daily attendance" };
+    return { error: err.message || "Unauthorized" };
   }
 }
-

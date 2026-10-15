@@ -1,26 +1,16 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { createServerSupabaseClient } from "@/lib/supabase-server";
+import { randomBytes } from "crypto";
+import { requireAdmin } from "@/lib/require-admin";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export async function POST(request: Request) {
   try {
-    const supabase = await createServerSupabaseClient();
-
-    // Auth Check
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    // Role Check
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-
-    if (profile?.role !== "admin") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    // 1. Verify caller is an authenticated admin
+    try {
+      await requireAdmin();
+    } catch (authErr: any) {
+      return NextResponse.json({ error: authErr.message || "Unauthorized" }, { status: 401 });
     }
 
     const { studentDbId, customPassword } = await request.json();
@@ -29,8 +19,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "studentDbId is required." }, { status: 400 });
     }
 
-    // Fetch student details
-    const { data: student, error: fetchError } = await supabase
+    // Validate customPassword if provided (T3.6)
+    if (customPassword) {
+      if (typeof customPassword !== "string" || customPassword.length < 8) {
+        return NextResponse.json(
+          { error: "Custom password must be at least 8 characters long." },
+          { status: 400 }
+        );
+      }
+    }
+
+    // 2. Fetch student details with privileged client
+    const { data: student, error: fetchError } = await supabaseAdmin
       .from("students")
       .select("id, student_id, name, phone")
       .eq("id", studentDbId)
@@ -40,26 +40,31 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Student not found." }, { status: 404 });
     }
 
-    // Generate password: custom or auto (FirstName@Last4)
-    let rawPassword = customPassword;
-    if (!rawPassword) {
-      const firstName = student.name.trim().split(" ")[0];
-      const last4 = (student.phone || "0000").slice(-4);
-      rawPassword = `${firstName}@${last4}`;
-    }
+    // 3. Generate password: custom or cryptographically random (T3.6)
+    const rawPassword = customPassword || randomBytes(6).toString("base64url"); // ~8 chars
 
-    const salt = await bcrypt.genSalt(10);
+    const salt = await bcrypt.genSalt(12);
     const passwordHash = await bcrypt.hash(rawPassword, salt);
 
-    // Update student: set password (has_credentials tracked via session state)
-    const { error: updateError } = await supabase
+    // 4. Update student: set password_hash (T3.2)
+    // We try password_hash first, and fall back to password if table column not yet renamed
+    let { error: updateError } = await supabaseAdmin
       .from("students")
-      .update({ password: passwordHash })
+      .update({ password_hash: passwordHash })
       .eq("id", studentDbId);
 
+    if (updateError && updateError.message?.includes("password_hash")) {
+      const fallback = await supabaseAdmin
+        .from("students")
+        .update({ password: passwordHash })
+        .eq("id", studentDbId);
+      updateError = fallback.error;
+    }
+
     if (updateError) {
+      console.error("Credentials update error:", updateError);
       return NextResponse.json(
-        { error: `Failed to update credentials: ${updateError.message}` },
+        { error: "Failed to update student credentials." },
         { status: 500 }
       );
     }

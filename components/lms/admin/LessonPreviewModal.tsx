@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { X, Video, ExternalLink, FileText, CheckCircle2, XCircle, HelpCircle, FolderCode } from "lucide-react";
+import DOMPurify from "isomorphic-dompurify";
 
 interface LessonPreviewModalProps {
   lesson: any;
@@ -336,7 +337,7 @@ export default function LessonPreviewModal({
                    <article className="max-w-none text-white leading-relaxed text-base">
                       {lesson.notes_content ? (
                         <div 
-                          dangerouslySetInnerHTML={{ __html: lesson.notes_content.replace(/<!-- THEORY_DATA_JSON:(.*?) -->/, "").replace(/<!-- THEORY_BLOCKS_JSON:(.*?) -->/, "") }} 
+                          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(lesson.notes_content.replace(/<!-- THEORY_DATA_JSON:(.*?) -->/, "").replace(/<!-- THEORY_BLOCKS_JSON:(.*?) -->/, "")) }} 
                           className="rich-content text-sm text-slate-200 leading-relaxed [&_h2]:text-lg [&_h2]:font-normal [&_h2]:text-white [&_h2]:mb-2 [&_h2]:mt-3 [&_p]:mb-3 [&_p]:text-slate-200 [&_ul]:list-disc [&_ul]:list-inside [&_ul]:space-y-1 [&_ul]:mb-3 [&_ol]:list-decimal [&_ol]:list-inside [&_ol]:space-y-1 [&_ol]:mb-3 [&_li]:pl-1 [&_li]:text-slate-200 [&_img]:rounded-xl [&_img]:max-h-72 [&_img]:object-cover [&_img]:my-3 [&_strong]:font-bold [&_strong]:text-white [&_em]:italic [&_u]:underline [&_span]:text-slate-200 [&_td]:text-slate-200 [&_th]:text-white"
                         />
                       ) : (lesson.lesson_type || lesson.type)?.toLowerCase().includes('offline') ? (

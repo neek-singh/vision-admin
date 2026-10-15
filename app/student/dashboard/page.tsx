@@ -5,7 +5,7 @@ import Image from "next/image";
 import StudentProfile from "@/components/lms/student/StudentProfile";
 import LMSModules from "@/components/lms/student/LMSModules";
 import { BoneyardProfile, BoneyardCard } from "@/components/ui/Boneyard";
-import { createServerSupabaseClient } from "@/lib/supabase-server";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export default async function StudentDashboardPage() {
   const session = await getStudentSession();
@@ -16,8 +16,7 @@ export default async function StudentDashboardPage() {
 
   // We fetch the basic student object just for the course title to pass to LMSModules
   // The rest of the data is fetched inside StudentProfile for lazy loading
-  const supabase = await createServerSupabaseClient();
-  const { data: student } = await supabase
+  const { data: student } = await supabaseAdmin
     .from("students")
     .select("course")
     .eq("id", session.id)

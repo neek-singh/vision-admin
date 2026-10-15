@@ -19,7 +19,8 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const redirectPath = searchParams.get("redirect") || "/dashboard";
+  const rawRedirect = searchParams.get("redirect") || "/admin";
+  const redirectPath = rawRedirect.startsWith("/") && !rawRedirect.startsWith("//") ? rawRedirect : "/admin";
   const errorParam = searchParams.get("error");
 
   const [formData, setFormData] = useState({
@@ -85,12 +86,10 @@ function LoginForm() {
       const role = profile.role;
 
       // 🚀 Step 3: Redirect based on role
-      if (redirectPath && redirectPath !== "/dashboard") {
-        router.push(redirectPath);
-      } else if (role === "admin") {
-        router.push("/admin");
+      if (role === "admin") {
+        router.push(redirectPath.startsWith("/admin") ? redirectPath : "/admin");
       } else {
-        router.push("/dashboard");
+        router.push("/unauthorized");
       }
 
     } catch (err) {

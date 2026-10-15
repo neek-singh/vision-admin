@@ -1,155 +1,179 @@
 "use server";
 
-import { createServerSupabaseClient } from "@/lib/supabase-server";
+import { requireAdmin } from "@/lib/require-admin";
 import { revalidatePath } from "next/cache";
-import bcrypt from "bcryptjs";
 
 export async function updateAdmissionStatus(
     id: string,
     status: "approved" | "rejected"
 ) {
-    const supabase = await createServerSupabaseClient();
+    try {
+        const { supabase } = await requireAdmin();
 
-    // Update admission status
-    const { error } = await supabase
-        .from("admissions")
-        .update({ status })
-        .eq("id", id);
+        const { error } = await supabase
+            .from("admissions")
+            .update({ status })
+            .eq("id", id);
 
-    if (error) {
-        return { error: error.message };
+        if (error) {
+            console.error("updateAdmissionStatus DB error:", error);
+            return { error: "Failed to update admission status." };
+        }
+
+        revalidatePath("/admin/admissions");
+        revalidatePath("/admin/students");
+
+        return { 
+            success: true
+        };
+    } catch (e: any) {
+        console.error("updateAdmissionStatus auth error:", e);
+        return { error: e.message || "Unauthorized" };
     }
-
-    revalidatePath("/admin/admissions");
-    revalidatePath("/admin/students");
-
-    return { 
-        success: true
-    };
 }
 
 export async function assignCourseToStudent(studentId: string, courseId: string, batch?: string) {
-    const supabase = await createServerSupabaseClient();
+    try {
+        const { supabase } = await requireAdmin();
 
-    // Check if already enrolled
-    const { data: existing } = await supabase
-        .from("enrollments")
-        .select("id")
-        .eq("student_id", studentId)
-        .eq("course_id", courseId)
-        .single();
-
-    if (existing) {
-        return { error: "Student is already enrolled in this course." };
-    }
-
-    // Fetch course details for title/code
-    const { data: courseData } = await supabase
-        .from("courses")
-        .select("title, course_code")
-        .eq("id", courseId)
-        .single();
-
-    const { error } = await supabase
-        .from("enrollments")
-        .insert({
-            student_id: studentId,
-            course_id: courseId,
-            batch: batch || null,
-            progress_percentage: 0
-        });
-
-    if (error) {
-        console.error("Enrollment error:", error);
-        return { error: error.message };
-    }
-
-    // Automatically update student's primary course if not set or legacy N/A
-    if (courseData) {
-        const { data: student } = await supabase
-            .from("students")
-            .select("course")
-            .eq("id", studentId)
+        // Check if already enrolled
+        const { data: existing } = await supabase
+            .from("enrollments")
+            .select("id")
+            .eq("student_id", studentId)
+            .eq("course_id", courseId)
             .single();
 
-        if (!student?.course || student.course === "N/A") {
-            await supabase
-                .from("students")
-                .update({ course: courseData.title })
-                .eq("id", studentId);
+        if (existing) {
+            return { error: "Student is already enrolled in this course." };
         }
-    }
 
-    revalidatePath("/admin/students");
-    return { success: true };
+        // Fetch course details for title/code
+        const { data: courseData } = await supabase
+            .from("courses")
+            .select("title, course_code")
+            .eq("id", courseId)
+            .single();
+
+        const { error } = await supabase
+            .from("enrollments")
+            .insert({
+                student_id: studentId,
+                course_id: courseId,
+                batch: batch || null,
+                progress_percentage: 0
+            });
+
+        if (error) {
+            console.error("Enrollment error:", error);
+            return { error: "Failed to enroll student in course." };
+        }
+
+        // Automatically update student's primary course if not set or legacy N/A
+        if (courseData) {
+            const { data: student } = await supabase
+                .from("students")
+                .select("course")
+                .eq("id", studentId)
+                .single();
+
+            if (!student?.course || student.course === "N/A") {
+                await supabase
+                    .from("students")
+                    .update({ course: courseData.title })
+                    .eq("id", studentId);
+            }
+        }
+
+        revalidatePath("/admin/students");
+        return { success: true };
+    } catch (e: any) {
+        console.error("assignCourseToStudent auth error:", e);
+        return { error: e.message || "Unauthorized" };
+    }
 }
 
 export async function removeCourseFromStudent(enrollmentId: string) {
-    const supabase = await createServerSupabaseClient();
+    try {
+        const { supabase } = await requireAdmin();
 
-    const { error } = await supabase
-        .from("enrollments")
-        .delete()
-        .eq("id", enrollmentId);
+        const { error } = await supabase
+            .from("enrollments")
+            .delete()
+            .eq("id", enrollmentId);
 
-    if (error) {
-        console.error("Unenrollment error:", error);
-        return { error: error.message };
+        if (error) {
+            console.error("Unenrollment error:", error);
+            return { error: "Failed to remove course enrollment." };
+        }
+
+        revalidatePath("/admin/students");
+        return { success: true };
+    } catch (e: any) {
+        console.error("removeCourseFromStudent auth error:", e);
+        return { error: e.message || "Unauthorized" };
     }
-
-    revalidatePath("/admin/students");
-    return { success: true };
 }
 
 export async function updateEnrollmentBatch(enrollmentId: string, batch: string | null) {
-    const supabase = await createServerSupabaseClient();
+    try {
+        const { supabase } = await requireAdmin();
 
-    const { error } = await supabase
-        .from("enrollments")
-        .update({ batch })
-        .eq("id", enrollmentId);
+        const { error } = await supabase
+            .from("enrollments")
+            .update({ batch })
+            .eq("id", enrollmentId);
 
-    if (error) {
-        console.error("Update batch error:", error);
-        return { error: error.message };
+        if (error) {
+            console.error("Update batch error:", error);
+            return { error: "Failed to update enrollment batch." };
+        }
+
+        revalidatePath("/admin/students");
+        return { success: true };
+    } catch (e: any) {
+        console.error("updateEnrollmentBatch auth error:", e);
+        return { error: e.message || "Unauthorized" };
     }
-
-    revalidatePath("/admin/students");
-    return { success: true };
 }
 
 export async function updateStudentBatch(studentId: string, batch: string | null) {
-    const supabase = await createServerSupabaseClient();
+    try {
+        const { supabase } = await requireAdmin();
 
-    // 1. Update student's global batch
-    const { error: studentError } = await supabase
-        .from("students")
-        .update({ batch })
-        .eq("id", studentId);
+        // 1. Update student's global batch
+        const { error: studentError } = await supabase
+            .from("students")
+            .update({ batch })
+            .eq("id", studentId);
 
-    if (studentError) {
-        console.error("Update student batch error:", studentError);
-        return { error: studentError.message };
+        if (studentError) {
+            console.error("Update student batch error:", studentError);
+            return { error: "Failed to update student batch." };
+        }
+
+        // 2. Update all enrollments for this student
+        const { error: enrollmentError } = await supabase
+            .from("enrollments")
+            .update({ batch })
+            .eq("student_id", studentId);
+
+        if (enrollmentError) {
+            console.error("Update enrollments batch error:", enrollmentError);
+            return { error: "Failed to update batch enrollments." };
+        }
+
+        revalidatePath("/admin/students");
+        return { success: true };
+    } catch (e: any) {
+        console.error("updateStudentBatch auth error:", e);
+        return { error: e.message || "Unauthorized" };
     }
-
-    // 2. Update all enrollments for this student
-    const { error: enrollmentError } = await supabase
-        .from("enrollments")
-        .update({ batch })
-        .eq("student_id", studentId);
-
-    if (enrollmentError) {
-        console.error("Update enrollments batch error:", enrollmentError);
-        return { error: enrollmentError.message };
-    }
-
-    revalidatePath("/admin/students");
-    return { success: true };
 }
 
 export async function verifyAdmissionDocuments(admissionId: string, verified: boolean) {
     try {
-        const supabase = await createServerSupabaseClient();
+        const { supabase } = await requireAdmin();
 
         const { error } = await supabase
             .from("admissions")
@@ -172,7 +196,7 @@ export async function verifyAdmissionDocuments(admissionId: string, verified: bo
 // Student Trash & Soft Delete Actions
 export async function moveToTrashStudent(id: string) {
     try {
-        const supabase = await createServerSupabaseClient();
+        const { supabase } = await requireAdmin();
         const { error } = await supabase
             .from("students")
             .update({
@@ -195,7 +219,7 @@ export async function moveToTrashStudent(id: string) {
 export async function bulkMoveToTrashStudents(ids: string[]) {
     try {
         if (!ids.length) return { success: true };
-        const supabase = await createServerSupabaseClient();
+        const { supabase } = await requireAdmin();
         const { error } = await supabase
             .from("students")
             .update({
@@ -217,7 +241,7 @@ export async function bulkMoveToTrashStudents(ids: string[]) {
 
 export async function restoreStudent(id: string) {
     try {
-        const supabase = await createServerSupabaseClient();
+        const { supabase } = await requireAdmin();
         const { error } = await supabase
             .from("students")
             .update({
@@ -241,7 +265,7 @@ export async function restoreStudent(id: string) {
 export async function bulkRestoreStudents(ids: string[]) {
     try {
         if (!ids.length) return { success: true };
-        const supabase = await createServerSupabaseClient();
+        const { supabase } = await requireAdmin();
         const { error } = await supabase
             .from("students")
             .update({
@@ -264,7 +288,7 @@ export async function bulkRestoreStudents(ids: string[]) {
 
 export async function permanentDeleteStudent(id: string) {
     try {
-        const supabase = await createServerSupabaseClient();
+        const { supabase } = await requireAdmin();
         const { error } = await supabase
             .from("students")
             .delete()
@@ -283,7 +307,7 @@ export async function permanentDeleteStudent(id: string) {
 
 export async function emptyTrashStudents() {
     try {
-        const supabase = await createServerSupabaseClient();
+        const { supabase } = await requireAdmin();
         const { error } = await supabase
             .from("students")
             .delete()
@@ -308,7 +332,7 @@ export async function updateStudentAcademicStatus(data: {
     dropout_remarks?: string | null;
 }) {
     try {
-        const supabase = await createServerSupabaseClient();
+        const { supabase } = await requireAdmin();
         const { error } = await supabase
             .from("students")
             .update({
@@ -338,7 +362,7 @@ export async function bulkUpdateStudentStatus(
 ) {
     try {
         if (!ids.length) return { success: true };
-        const supabase = await createServerSupabaseClient();
+        const { supabase } = await requireAdmin();
         const updateData: any = { status: newStatus };
         if (newStatus === "dropped_out") {
             updateData.dropout_date = new Date().toISOString().split('T')[0];
@@ -361,5 +385,3 @@ export async function bulkUpdateStudentStatus(
         return { error: e.message || "Failed to update status in bulk" };
     }
 }
-
-

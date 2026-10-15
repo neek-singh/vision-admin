@@ -334,25 +334,37 @@ import X from '@/app/...'         // maps to ./app/...
 NEXT_PUBLIC_SUPABASE_URL=           # https://xxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=      # eyJ...
 NEXT_PUBLIC_SITE_URL=               # https://admin.visionitinstitute.com
-# Also: Cloudinary keys, Web Push VAPID keys
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=  # ddiooxxks
+CLOUDINARY_API_KEY=                 # Cloudinary key
+CLOUDINARY_API_SECRET=              # Cloudinary secret
+
+# Security & Privileged Secrets (NEVER expose to client)
+SUPABASE_SERVICE_ROLE_KEY=          # Supabase Dashboard -> Settings -> API -> service_role key
+SESSION_SECRET=                     # 64-char random hex for student JWT cookie signature
+CRON_SECRET=                        # Secret for attendance cron route authorization
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=       # Web Push public key
+VAPID_PRIVATE_KEY=                  # Web Push private key (server-only)
 ```
 
 ---
 
 ## 10. GOTCHAS & RULES
 
-1. **Next.js 16** â€” Breaking changes from v14/v15. Read `node_modules/next/dist/docs/` before new features
-2. **NO shadcn** â€” Only `components/ui/` custom components
-3. **Tailwind v4** â€” No `tailwind.config.js`, uses `@tailwindcss/postcss` plugin
-4. **Admin layout = CLIENT** â€” No `"use server"` or server imports in `app/admin/layout.tsx`
-5. **Two dashboard pages** â€” `/admin` (Web mode) and `/admin/lms` (LMS mode)
-6. **Cloudinary whitelist** â€” Only `res.cloudinary.com` in `next.config.ts`
-7. **`data_old`** â€” Old static JSON, not production
-8. **`scratch/`** â€” Dev scripts only (e.g., `cleanup.js`)
-9. **Supabase client types**:
+1. **Next.js 16 Route Protection** — `/admin/:path*` is protected at root by `proxy.ts`. Unauthenticated users redirected to `/login`, non-admins to `/unauthorized`.
+2. **Server Actions Auth Guard** — Har admin server action `const { supabase } = await requireAdmin();` se start hoga.
+3. **Student Auth & Data Scoping** — Student sessions are cryptographically signed JWT cookies (`lib/student-session.ts`). Student data reads use `supabaseAdmin` scoped strictly by `session.id` (`lib/supabase-admin.ts`).
+4. **Web Push** — Push helper is server-only (`lib/push.ts`). Never export as `"use server"` action. VAPID keys loaded from environment variables.
+5. **NO shadcn** — Only `components/ui/` custom components.
+6. **Tailwind v4** — No `tailwind.config.js`, uses `@tailwindcss/postcss` plugin.
+7. **Admin layout = CLIENT** — No `"use server"` or server imports in `app/admin/layout.tsx`.
+8. **Two dashboard pages** — `/admin` (Web mode) and `/admin/lms` (LMS mode).
+9. **Cloudinary whitelist** — Only `res.cloudinary.com` in `next.config.ts`.
+10. **`scratch/` & `.next_old/`** — Git-ignored; never commit test scripts or build artifacts.
+11. **Supabase client types**:
    - Browser: `import { supabase } from '@/lib/supabase'`
-   - Server: `const supabase = await createServerClient()` from `@/lib/supabase-server`
-10. **student vs students** â€” `components/lms/student/` = student portal, `components/lms/students/` = admin student management
+   - Authenticated Admin Server: `const { supabase } = await requireAdmin()` from `@/lib/require-admin`
+   - Server-only privileged: `import { supabaseAdmin } from '@/lib/supabase-admin'`
+12. **student vs students** — `components/lms/student/` = student portal, `components/lms/students/` = admin student management.
 
 ---
 
@@ -362,6 +374,7 @@ NEXT_PUBLIC_SITE_URL=               # https://admin.visionitinstitute.com
 
 | Date | Change |
 |------|--------|
+| 2026-10-14 | **Security Fix Plan Executed**: Complete security overhaul across vision-admin. Untracked scratch & .next_old; rotated VAPID keys; enforced `requireAdmin()` across all LMS and Web server actions; moved push notification to server-only `lib/push.ts`; created route protection in `proxy.ts`; converted student authentication to signed JWT (`jose`); fixed password_hash column mapping and random password generation; prepared fail-closed cron route with `timingSafeEqual`; sanitized inputs and PostgREST filters; hardened admin API endpoints; added DOMPurify XSS sanitization; applied HTTP security headers in `next.config.ts`; generated Supabase RLS migration & rollback SQL scripts. |
 | 2026-07-01 | BRAIN.md created â€” full initial project scan |
 | 2026-07-01 | Credentials flow changed: registration me password remove kiya, Student Management me "Generate Credentials" button + modal add kiya. New API: `POST /api/students/credentials` |
 | 2026-07-02 | `LessonFormModal.tsx`: Block Builder (Header/Para/Image/List blocks) ko replace kiya ek simple contentEditable Rich Text Editor se. Toolbar: B, I, U, H2, Para, â€¢ List, 1. List, Image. Backward compatible: purana THEORY_BLOCKS_JSON data load hote waqt HTML me convert ho jata hai. Added custom Tab support (4 spaces), -> to â†’, => to â‡’, --- to divider, Notion/ChatGPT smart paste cleanup (links auto-converted to inline images), Full Screen toggle mode, and bulk MCQ/Quiz questions importer. |

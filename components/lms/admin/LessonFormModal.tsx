@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import MultiSelect from "@/components/ui/MultiSelect";
+import DOMPurify from "isomorphic-dompurify";
 
 interface LessonFormModalProps {
   courseId: string;
@@ -2638,7 +2639,7 @@ console.log("Config loaded:", appConfig.appName);</code></pre>
                               </h2>
                               {liveHtml && liveHtml.trim() ? (
                                 <div 
-                                  dangerouslySetInnerHTML={{ __html: liveHtml }} 
+                                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(liveHtml) }} 
                                   className="rich-content text-sm text-slate-800 leading-relaxed"
                                 />
                               ) : (

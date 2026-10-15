@@ -14,14 +14,10 @@ function AuthCallbackContent() {
 
             const isAdmin = await AuthServices.isAdmin()
 
-            if (type === 'admin') {
-                if (isAdmin) {
-                    router.push('/admin')
-                } else {
-                    router.push('/dashboard')
-                }
+            if (isAdmin) {
+                router.push('/admin')
             } else {
-                router.push('/dashboard')
+                router.push('/unauthorized')
             }
         }
 

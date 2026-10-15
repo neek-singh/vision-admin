@@ -1,6 +1,6 @@
 "use server";
 
-import { createServerSupabaseClient } from "@/lib/supabase-server";
+import { requireAdmin } from "@/lib/require-admin";
 import { revalidatePath } from "next/cache";
 
 export async function toggleBlockUser(
@@ -9,23 +9,7 @@ export async function toggleBlockUser(
   reason: string = "Account suspended by administrator"
 ) {
   try {
-    const supabase = await createServerSupabaseClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return { error: "Unauthorized. Please log in." };
-    }
-
-    // Role verification
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-
-    if (profile?.role !== "admin") {
-      return { error: "Forbidden: Admin privileges required." };
-    }
+    const { supabase, user } = await requireAdmin();
 
     // Protection: Cannot block yourself
     if (user.id === userId) {
@@ -63,22 +47,7 @@ export async function toggleBlockUser(
 
 export async function updateUserRole(userId: string, newRole: "admin" | "student" | "staff") {
   try {
-    const supabase = await createServerSupabaseClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return { error: "Unauthorized. Please log in." };
-    }
-
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-
-    if (profile?.role !== "admin") {
-      return { error: "Forbidden: Admin privileges required." };
-    }
+    const { supabase, user } = await requireAdmin();
 
     if (user.id === userId && newRole !== "admin") {
       return { error: "Action prohibited: You cannot demote your own administrative account." };
