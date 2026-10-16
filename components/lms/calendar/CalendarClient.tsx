@@ -86,17 +86,20 @@ export default function CalendarClient({ courses, initialEvents }: { courses: an
       const { error } = await supabase
         .from("events")
         .insert([{
-          title: formData.title,
-          description: formData.description || null,
+          title: formData.title.trim(),
+          description: formData.description?.trim() || null,
           event_date: formData.event_date,
           type: formData.type,
           location: formData.location || "Online",
-          start_time: null,
+          start_time: "00:00:00",
           end_time: null,
           course_id: null
         }]);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase insert event error:", error);
+        throw error;
+      }
 
       setIsAdding(false);
       setFormData({ 
@@ -110,9 +113,9 @@ export default function CalendarClient({ courses, initialEvents }: { courses: an
         course_id: "" 
       });
       router.refresh();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error adding event:", err);
-      alert("Failed to add event");
+      alert(`Failed to add event: ${err?.message || "Please try again."}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -300,7 +303,7 @@ export default function CalendarClient({ courses, initialEvents }: { courses: an
                           <CalendarIcon size={12} className="text-slate-400" />
                           <span>{event.event_date}</span>
                         </div>
-                        {event.start_time && (
+                        {event.start_time && event.start_time !== "00:00:00" && event.start_time !== "00:00" && (
                           <div className="flex items-center gap-1.5 text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
                             <Clock size={11} />
                             <span>{event.start_time}</span>
