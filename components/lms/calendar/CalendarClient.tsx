@@ -86,8 +86,14 @@ export default function CalendarClient({ courses, initialEvents }: { courses: an
       const { error } = await supabase
         .from("events")
         .insert([{
-          ...formData,
-          course_id: formData.course_id || null
+          title: formData.title,
+          description: formData.description || null,
+          event_date: formData.event_date,
+          type: formData.type,
+          location: formData.location || "Online",
+          start_time: null,
+          end_time: null,
+          course_id: null
         }]);
 
       if (error) throw error;
@@ -99,7 +105,7 @@ export default function CalendarClient({ courses, initialEvents }: { courses: an
         event_date: "", 
         start_time: "", 
         end_time: "", 
-        type: "class", 
+        type: "holiday", 
         location: "Online", 
         course_id: "" 
       });
@@ -135,7 +141,7 @@ export default function CalendarClient({ courses, initialEvents }: { courses: an
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input 
               type="text"
-              placeholder="Search events or courses..."
+              placeholder="Search events..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-8 pr-3 py-1.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 outline-none focus:border-slate-400 dark:focus:border-slate-500 transition-colors"
@@ -151,9 +157,9 @@ export default function CalendarClient({ courses, initialEvents }: { courses: an
               className="bg-transparent text-slate-900 dark:text-slate-100 font-medium outline-none cursor-pointer text-xs"
             >
               <option value="all" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">All Types</option>
+              <option value="holiday" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Holidays</option>
               <option value="class" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Live Classes</option>
               <option value="test" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Tests</option>
-              <option value="holiday" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Holidays</option>
               <option value="event" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Events</option>
             </select>
           </div>
@@ -171,7 +177,7 @@ export default function CalendarClient({ courses, initialEvents }: { courses: an
       {/* Modal Dialog */}
       {isAdding && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-lg overflow-hidden border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-150">
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-md overflow-hidden border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-150">
             <div className="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Schedule Event</h3>
@@ -192,7 +198,7 @@ export default function CalendarClient({ courses, initialEvents }: { courses: an
                   <input 
                     required 
                     type="text" 
-                    placeholder="e.g. MS Excel Advanced Formulas Workshop"
+                    placeholder="e.g. First Day of Durga Puja Festivities"
                     value={formData.title} 
                     onChange={(e) => setFormData({...formData, title: e.target.value})} 
                     className={inputCls} 
@@ -211,43 +217,16 @@ export default function CalendarClient({ courses, initialEvents }: { courses: an
                 </div>
 
                 <div>
-                  <label className={labelCls}>Start Time</label>
-                  <input 
-                    required 
-                    type="time" 
-                    value={formData.start_time} 
-                    onChange={(e) => setFormData({...formData, start_time: e.target.value})} 
-                    className={inputCls} 
-                  />
-                </div>
-
-                <div>
                   <label className={labelCls}>Type</label>
                   <select 
                     value={formData.type} 
                     onChange={(e) => setFormData({...formData, type: e.target.value})} 
                     className={`${inputCls} bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100`}
                   >
+                    <option value="holiday" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Holiday</option>
                     <option value="class" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Live Class</option>
                     <option value="test" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Online Test</option>
-                    <option value="holiday" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Holiday</option>
                     <option value="event" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Special Event</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className={labelCls}>Course (Optional)</label>
-                  <select 
-                    value={formData.course_id} 
-                    onChange={(e) => setFormData({...formData, course_id: e.target.value})} 
-                    className={`${inputCls} bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100`}
-                  >
-                    <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Public Event (All Students)</option>
-                    {courses.map(course => (
-                      <option key={course.id} value={course.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
-                        {course.title}
-                      </option>
-                    ))}
                   </select>
                 </div>
               </div>
@@ -281,7 +260,7 @@ export default function CalendarClient({ courses, initialEvents }: { courses: an
             <thead>
               <tr className="text-slate-400 dark:text-slate-500 text-[10px] uppercase font-semibold tracking-wider border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20">
                 <th className="px-5 py-3">Event</th>
-                <th className="px-5 py-3">Date &amp; Time</th>
+                <th className="px-5 py-3">Date</th>
                 <th className="px-5 py-3">Type</th>
                 <th className="px-5 py-3 text-right">Actions</th>
               </tr>
@@ -308,19 +287,21 @@ export default function CalendarClient({ courses, initialEvents }: { courses: an
                           </div>
                           <div>
                             <p className="font-medium text-slate-900 dark:text-slate-100 text-xs">{event.title}</p>
-                            <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
-                              {(event.courses as any)?.title || "Public Event"}
-                            </p>
+                            {(event.courses as any)?.title && (
+                              <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+                                {(event.courses as any).title}
+                              </p>
+                            )}
                           </div>
                         </div>
                       </td>
                       <td className="px-5 py-3.5 text-xs text-slate-600 dark:text-slate-300">
-                        <div className="flex items-center gap-1.5 mb-1 text-slate-700 dark:text-slate-200">
+                        <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-200">
                           <CalendarIcon size={12} className="text-slate-400" />
                           <span>{event.event_date}</span>
                         </div>
                         {event.start_time && (
-                          <div className="flex items-center gap-1.5 text-[11px] text-slate-400 dark:text-slate-500">
+                          <div className="flex items-center gap-1.5 text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
                             <Clock size={11} />
                             <span>{event.start_time}</span>
                           </div>
