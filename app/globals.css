@@ -418,23 +418,51 @@ body {
 .rich-content table {
   width: 100% !important;
   border-collapse: collapse !important;
-  margin: 1rem 0 !important;
+  margin: 1.25rem 0 !important;
   font-size: 0.875rem !important;
-  border: 1px solid #334155 !important;
-  border-radius: 0.5rem !important;
+  line-height: 1.6 !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 0.75rem !important;
   overflow: hidden !important;
 }
 .rich-content th {
-  background: #1e293b !important;
-  color: #f8fafc !important;
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
   font-weight: 700 !important;
   text-align: left !important;
-  padding: 0.625rem 0.875rem !important;
-  border: 1px solid #334155 !important;
+  padding: 0.75rem 1rem !important;
+  border: 1px solid #cbd5e1 !important;
 }
 .rich-content td {
-  padding: 0.625rem 0.875rem !important;
-  border: 1px solid #334155 !important;
+  padding: 0.75rem 1rem !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #334155 !important;
+  vertical-align: top !important;
+}
+.rich-content tr:nth-child(even) td {
+  background-color: #f8fafc !important;
+}
+
+.dark .rich-content table,
+.dark-modal .rich-content table {
+  border-color: #334155 !important;
+  background-color: #0f172a !important;
+}
+.dark .rich-content th,
+.dark-modal .rich-content th {
+  background: #1e293b !important;
+  color: #f8fafc !important;
+  border-color: #334155 !important;
+}
+.dark .rich-content td,
+.dark-modal .rich-content td {
+  border-color: #334155 !important;
+  color: #cbd5e1 !important;
+  background-color: transparent !important;
+}
+.dark .rich-content tr:nth-child(even) td,
+.dark-modal .rich-content tr:nth-child(even) td {
+  background-color: rgba(30, 41, 59, 0.4) !important;
 }
 
 /* Text Highlights & Mark */
