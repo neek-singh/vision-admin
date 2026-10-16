@@ -33,7 +33,9 @@ import {
   Lock,
   Unlock,
   HelpCircle,
-  Trash2
+  Trash2,
+  ListTree,
+  FileSpreadsheet
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import Badge from "@/components/ui/Badge";
@@ -43,6 +45,7 @@ const ModuleFormModal = dynamic(() => import("@/components/lms/admin/ModuleFormM
 const ChapterFormModal = dynamic(() => import("@/components/lms/admin/ChapterFormModal"), { ssr: false });
 const LessonFormModal = dynamic(() => import("@/components/lms/admin/LessonFormModal"), { ssr: false });
 const LessonPreviewModal = dynamic(() => import("@/components/lms/admin/LessonPreviewModal"), { ssr: false });
+const CurriculumBulkImportModal = dynamic(() => import("@/components/lms/admin/CurriculumBulkImportModal"), { ssr: false });
 
 const getClassCount = (lessons: any[] = []) => {
   return lessons.filter((l: any) => {
@@ -317,6 +320,19 @@ export default function CourseContentManagement({
     initialData?: any,
     currentLessonsCount?: number
   }>({ show: false, moduleId: "", isEditing: false, currentLessonsCount: 0 });
+  const [bulkImportModal, setBulkImportModal] = useState<{
+    show: boolean;
+    mode: "chapter_classes" | "module_tree";
+    moduleId: string;
+    chapterId?: string;
+    chapterTitle?: string;
+    moduleTitle?: string;
+    currentCount?: number;
+  }>({
+    show: false,
+    mode: "chapter_classes",
+    moduleId: "",
+  });
   const [copyToCourseModal, setCopyToCourseModal] = useState<{ show: boolean, module: any } | null>(null);
   const [targetCourseId, setTargetCourseId] = useState<string>("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -969,6 +985,23 @@ export default function CourseContentManagement({
         />
       )}
 
+      {bulkImportModal.show && (
+        <CurriculumBulkImportModal
+          isOpen={bulkImportModal.show}
+          onClose={() => setBulkImportModal(prev => ({ ...prev, show: false }))}
+          onSuccess={handleRefresh}
+          mode={bulkImportModal.mode}
+          courseId={currentCourseId}
+          moduleId={bulkImportModal.moduleId}
+          chapterId={bulkImportModal.chapterId}
+          chapterTitle={bulkImportModal.chapterTitle}
+          moduleTitle={bulkImportModal.moduleTitle}
+          currentCount={bulkImportModal.currentCount || 0}
+          currentMode={currentMode}
+          selectedBatchId={selectedBatchId}
+        />
+      )}
+
       {copyToCourseModal?.show && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[110] flex items-center justify-center p-4 animate-in fade-in duration-300">
           <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-300">
@@ -1345,6 +1378,22 @@ export default function CourseContentManagement({
                         <FolderPlus size={16} />
                       </button>
                       <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setBulkImportModal({
+                            show: true,
+                            mode: "module_tree",
+                            moduleId: module.id,
+                            moduleTitle: module.title,
+                            currentCount: (module.lms_chapters?.length || 0),
+                          });
+                        }}
+                        className="p-1.5 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 rounded-md transition-colors cursor-pointer flex items-center justify-center shrink-0"
+                        title="Bulk Import Chapters & Classes Tree"
+                      >
+                        <ListTree size={16} />
+                      </button>
+                      <button
                         onClick={(e) => { e.stopPropagation(); setModuleModal({ show: true, isEditing: true, moduleId: module.id, initialData: module }); }}
                         className="p-1.5 text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-md transition-colors cursor-pointer flex items-center justify-center shrink-0"
                         title="Edit Module Name"
@@ -1520,6 +1569,24 @@ export default function CourseContentManagement({
                                     title="Add Quiz"
                                   >
                                     <HelpCircle size={14} />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setBulkImportModal({
+                                        show: true,
+                                        mode: "chapter_classes",
+                                        moduleId: module.id,
+                                        chapterId: chapter.id,
+                                        chapterTitle: chapter.title,
+                                        moduleTitle: module.title,
+                                        currentCount: (chapter.lessons?.length || 0),
+                                      });
+                                    }}
+                                    className="p-1.5 hover:bg-blue-50 dark:hover:bg-blue-950/40 text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-all rounded-lg cursor-pointer flex items-center justify-center shrink-0"
+                                    title="Bulk Import Classes (Paste Outline / ChatGPT)"
+                                  >
+                                    <FileSpreadsheet size={14} />
                                   </button>
                                   <button
                                     onClick={(e) => { e.stopPropagation(); moveItem('chapter', chapter.id, 'up', module.id); }}
