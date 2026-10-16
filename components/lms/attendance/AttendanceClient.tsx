@@ -30,6 +30,7 @@ import {
 import { supabase } from "@/lib/supabase";
 import { initializeDailyAttendance } from "@/app/actions/lms/attendance";
 import WebcamScanner from "./WebcamScanner";
+import AttendanceMonthlySheet from "./AttendanceMonthlySheet";
 
 type AttendanceStatus = "present" | "absent" | "late";
 
@@ -102,16 +103,7 @@ export default function AttendanceClient({
   const [historyDate, setHistoryDate] = useState(new Date().toISOString().split("T")[0]);
   const [historyCourse, setHistoryCourse] = useState(initialCourses[0]?.id || "");
 
-  // Report tab
-  const [reportMonth, setReportMonth] = useState(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-  });
-  const [reportCourse, setReportCourse] = useState(initialCourses[0]?.id || "");
-  const [reportData, setReportData] = useState<
-    { student: Student; present: number; absent: number; late: number; total: number }[]
-  >([]);
-  const [reportLoading, setReportLoading] = useState(false);
+
 
 
 
@@ -140,11 +132,7 @@ export default function AttendanceClient({
     }
   }, [activeTab, historyDate, historyCourse]);
 
-  useEffect(() => {
-    if (activeTab === "report") {
-      fetchReport();
-    }
-  }, [activeTab, reportMonth, reportCourse]);
+
 
   async function fetchStudentsAndAttendance() {
     setLoading(true);
@@ -216,60 +204,7 @@ export default function AttendanceClient({
     }
   }
 
-  async function fetchReport() {
-    setReportLoading(true);
-    try {
-      const [year, month] = reportMonth.split("-");
-      const startDate = `${year}-${month}-01`;
-      const endDate = new Date(Number(year), Number(month), 0).toISOString().split("T")[0];
 
-      // Fetch all attendance for the month
-      const { data: records, error } = await supabase
-        .from("attendance")
-        .select(`student_id, status, students(id, name, student_id)`)
-        .eq("course_id", reportCourse)
-        .gte("date", startDate)
-        .lte("date", endDate);
-
-      if (error) throw error;
-
-      // Aggregate per student
-      const studentMap: Record<
-        string,
-        { student: Student; present: number; absent: number; late: number; total: number }
-      > = {};
-
-      records?.forEach((r: any) => {
-        if (!r.students) return;
-        const sid = r.student_id;
-        if (!studentMap[sid]) {
-          studentMap[sid] = {
-            student: r.students,
-            present: 0,
-            absent: 0,
-            late: 0,
-            total: 0,
-          };
-        }
-        studentMap[sid].total++;
-        if (r.status === "present") studentMap[sid].present++;
-        else if (r.status === "absent") studentMap[sid].absent++;
-        else if (r.status === "late") studentMap[sid].late++;
-      });
-
-      const sorted = Object.values(studentMap).sort((a, b) => {
-        const pctA = a.total ? (a.present / a.total) * 100 : 0;
-        const pctB = b.total ? (b.present / b.total) * 100 : 0;
-        return pctB - pctA;
-      });
-
-      setReportData(sorted);
-    } catch (err: any) {
-      console.error("Report Fetch Error:", err);
-    } finally {
-      setReportLoading(false);
-    }
-  }
 
   const updateStatus = (studentId: string, status: AttendanceStatus) => {
     setAttendance((prev) => ({ ...prev, [studentId]: status }));
@@ -364,22 +299,7 @@ export default function AttendanceClient({
 
 
 
-  function exportCSV() {
-    const headers = ["Student Name", "Student ID", "Present", "Absent", "Late", "Total Days", "Attendance %"];
-    const rows = reportData.map((r) => {
-      const pct = r.total ? ((r.present / r.total) * 100).toFixed(1) : "0.0";
-      return [r.student.name, r.student.student_id, r.present, r.absent, r.late, r.total, pct];
-    });
 
-    const csvContent = [headers, ...rows].map((r) => r.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `attendance-report-${reportMonth}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
 
   const filteredStudents = students.filter(
     (s) =>
@@ -758,123 +678,10 @@ export default function AttendanceClient({
 
       {/* ───────────────── MONTHLY REPORT TAB ───────────────── */}
       {activeTab === "report" && (
-        <div className="space-y-4">
-          {/* Filters Bar */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800">
-            <div className="flex flex-wrap items-center gap-2.5 flex-1">
-              <select
-                value={reportCourse}
-                onChange={(e) => setReportCourse(e.target.value)}
-                className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-1.5 text-xs font-medium outline-none focus:border-slate-400 dark:focus:border-slate-600"
-              >
-                {initialCourses.map((c) => (
-                  <option key={c.id} value={c.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
-                    {c.title}
-                  </option>
-                ))}
-              </select>
-              <input
-                type="month"
-                value={reportMonth}
-                onChange={(e) => setReportMonth(e.target.value)}
-                className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-1.5 text-xs font-medium outline-none focus:border-slate-400 dark:focus:border-slate-600"
-              />
-            </div>
-            <button
-              onClick={exportCSV}
-              disabled={reportData.length === 0}
-              className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40"
-            >
-              <Download size={13} /> Export CSV
-            </button>
-          </div>
-
-          {/* Report Table */}
-          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm border-collapse">
-                <thead>
-                  <tr className="bg-slate-50/75 dark:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800 text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                    <th className="px-5 py-3">Student</th>
-                    <th className="px-5 py-3 text-center">Present</th>
-                    <th className="px-5 py-3 text-center">Late</th>
-                    <th className="px-5 py-3 text-center">Absent</th>
-                    <th className="px-5 py-3">Attendance %</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {reportLoading ? (
-                    <tr>
-                      <td colSpan={5} className="px-5 py-14 text-center">
-                        <Loader2 className="animate-spin text-slate-400 mx-auto mb-2" size={22} />
-                        <p className="text-xs text-slate-500 dark:text-slate-400">Generating report...</p>
-                      </td>
-                    </tr>
-                  ) : reportData.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="px-5 py-14 text-center text-xs text-slate-500 dark:text-slate-400">
-                        No attendance data for this period.
-                      </td>
-                    </tr>
-                  ) : (
-                    reportData.map(({ student, present, absent, late, total }) => {
-                      const pct = total ? Math.round((present / total) * 100) : 0;
-                      const isLow = pct < 75;
-                      return (
-                        <tr key={student.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                          <td className="px-5 py-3.5">
-                            <div className="flex items-center gap-3">
-                              <div
-                                className={`w-8 h-8 rounded-full bg-gradient-to-br ${getAvatarColor(student.name)} flex items-center justify-center text-white font-semibold text-xs shrink-0`}
-                              >
-                                {student.name[0]}
-                              </div>
-                              <div>
-                                <p className="font-medium text-slate-900 dark:text-white text-sm flex items-center gap-1.5">
-                                  {student.name}
-                                  {isLow && <AlertTriangle size={13} className="text-amber-500" />}
-                                </p>
-                                <p className="text-[11px] font-mono text-slate-400">{student.student_id}</p>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-5 py-3.5 text-center font-medium text-emerald-600 dark:text-emerald-400">
-                            {present}
-                          </td>
-                          <td className="px-5 py-3.5 text-center font-medium text-amber-600 dark:text-amber-400">
-                            {late}
-                          </td>
-                          <td className="px-5 py-3.5 text-center font-medium text-rose-600 dark:text-rose-400">
-                            {absent}
-                          </td>
-                          <td className="px-5 py-3.5">
-                            <div className="flex items-center gap-2.5">
-                              <div className="flex-1 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden max-w-28">
-                                <div
-                                  className={`h-full rounded-full transition-all ${
-                                    pct >= 75 ? "bg-emerald-500" : pct >= 50 ? "bg-amber-500" : "bg-rose-500"
-                                  }`}
-                                  style={{ width: `${pct}%` }}
-                                />
-                              </div>
-                              <span
-                                className={`text-xs font-semibold ${
-                                  pct >= 75 ? "text-emerald-600 dark:text-emerald-400" : pct >= 50 ? "text-amber-600 dark:text-amber-400" : "text-rose-600 dark:text-rose-400"
-                                }`}
-                              >
-                                {pct}%
-                              </span>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
+        <AttendanceMonthlySheet
+          initialCourses={initialCourses}
+          initialBatches={initialBatches}
+        />
       )}
 
       {/* ───────────────── WEBCAM SCANNER TAB ───────────────── */}

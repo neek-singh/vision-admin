@@ -1325,7 +1325,7 @@ export default function CourseContentManagement({
                           ? <FolderOpen size={16} className="shrink-0 text-amber-500" />
                           : <Folder size={16} className="shrink-0 text-amber-500" />}
                         <span className="text-xs text-slate-400 dark:text-slate-500 tabular-nums shrink-0">{String(mIndex + 1).padStart(2, '0')}</span>
-                        <h2 className="text-sm font-semibold text-slate-900 dark:text-white truncate">{module.title}</h2>
+                        <h2 className="text-sm font-normal text-slate-800 dark:text-slate-200 truncate">{module.title}</h2>
                         <span className="text-xs text-slate-400 dark:text-slate-500 whitespace-nowrap">
                           {(module.lms_chapters?.length || 0)} chapters · {getClassCount(module.lessons) + (module.lms_chapters?.reduce((sum: number, c: any) => sum + getClassCount(c.lessons), 0) || 0)} classes
                         </span>
@@ -1410,7 +1410,7 @@ export default function CourseContentManagement({
                                   {isChapterExpanded(chapter.id)
                                     ? <FolderOpen size={15} className="shrink-0 text-sky-500" />
                                     : <Folder size={15} className="shrink-0 text-sky-500" />}
-                                  <h4 className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">{chapter.title}</h4>
+                                  <h4 className="text-sm font-normal text-slate-700 dark:text-slate-300 truncate">{chapter.title}</h4>
                                   <span className="text-xs text-slate-400 dark:text-slate-500 whitespace-nowrap">{getClassCount(chapter.lessons)} classes</span>
                                 </div>
                                 <div className="flex items-center gap-0.5 md:opacity-0 md:group-hover/chheader:opacity-100 transition-opacity">
@@ -1631,14 +1631,14 @@ export default function CourseContentManagement({
                                               
                                               {/* Mobile Title - wraps inside the top row on mobile */}
                                               <div className="flex-1 min-w-0 sm:hidden">
-                                                <h4 className="text-sm font-medium text-slate-800 dark:text-slate-200 group-hover/lesson:text-blue-600 dark:group-hover/lesson:text-blue-400 transition-colors truncate">{lesson.title}</h4>
+                                                <h4 className="text-sm font-normal text-slate-700 dark:text-slate-300 group-hover/lesson:text-blue-600 dark:group-hover/lesson:text-blue-400 transition-colors truncate">{lesson.title}</h4>
                                               </div>
                                             </div>
 
                                             {/* Desktop Title & Badges */}
                                             <div className="hidden sm:block flex-1 min-w-0">
                                               <div className="flex flex-wrap items-center gap-2">
-                                                <h4 className="text-sm font-medium text-slate-800 dark:text-slate-200 group-hover/lesson:text-blue-600 dark:group-hover/lesson:text-blue-400 transition-colors truncate">{lesson.title}</h4>
+                                                <h4 className="text-sm font-normal text-slate-700 dark:text-slate-300 group-hover/lesson:text-blue-600 dark:group-hover/lesson:text-blue-400 transition-colors truncate">{lesson.title}</h4>
                                                 <span className={`text-[10px] text-slate-400 dark:text-slate-500`}>
                                                   {typeLabel}
                                                 </span>
@@ -1803,14 +1803,14 @@ export default function CourseContentManagement({
                                     
                                     {/* Mobile Title - wraps inside the top row on mobile */}
                                     <div className="flex-1 min-w-0 sm:hidden">
-                                      <h4 className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">{lesson.title}</h4>
+                                      <h4 className="text-sm font-normal text-slate-700 dark:text-slate-300 truncate">{lesson.title}</h4>
                                     </div>
                                   </div>
 
                                   {/* Desktop Title & Badges */}
                                   <div className="hidden sm:block flex-1 min-w-0">
                                     <div className="flex flex-wrap items-center gap-2">
-                                      <h4 className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">{lesson.title}</h4>
+                                      <h4 className="text-sm font-normal text-slate-700 dark:text-slate-300 truncate">{lesson.title}</h4>
                                       <span className={`text-[10px] text-slate-400 dark:text-slate-500`}>
                                         {typeLabel}
                                       </span>
