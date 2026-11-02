@@ -48,3 +48,10 @@ scratch/
 supabase/.temp/
 
 .gsd-graph/
+
+# Internal plans, agent notes, prompts & documentation
+*.md
+!README.md
+.agents/
+.planning/
+*.log

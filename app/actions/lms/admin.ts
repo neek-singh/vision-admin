@@ -35,12 +35,25 @@ export async function assignCourseToStudent(studentId: string, courseId: string,
             .eq("id", courseId)
             .single();
 
+        // Inherit student's batch if none passed
+        let assignedBatch = batch && batch.trim() !== "" ? batch.trim() : null;
+        if (!assignedBatch) {
+            const { data: student } = await supabase
+                .from("students")
+                .select("batch")
+                .eq("id", studentId)
+                .single();
+            if (student?.batch) {
+                assignedBatch = student.batch;
+            }
+        }
+
         const { error } = await supabase
             .from("enrollments")
             .insert({
                 student_id: studentId,
                 course_id: courseId,
-                batch: batch || null,
+                batch: assignedBatch,
                 progress_percentage: 0
             });
 
@@ -57,7 +70,7 @@ export async function assignCourseToStudent(studentId: string, courseId: string,
                 .eq("id", studentId)
                 .single();
 
-            if (!student?.course || student.course === "N/A") {
+            if (!student?.course || student.course === "N/A" || student.course === "Unassigned") {
                 await supabase
                     .from("students")
                     .update({ course: courseData.title })
@@ -66,6 +79,9 @@ export async function assignCourseToStudent(studentId: string, courseId: string,
         }
 
         revalidatePath("/admin/students");
+        revalidatePath("/admin/courses");
+        revalidatePath("/admin/fees");
+        revalidatePath("/courses");
         return { success: true };
     } catch (e: any) {
         console.error("assignCourseToStudent auth error:", e);
@@ -88,6 +104,9 @@ export async function removeCourseFromStudent(enrollmentId: string) {
         }
 
         revalidatePath("/admin/students");
+        revalidatePath("/admin/courses");
+        revalidatePath("/admin/fees");
+        revalidatePath("/courses");
         return { success: true };
     } catch (e: any) {
         console.error("removeCourseFromStudent auth error:", e);

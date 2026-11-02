@@ -1,19 +1,27 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, PlusCircle, X, BookOpen, Check } from "lucide-react";
+import { Loader2, PlusCircle, X, BookOpen, Check, Users } from "lucide-react";
 import { assignCourseToStudent } from "@/app/actions/lms/admin";
 
 interface AssignCourseModalProps {
   student: any;
   availableCourses: any[];
+  availableBatches?: string[];
   onClose: () => void;
   onSuccess: () => void;
 }
 
-export default function AssignCourseModal({ student, availableCourses, onClose, onSuccess }: AssignCourseModalProps) {
+export default function AssignCourseModal({ 
+  student, 
+  availableCourses, 
+  availableBatches = [], 
+  onClose, 
+  onSuccess 
+}: AssignCourseModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedCourseId, setSelectedCourseId] = useState("");
+  const [selectedBatch, setSelectedBatch] = useState(student?.batch || "");
 
   const handleAssignCourse = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,7 +29,7 @@ export default function AssignCourseModal({ student, availableCourses, onClose, 
 
     setIsSubmitting(true);
     try {
-      const result = await assignCourseToStudent(student.id, selectedCourseId);
+      const result = await assignCourseToStudent(student.id, selectedCourseId, selectedBatch || undefined);
 
       if (result?.error) {
         alert(result.error);
@@ -70,6 +78,30 @@ export default function AssignCourseModal({ student, availableCourses, onClose, 
               </select>
               <BookOpen className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" size={16} />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">
+              Batch (Optional)
+            </label>
+            <div className="relative">
+               <select 
+                value={selectedBatch}
+                onChange={(e) => setSelectedBatch(e.target.value)}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-emerald-500 transition-all text-sm font-black text-black appearance-none cursor-pointer"
+              >
+                <option value="">{student?.batch ? `Inherit Student Batch (${student.batch})` : "No Batch / General"}</option>
+                {availableBatches.map((batch: string) => (
+                  <option key={batch} value={batch}>{batch}</option>
+                ))}
+              </select>
+              <Users className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" size={16} />
+            </div>
+            {student?.batch && !selectedBatch && (
+              <p className="text-[10px] text-slate-400 mt-1 italic">
+                Will automatically default to student's current batch: <span className="font-bold text-slate-600">{student.batch}</span>
+              </p>
+            )}
           </div>
 
           <div className="flex gap-3">

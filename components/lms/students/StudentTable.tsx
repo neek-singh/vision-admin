@@ -153,6 +153,12 @@ export default function StudentTable({
   const [dropoutStudent, setDropoutStudent] = useState<any | null>(null);
   const [availableCourses, setAvailableCourses] = useState<any[]>(passedCourses);
 
+  useEffect(() => {
+    if (passedCourses && passedCourses.length > 0) {
+      setAvailableCourses(passedCourses);
+    }
+  }, [passedCourses]);
+
   // Credentials Modal State
   const [credentialsStudent, setCredentialsStudent] = useState<any | null>(null);
   const [isGeneratingCreds, setIsGeneratingCreds] = useState(false);
@@ -640,6 +646,7 @@ export default function StudentTable({
         <AssignCourseModal 
           student={assigningTo} 
           availableCourses={availableCourses} 
+          availableBatches={availableBatches}
           onClose={() => setAssigningTo(null)} 
           onSuccess={onSuccess} 
         />
