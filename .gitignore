@@ -48,6 +48,7 @@ scratch/
 supabase/.temp/
 
 .gsd-graph/
+.mcp.json
 
 # Internal plans, agent notes, prompts & documentation
 *.md
