@@ -1,6 +1,7 @@
 "use server";
 
-import { notifyAdmins } from "@/lib/notify";
+import { notifyAdmins, notifyStudent } from "@/lib/notify";
+import { requireAdmin } from "@/lib/require-admin";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 /**
@@ -72,5 +73,83 @@ export async function notifyAssignmentSubmission(data: {
   } catch (err: unknown) {
     console.error("[notifyAssignmentSubmission] Error:", err);
     return { success: false, error: err instanceof Error ? err.message : "Error" };
+  }
+}
+
+/**
+ * Grades a student submission and notifies the student immediately.
+ */
+export async function gradeSubmission(data: {
+  submissionId: string;
+  score: string;
+  marks?: number | null;
+  feedback?: string;
+}) {
+  await requireAdmin();
+
+  try {
+    const { submissionId, score, marks, feedback } = data;
+
+    // 1. Fetch submission details
+    const { data: submission, error: fetchErr } = await supabaseAdmin
+      .from("submissions")
+      .select("id, student_id, assignment_id, lesson_id")
+      .eq("id", submissionId)
+      .single();
+
+    if (fetchErr || !submission) {
+      return { success: false, error: "Submission not found" };
+    }
+
+    // 2. Update submission
+    const numericMarks = marks !== undefined && marks !== null ? marks : (parseInt(score) || null);
+    const { error: updateErr } = await supabaseAdmin
+      .from("submissions")
+      .update({
+        score,
+        marks: numericMarks,
+        feedback: feedback || null,
+        graded_at: new Date().toISOString(),
+        status: "graded",
+      })
+      .eq("id", submissionId);
+
+    if (updateErr) throw updateErr;
+
+    // 3. Find assignment or lesson title for friendly notification
+    let itemTitle = "Project / Assignment";
+    if (submission.assignment_id) {
+      const { data: a } = await supabaseAdmin
+        .from("assignments")
+        .select("title")
+        .eq("id", submission.assignment_id)
+        .maybeSingle();
+      if (a?.title) itemTitle = a.title;
+    } else if (submission.lesson_id) {
+      const { data: l } = await supabaseAdmin
+        .from("lessons")
+        .select("title")
+        .eq("id", submission.lesson_id)
+        .maybeSingle();
+      if (l?.title) itemTitle = l.title;
+    }
+
+    // 4. Notify student
+    if (submission.student_id) {
+      const title = `Grade Update: ${itemTitle}`.slice(0, 50);
+      const body = `Aapka submission check ho gaya hai. Score: ${score}${feedback ? ` | Note: ${feedback}` : ""}`.slice(0, 120);
+
+      await notifyStudent(submission.student_id, {
+        title,
+        body,
+        url: "/assignments",
+        type: "assignment_graded",
+      });
+    }
+
+    return { success: true };
+  } catch (err: unknown) {
+    console.error("[gradeSubmission] Error:", err);
+    return { success: false, error: err instanceof Error ? err.message : "Failed to grade submission" };
   }
 }

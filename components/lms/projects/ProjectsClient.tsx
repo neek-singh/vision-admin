@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import { notifyAssignmentPublished } from "@/app/actions/lms/projects";
+import { notifyAssignmentPublished, saveAssignment, deleteAssignment, togglePublishAssignment } from "@/app/actions/lms/projects";
+import { gradeSubmission } from "@/app/actions/lms/submissions";
 import { 
   PenTool, 
   Calendar as CalendarIcon, 
@@ -310,18 +311,16 @@ export default function ProjectsClient({ courses, initialProjects, availableBatc
     try {
       const numericMarks = parseInt(state.score) || null;
 
-      const { error } = await supabase
-        .from("submissions")
-        .update({
-          score: state.score,
-          marks: numericMarks,
-          feedback: state.feedback,
-          graded_at: new Date().toISOString(),
-          status: "graded"
-        })
-        .eq("id", submissionId);
+      const res = await gradeSubmission({
+        submissionId,
+        score: state.score,
+        marks: numericMarks,
+        feedback: state.feedback,
+      });
 
-      if (error) throw error;
+      if (!res.success) {
+        throw new Error(res.error || "Failed to save grade");
+      }
 
       setSubmissions(prev => prev.map(s => s.id === submissionId ? {
         ...s,
@@ -332,10 +331,10 @@ export default function ProjectsClient({ courses, initialProjects, availableBatc
         status: "graded"
       } : s));
 
-      alert("Grade saved successfully!");
-    } catch (err) {
+      alert("Grade saved and student notified successfully!");
+    } catch (err: unknown) {
       console.error("Error saving grade:", err);
-      alert("Failed to save grade");
+      alert(err instanceof Error ? err.message : "Failed to save grade");
     } finally {
       setSavingGradeId(null);
     }
@@ -380,66 +379,26 @@ export default function ProjectsClient({ courses, initialProjects, availableBatc
     setIsSubmitting(true);
 
     try {
-      const payload = {
-        course_id: formData.course_ids[0] || null,
+      const formattedDueDate = (formData.due_date && !isNaN(Date.parse(formData.due_date))) 
+        ? new Date(`${formData.due_date}T18:00:00`).toISOString() 
+        : undefined;
+
+      const res = await saveAssignment({
+        id: editingId || undefined,
         title: formData.title,
-        description: formData.description || null,
-        due_date: (formData.due_date && !isNaN(Date.parse(formData.due_date))) 
-          ? new Date(`${formData.due_date}T18:00:00`).toISOString() 
-          : null,
-        category: formData.category || null,
-        is_published: formData.is_published
-      };
+        description: formData.description || undefined,
+        due_date: formattedDueDate,
+        course_ids: formData.course_ids,
+        is_published: formData.is_published,
+      });
 
-      let assignmentId = editingId;
-
-      if (editingId) {
-        const { error } = await supabase
-          .from("assignments")
-          .update(payload)
-          .eq("id", editingId);
-        if (error) throw error;
-
-        // Delete old associations
-        const { error: deleteRelError } = await supabase
-          .from("assignment_courses")
-          .delete()
-          .eq("assignment_id", editingId);
-        if (deleteRelError) throw deleteRelError;
-      } else {
-        const { data, error } = await supabase
-          .from("assignments")
-          .insert([payload])
-          .select()
-          .single();
-        if (error) throw error;
-        assignmentId = data.id;
-      }
-
-      // Insert new associations
-      if (assignmentId && formData.course_ids.length > 0) {
-        const relationPayload = formData.course_ids.map(cId => ({
-          assignment_id: assignmentId,
-          course_id: cId
-        }));
-        const { error: relError } = await supabase
-          .from("assignment_courses")
-          .insert(relationPayload);
-        if (relError) throw relError;
-      }
-
-      // Notify students if published
-      if (assignmentId && formData.is_published) {
-        notifyAssignmentPublished(assignmentId).catch(err => {
-          console.error("Failed to notify students on publish:", err);
-        });
-      }
+      if (!res.success) throw new Error(res.error || "Failed to save project");
 
       closeForm();
       router.refresh();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error saving project:", err);
-      alert("Failed to save project");
+      alert(`Failed to save project: ${err.message || "Unknown error"}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -447,24 +406,12 @@ export default function ProjectsClient({ courses, initialProjects, availableBatc
 
   const handleTogglePublish = async (id: string, currentStatus: boolean) => {
     try {
-      const nextStatus = !currentStatus;
-      const { error } = await supabase
-        .from("assignments")
-        .update({ is_published: nextStatus })
-        .eq("id", id);
-      
-      if (error) throw error;
-
-      if (nextStatus) {
-        notifyAssignmentPublished(id).catch(err => {
-          console.error("Failed to notify students on toggle publish:", err);
-        });
-      }
-
+      const res = await togglePublishAssignment(id, currentStatus);
+      if (!res.success) throw new Error(res.error || "Failed to toggle status");
       router.refresh();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error toggling publish status:", err);
-      alert("Failed to update status");
+      alert(`Failed to update status: ${err.message || "Unknown error"}`);
     }
   };
 
@@ -472,12 +419,12 @@ export default function ProjectsClient({ courses, initialProjects, availableBatc
     if (!confirm("Are you sure? This will delete all submissions too.")) return;
 
     try {
-      const { error } = await supabase.from("assignments").delete().eq("id", id);
-      if (error) throw error;
+      const res = await deleteAssignment(id);
+      if (!res.success) throw new Error(res.error || "Failed to delete project");
       router.refresh();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error deleting project:", err);
-      alert("Failed to delete project");
+      alert(`Failed to delete project: ${err.message || "Unknown error"}`);
     }
   };
 

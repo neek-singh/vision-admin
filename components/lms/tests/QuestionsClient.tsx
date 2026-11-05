@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
+import { saveTestQuestion, deleteTestQuestion } from "@/app/actions/lms/tests";
 import { 
   Plus, 
   Trash2, 
@@ -27,22 +27,22 @@ export default function QuestionsClient({ testId, initialQuestions }: { testId: 
     setIsSubmitting(true);
 
     try {
-      const { error } = await supabase
-        .from("test_questions")
-        .insert([{
-          test_id: testId,
-          ...formData,
-          order_index: initialQuestions.length
-        }]);
+      const res = await saveTestQuestion({
+        test_id: testId,
+        question_text: formData.question_text,
+        options: formData.options,
+        correct_option_index: formData.correct_option_index,
+        order_index: initialQuestions.length,
+      });
 
-      if (error) throw error;
+      if (!res.success) throw new Error(res.error || "Failed to add question");
 
       setIsAdding(false);
       setFormData({ question_text: "", options: ["", "", "", ""], correct_option_index: 0 });
       router.refresh();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error adding question:", err);
-      alert("Failed to add question");
+      alert(`Failed to add question: ${err.message || "Unknown error"}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -51,11 +51,12 @@ export default function QuestionsClient({ testId, initialQuestions }: { testId: 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure?")) return;
     try {
-      const { error } = await supabase.from("test_questions").delete().eq("id", id);
-      if (error) throw error;
+      const res = await deleteTestQuestion(id);
+      if (!res.success) throw new Error(res.error || "Failed to delete question");
       router.refresh();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error deleting question:", err);
+      alert(`Failed to delete question: ${err.message || "Unknown error"}`);
     }
   };
 

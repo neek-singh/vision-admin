@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import { notifyTestPublished } from "@/app/actions/lms/tests";
+import { notifyTestPublished, saveTest, deleteTest, togglePublishTest } from "@/app/actions/lms/tests";
 import { 
   FileText, 
   Plus, 
@@ -115,39 +115,23 @@ export default function TestsClient({ courses, initialTests, availableBatches = 
 
     try {
       const { lesson_id, batch, ...rest } = formData;
-      const payload = {
+      const res = await saveTest({
+        id: editingId || undefined,
+        lesson_id: lesson_id || null,
+        batch: batch || null,
+        batches: batch ? [batch] : null,
         ...rest,
-        batches: batch ? [batch] : null
-      };
+      });
 
-      let testId = editingId;
-      if (editingId) {
-        const { error } = await supabase
-          .from("tests")
-          .update(payload)
-          .eq("id", editingId);
-        if (error) throw error;
-      } else {
-        const { data, error } = await supabase
-          .from("tests")
-          .insert([payload])
-          .select("id")
-          .single();
-        if (error) throw error;
-        testId = data?.id;
-      }
-
-      if (testId && payload.is_published) {
-        notifyTestPublished(testId).catch(err => {
-          console.error("Failed to notify students on test publish:", err);
-        });
+      if (!res.success) {
+        throw new Error(res.error || "Failed to save test");
       }
 
       closeForm();
       router.refresh();
     } catch (err: any) {
       console.error("Error creating test:", err);
-      alert(`Failed to create test: ${err.message || "Unknown error"}`);
+      alert(`Failed to save test: ${err.message || "Unknown error"}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -155,24 +139,12 @@ export default function TestsClient({ courses, initialTests, availableBatches = 
 
   const handleTogglePublish = async (id: string, currentStatus: boolean) => {
     try {
-      const nextStatus = !currentStatus;
-      const { error } = await supabase
-        .from("tests")
-        .update({ is_published: nextStatus })
-        .eq("id", id);
-      
-      if (error) throw error;
-
-      if (nextStatus) {
-        notifyTestPublished(id).catch(err => {
-          console.error("Failed to notify students on test toggle publish:", err);
-        });
-      }
-
+      const res = await togglePublishTest(id, currentStatus);
+      if (!res.success) throw new Error(res.error || "Failed to update status");
       router.refresh();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error toggling publish status:", err);
-      alert("Failed to update status");
+      alert(`Failed to update status: ${err.message || "Unknown error"}`);
     }
   };
 
@@ -180,12 +152,12 @@ export default function TestsClient({ courses, initialTests, availableBatches = 
     if (!confirm("Are you sure? This will delete all questions and results.")) return;
 
     try {
-      const { error } = await supabase.from("tests").delete().eq("id", id);
-      if (error) throw error;
+      const res = await deleteTest(id);
+      if (!res.success) throw new Error(res.error || "Failed to delete test");
       router.refresh();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error deleting test:", err);
-      alert("Failed to delete test");
+      alert(`Failed to delete test: ${err.message || "Unknown error"}`);
     }
   };
 
@@ -450,7 +422,7 @@ export default function TestsClient({ courses, initialTests, availableBatches = 
                             </span>
                           </td>
                           <td className="px-6 py-4 text-right text-[10px] font-bold text-slate-500">
-                            {new Date(res.completed_at).toLocaleString()}
+                            {res.completed_at && !isNaN(new Date(res.completed_at).getTime()) ? new Date(res.completed_at).toLocaleString() : "Recently"}
                           </td>
                         </tr>
                       ))}

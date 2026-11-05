@@ -77,3 +77,154 @@ export async function notifyTestPublished(testId: string) {
     return { success: false, error: err instanceof Error ? err.message : "Error" };
   }
 }
+
+/**
+ * Creates or updates a test using privileged supabaseAdmin (bypasses RLS 42501).
+ */
+export async function saveTest(data: {
+  id?: string;
+  course_id: string;
+  title: string;
+  type?: string;
+  duration_minutes?: number;
+  batches?: string[] | null;
+  batch?: string | null;
+  lesson_id?: string | null;
+  is_published?: boolean;
+}) {
+  await requireAdmin();
+
+  try {
+    const { id, batch, lesson_id, ...rest } = data;
+    const payload: any = {
+      ...rest,
+      batches: data.batches || (batch ? [batch] : null),
+    };
+    if (lesson_id) payload.lesson_id = lesson_id;
+
+    let testId = id;
+
+    if (id) {
+      const { error } = await supabaseAdmin
+        .from("tests")
+        .update(payload)
+        .eq("id", id);
+      if (error) throw error;
+    } else {
+      const { data: inserted, error } = await supabaseAdmin
+        .from("tests")
+        .insert([payload])
+        .select("id")
+        .single();
+      if (error) throw error;
+      testId = inserted?.id;
+    }
+
+    if (testId && payload.is_published) {
+      notifyTestPublished(testId).catch((err) => {
+        console.error("Failed to notify students on test publish:", err);
+      });
+    }
+
+    return { success: true, testId };
+  } catch (err: any) {
+    console.error("[saveTest] Error:", err);
+    return { success: false, error: err.message || "Failed to save test" };
+  }
+}
+
+/**
+ * Deletes a test and all its questions/results using privileged supabaseAdmin.
+ */
+export async function deleteTest(id: string) {
+  await requireAdmin();
+
+  try {
+    const { error } = await supabaseAdmin.from("tests").delete().eq("id", id);
+    if (error) throw error;
+    return { success: true };
+  } catch (err: any) {
+    console.error("[deleteTest] Error:", err);
+    return { success: false, error: err.message || "Failed to delete test" };
+  }
+}
+
+/**
+ * Toggles a test's published status using privileged supabaseAdmin.
+ */
+export async function togglePublishTest(id: string, currentStatus: boolean) {
+  await requireAdmin();
+
+  try {
+    const nextStatus = !currentStatus;
+    const { error } = await supabaseAdmin
+      .from("tests")
+      .update({ is_published: nextStatus })
+      .eq("id", id);
+    if (error) throw error;
+
+    if (nextStatus) {
+      notifyTestPublished(id).catch((err) => {
+        console.error("Failed to notify students on test toggle publish:", err);
+      });
+    }
+
+    return { success: true, nextStatus };
+  } catch (err: any) {
+    console.error("[togglePublishTest] Error:", err);
+    return { success: false, error: err.message || "Failed to toggle status" };
+  }
+}
+
+/**
+ * Adds or saves a test question using privileged supabaseAdmin.
+ */
+export async function saveTestQuestion(data: {
+  id?: string;
+  test_id: string;
+  question_text: string;
+  options: string[];
+  correct_option_index: number;
+  order_index?: number;
+}) {
+  await requireAdmin();
+
+  try {
+    const { id, ...rest } = data;
+    if (id) {
+      const { error } = await supabaseAdmin
+        .from("test_questions")
+        .update(rest)
+        .eq("id", id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabaseAdmin
+        .from("test_questions")
+        .insert([rest]);
+      if (error) throw error;
+    }
+    return { success: true };
+  } catch (err: any) {
+    console.error("[saveTestQuestion] Error:", err);
+    return { success: false, error: err.message || "Failed to save question" };
+  }
+}
+
+/**
+ * Deletes a test question using privileged supabaseAdmin.
+ */
+export async function deleteTestQuestion(id: string) {
+  await requireAdmin();
+
+  try {
+    const { error } = await supabaseAdmin
+      .from("test_questions")
+      .delete()
+      .eq("id", id);
+    if (error) throw error;
+    return { success: true };
+  } catch (err: any) {
+    console.error("[deleteTestQuestion] Error:", err);
+    return { success: false, error: err.message || "Failed to delete question" };
+  }
+}

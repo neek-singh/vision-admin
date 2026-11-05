@@ -2,7 +2,7 @@
 
 import { requireAdmin } from "@/lib/require-admin";
 import { revalidatePath } from "next/cache";
-import { sendPushNotification } from "@/lib/push";
+import { notifyStudent, notifyAdmins } from "@/lib/notify";
 
 export async function setupStudentFee(data: {
   student_id: string;
@@ -122,7 +122,7 @@ export async function recordPayment(data: {
       }
     }
 
-    // Trigger push notifications asynchronously
+    // Trigger notifications asynchronously for both student & admins
     try {
       const { data: studentProfile } = await supabase
         .from("profiles")
@@ -132,42 +132,26 @@ export async function recordPayment(data: {
       
       const studentName = studentProfile?.full_name || "A student";
 
-      const { data: admins } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("role", "admin");
-
-      const notifyPromises = [];
-
-      notifyPromises.push(
-        sendPushNotification(data.student_id, {
+      await Promise.all([
+        notifyStudent(data.student_id, {
           title: "Fee Payment Recorded 💳",
           body: `Thank you! Your payment of ₹${data.amount} has been successfully recorded.`,
-          url: "/student/fees"
+          url: "/fees",
+          type: "fee_payment"
         }).catch(err => {
-          console.error(`Failed to send push notification to student ${data.student_id}:`, err);
-          return null;
+          console.error(`Failed to send fee notification to student ${data.student_id}:`, err);
+        }),
+        notifyAdmins({
+          title: "New Fee Payment Received 💰",
+          body: `₹${data.amount} payment received from ${studentName} (${data.payment_mode}).`,
+          url: "/admin/fees",
+          type: "fee_payment"
+        }).catch(err => {
+          console.error("Failed to send fee notification to admins:", err);
         })
-      );
-
-      if (admins && admins.length > 0) {
-        admins.forEach(admin => {
-          notifyPromises.push(
-            sendPushNotification(admin.id, {
-              title: "New Fee Payment Received 💰",
-              body: `₹${data.amount} payment received from ${studentName} (${data.payment_mode}).`,
-              url: "/admin/fees"
-            }).catch(err => {
-              console.error(`Failed to send push notification to admin ${admin.id}:`, err);
-              return null;
-            })
-          );
-        });
-      }
-
-      await Promise.all(notifyPromises);
+      ]);
     } catch (pushError) {
-      console.error("Failed to process fee payment push notifications:", pushError);
+      console.error("Failed to process fee payment notifications:", pushError);
     }
 
     revalidatePath("/admin/fees");

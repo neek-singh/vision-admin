@@ -13,7 +13,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: authErr.message || "Unauthorized" }, { status: 401 });
     }
 
-    const { name, course, email, phone } = await request.json();
+    const { name, course, email, phone, password } = await request.json();
 
     if (!name || typeof name !== "string" || !name.trim()) {
       return NextResponse.json(
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
       if (isUuid) {
         const { data } = await supabaseAdmin
           .from("courses")
-          .select("id, course_code, title")
+          .select("id, course_code, title, fee, discount_fee")
           .eq("id", course)
           .limit(1)
           .maybeSingle();
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
         // Exact matches first
         const { data: exactCode } = await supabaseAdmin
           .from("courses")
-          .select("id, course_code, title")
+          .select("id, course_code, title, fee, discount_fee")
           .ilike("course_code", cleanCourse)
           .limit(1)
           .maybeSingle();
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
         } else {
           const { data: exactTitle } = await supabaseAdmin
             .from("courses")
-            .select("id, course_code, title")
+            .select("id, course_code, title, fee, discount_fee")
             .ilike("title", cleanCourse)
             .limit(1)
             .maybeSingle();
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
             // Fuzzy search on title
             const { data: fuzzyTitle } = await supabaseAdmin
               .from("courses")
-              .select("id, course_code, title")
+              .select("id, course_code, title, fee, discount_fee")
               .ilike("title", `%${cleanCourse}%`)
               .limit(1)
               .maybeSingle();
@@ -77,6 +77,15 @@ export async function POST(request: Request) {
     // Robust ID generation with collision retry (T6.7)
     let studentId = "";
     let insertedStudent = null;
+
+    // Password generation: custom or readable auto-generated
+    const firstName = name.trim().split(" ")[0].replace(/[^a-zA-Z0-9]/g, "").toLowerCase() || "student";
+    const rawPassword = (password && typeof password === "string" && password.trim().length >= 6)
+      ? password.trim()
+      : `${firstName}@123`;
+
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(rawPassword, salt);
 
     for (let attempt = 0; attempt < 5; attempt++) {
       const { data: lastStudent } = await supabaseAdmin
@@ -97,18 +106,13 @@ export async function POST(request: Request) {
 
       studentId = `${idPrefix}${nextNumber.toString().padStart(3, "0")}`;
 
-      // Store unguessable placeholder hash — student cannot login until admin generates credentials
-      const randomToken = randomBytes(32).toString("hex");
-      const salt = await bcrypt.genSalt(12);
-      const placeholderHash = await bcrypt.hash(randomToken, salt);
-
       const studentRecord: any = {
         student_id: studentId,
         name: name.trim(),
         email: email ? String(email).trim() : null,
         phone: phone ? String(phone).trim() : null,
         course: courseData ? courseData.title : (course || null),
-        password_hash: placeholderHash, // (T3.2)
+        password_hash: passwordHash,
         status: "active",
       };
 
@@ -120,7 +124,7 @@ export async function POST(request: Request) {
       // If password_hash column not found, fallback to password
       if (insertRes.error && insertRes.error.message?.includes("password_hash")) {
         delete studentRecord.password_hash;
-        studentRecord.password = placeholderHash;
+        studentRecord.password = passwordHash;
         insertRes = await supabaseAdmin
           .from("students")
           .insert([studentRecord])
@@ -160,12 +164,34 @@ export async function POST(request: Request) {
             progress_percentage: 0,
           },
         ]);
+
+      // Auto-create initial fee record so student portal shows accurate fee structure immediately
+      const totalFee = Number(courseData.fee) || 10000;
+      const discountFee = courseData.discount_fee ? Number(courseData.discount_fee) : totalFee;
+      const discount = Math.max(0, totalFee - discountFee);
+
+      await supabaseAdmin
+        .from("fees")
+        .insert([
+          {
+            student_id: insertedStudent.id,
+            course_id: courseData.id,
+            total_fee: totalFee,
+            discount: discount,
+            final_fee: discountFee,
+            status: "pending",
+          },
+        ]);
     }
 
     return NextResponse.json({
       success: true,
       message: "Student registered successfully.",
       student: insertedStudent,
+      credentials: {
+        student_id: insertedStudent.student_id,
+        password: rawPassword,
+      },
     });
   } catch (error) {
     console.error("Student Registration API Error:", error);

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
+import { notifyMaterialPublished, saveMaterial, deleteMaterial, togglePublishMaterial } from "@/app/actions/lms/courses";
 import { 
   FileText, 
   Video, 
@@ -112,23 +113,17 @@ export default function MaterialsClient({ courses, initialMaterials, availableBa
 
     try {
       const { lesson_id, batch, course_id, ...rest } = formData;
-      const payload = {
-        ...rest,
+      const res = await saveMaterial({
+        id: editingId || undefined,
         course_id: course_id || null,
-        batches: batch ? [batch] : null
-      };
-      
-      if (editingId) {
-        const { error } = await supabase
-          .from("materials")
-          .update(payload)
-          .eq("id", editingId);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("materials")
-          .insert([payload]);
-        if (error) throw error;
+        batch: batch || null,
+        batches: batch ? [batch] : null,
+        lesson_id: lesson_id || null,
+        ...rest,
+      });
+
+      if (!res.success) {
+        throw new Error(res.error || "Failed to save material");
       }
 
       closeForm();
@@ -143,16 +138,12 @@ export default function MaterialsClient({ courses, initialMaterials, availableBa
 
   const handleTogglePublish = async (id: string, currentStatus: boolean) => {
     try {
-      const { error } = await supabase
-        .from("materials")
-        .update({ is_published: !currentStatus })
-        .eq("id", id);
-      
-      if (error) throw error;
+      const res = await togglePublishMaterial(id, currentStatus);
+      if (!res.success) throw new Error(res.error || "Failed to update status");
       router.refresh();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error toggling publish status:", err);
-      alert("Failed to update status");
+      alert(`Failed to update status: ${err.message || "Unknown error"}`);
     }
   };
 
@@ -160,12 +151,12 @@ export default function MaterialsClient({ courses, initialMaterials, availableBa
     if (!confirm("Are you sure you want to delete this material?")) return;
 
     try {
-      const { error } = await supabase.from("materials").delete().eq("id", id);
-      if (error) throw error;
+      const res = await deleteMaterial(id);
+      if (!res.success) throw new Error(res.error || "Failed to delete material");
       router.refresh();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error deleting material:", err);
-      alert("Failed to delete material");
+      alert(`Failed to delete material: ${err.message || "Unknown error"}`);
     }
   };
 
@@ -178,6 +169,7 @@ export default function MaterialsClient({ courses, initialMaterials, availableBa
       const { course_id, batch } = assignFormData;
       const payload = {
         course_id: course_id || null,
+        batch: batch || null,
         batches: batch ? [batch] : null
       };
 

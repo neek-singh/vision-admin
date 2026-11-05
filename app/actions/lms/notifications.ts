@@ -15,21 +15,31 @@ export async function sendNotification(data: {
     const { supabase } = await requireAdmin();
 
     // 1. Find target students
-    let query = supabase.from("students").select("id");
-    
-    if (data.target_type === "batch") {
-      query = query.eq("batch", data.target_value);
-    } else if (data.target_type === "course") {
-      query = query.eq("course", data.target_value);
-    } else if (data.target_type === "student" || data.target_type === "individual") {
-      query = query.eq("id", data.target_value);
+    const targetStudentIds = new Set<string>();
+
+    if (data.target_type === "batch" && data.target_value) {
+      const [fromStudents, fromEnrollments] = await Promise.all([
+        supabase.from("students").select("id").eq("batch", data.target_value),
+        supabase.from("enrollments").select("student_id").eq("batch", data.target_value)
+      ]);
+      fromStudents.data?.forEach((s: { id: string }) => targetStudentIds.add(s.id));
+      fromEnrollments.data?.forEach((e: { student_id: string }) => targetStudentIds.add(e.student_id));
+    } else if (data.target_type === "course" && data.target_value) {
+      const [fromStudents, fromEnrollments] = await Promise.all([
+        supabase.from("students").select("id").eq("course", data.target_value),
+        supabase.from("enrollments").select("student_id").eq("course_id", data.target_value)
+      ]);
+      fromStudents.data?.forEach((s: { id: string }) => targetStudentIds.add(s.id));
+      fromEnrollments.data?.forEach((e: { student_id: string }) => targetStudentIds.add(e.student_id));
+    } else if ((data.target_type === "student" || data.target_type === "individual") && data.target_value) {
+      targetStudentIds.add(data.target_value);
+    } else {
+      // Default: All active students
+      const { data: allStudents } = await supabase.from("students").select("id").eq("status", "active");
+      allStudents?.forEach((s: { id: string }) => targetStudentIds.add(s.id));
     }
 
-    const { data: students, error: studentError } = await query;
-
-    if (studentError || !students) {
-      return { error: "Failed to find target students" };
-    }
+    const students = Array.from(targetStudentIds).map(id => ({ id }));
 
     // 2. Create History Record
     const { error: historyError } = await supabase

@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/require-admin";
+import { supabaseAdmin } from "@/lib/supabase-admin";
+import { notifyStudents } from "@/lib/notify";
 
 export async function saveCourse(formData: any) {
   try {
@@ -192,5 +194,173 @@ export async function setAllCoursesVisibility(is_published: boolean) {
   } catch (e: any) {
     console.error("Failed to set all courses visibility:", e);
     return { error: e.message || "Unauthorized" };
+  }
+}
+
+/**
+ * Notifies students when a study material is published.
+ */
+export async function notifyMaterialPublished(materialId: string) {
+  await requireAdmin();
+
+  try {
+    const { data: mat, error } = await supabaseAdmin
+      .from("materials")
+      .select("id, title, course_id, batch, batches")
+      .eq("id", materialId)
+      .single();
+
+    if (error || !mat) {
+      return { success: false, error: "Material not found" };
+    }
+
+    const studentIds = new Set<string>();
+
+    if (mat.course_id) {
+      const { data: enrolledStudents } = await supabaseAdmin
+        .from("enrollments")
+        .select("student_id")
+        .eq("course_id", mat.course_id);
+
+      enrolledStudents?.forEach((e: { student_id: string }) => {
+        if (e.student_id) studentIds.add(e.student_id);
+      });
+    }
+
+    const batchList = Array.isArray(mat.batches) && mat.batches.length > 0 
+      ? mat.batches 
+      : mat.batch ? [mat.batch] : [];
+
+    if (batchList.length > 0) {
+      const { data: batchStudents } = await supabaseAdmin
+        .from("students")
+        .select("id")
+        .in("batch", batchList);
+
+      batchStudents?.forEach((s: { id: string }) => {
+        if (s.id) studentIds.add(s.id);
+      });
+    }
+
+    const recipientList = Array.from(studentIds);
+    if (recipientList.length === 0) {
+      return { success: true, count: 0 };
+    }
+
+    const title = `Naya Study Material: ${mat.title || "Notes"}`.slice(0, 50);
+    const body = `${mat.title} upload ho chuka hai. Materials section se check karein.`.slice(0, 120);
+
+    await notifyStudents(recipientList, {
+      title,
+      body,
+      url: "/materials",
+      type: "material",
+    });
+
+    return { success: true, count: recipientList.length };
+  } catch (err: unknown) {
+    console.error("[notifyMaterialPublished] Error:", err);
+    return { success: false, error: err instanceof Error ? err.message : "Error" };
+  }
+}
+
+/**
+ * Creates or updates study material using privileged supabaseAdmin (bypasses RLS 42501).
+ */
+export async function saveMaterial(data: {
+  id?: string;
+  course_id?: string | null;
+  title: string;
+  type: string;
+  content_url?: string;
+  file_size?: string;
+  duration?: string;
+  code_content?: string;
+  batch?: string | null;
+  batches?: string[] | null;
+  lesson_id?: string | null;
+  is_published?: boolean;
+}) {
+  await requireAdmin();
+
+  try {
+    const { id, batch, ...rest } = data;
+    const payload: any = {
+      ...rest,
+      batch: batch || null,
+      batches: data.batches || (batch ? [batch] : null),
+    };
+
+    let materialId = id;
+
+    if (id) {
+      const { error } = await supabaseAdmin
+        .from("materials")
+        .update(payload)
+        .eq("id", id);
+      if (error) throw error;
+    } else {
+      const { data: inserted, error } = await supabaseAdmin
+        .from("materials")
+        .insert([payload])
+        .select("id")
+        .single();
+      if (error) throw error;
+      materialId = inserted?.id;
+    }
+
+    if (materialId && payload.is_published) {
+      notifyMaterialPublished(materialId).catch((err) => {
+        console.error("Failed to notify students on material publish:", err);
+      });
+    }
+
+    return { success: true, materialId };
+  } catch (err: any) {
+    console.error("[saveMaterial] Error:", err);
+    return { success: false, error: err.message || "Failed to save material" };
+  }
+}
+
+/**
+ * Deletes a study material using privileged supabaseAdmin.
+ */
+export async function deleteMaterial(id: string) {
+  await requireAdmin();
+
+  try {
+    const { error } = await supabaseAdmin.from("materials").delete().eq("id", id);
+    if (error) throw error;
+    return { success: true };
+  } catch (err: any) {
+    console.error("[deleteMaterial] Error:", err);
+    return { success: false, error: err.message || "Failed to delete material" };
+  }
+}
+
+/**
+ * Toggles a material's published status using privileged supabaseAdmin.
+ */
+export async function togglePublishMaterial(id: string, currentStatus: boolean) {
+  await requireAdmin();
+
+  try {
+    const nextStatus = !currentStatus;
+    const { error } = await supabaseAdmin
+      .from("materials")
+      .update({ is_published: nextStatus })
+      .eq("id", id);
+    if (error) throw error;
+
+    if (nextStatus) {
+      notifyMaterialPublished(id).catch((err) => {
+        console.error("Failed to notify students on material toggle publish:", err);
+      });
+    }
+
+    return { success: true, nextStatus };
+  } catch (err: any) {
+    console.error("[togglePublishMaterial] Error:", err);
+    return { success: false, error: err.message || "Failed to toggle status" };
   }
 }

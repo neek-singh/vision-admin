@@ -104,3 +104,120 @@ export async function notifyAssignmentPublished(assignmentId: string) {
     return { success: false, error: err instanceof Error ? err.message : "Error" };
   }
 }
+
+/**
+ * Creates or updates an assignment and course associations using privileged supabaseAdmin (bypasses RLS 42501).
+ */
+export async function saveAssignment(data: {
+  id?: string;
+  title: string;
+  description?: string;
+  due_date?: string;
+  total_marks?: number;
+  batches?: string[] | null;
+  batch?: string | null;
+  lesson_id?: string | null;
+  course_ids?: string[];
+  is_published?: boolean;
+}) {
+  await requireAdmin();
+
+  try {
+    const { id, batch, course_ids, ...rest } = data;
+    const payload: any = {
+      ...rest,
+      batches: data.batches || (batch ? [batch] : null),
+    };
+
+    let assignmentId = id;
+
+    if (id) {
+      const { error } = await supabaseAdmin
+        .from("assignments")
+        .update(payload)
+        .eq("id", id);
+      if (error) throw error;
+
+      // Delete existing associations
+      const { error: delRelError } = await supabaseAdmin
+        .from("assignment_courses")
+        .delete()
+        .eq("assignment_id", id);
+      if (delRelError) throw delRelError;
+    } else {
+      const { data: inserted, error } = await supabaseAdmin
+        .from("assignments")
+        .insert([payload])
+        .select("id")
+        .single();
+      if (error) throw error;
+      assignmentId = inserted?.id;
+    }
+
+    // Insert course associations
+    if (assignmentId && Array.isArray(course_ids) && course_ids.length > 0) {
+      const relations = course_ids.map((cId) => ({
+        assignment_id: assignmentId,
+        course_id: cId,
+      }));
+      const { error: relError } = await supabaseAdmin
+        .from("assignment_courses")
+        .insert(relations);
+      if (relError) throw relError;
+    }
+
+    if (assignmentId && payload.is_published) {
+      notifyAssignmentPublished(assignmentId).catch((err) => {
+        console.error("Failed to notify students on assignment publish:", err);
+      });
+    }
+
+    return { success: true, assignmentId };
+  } catch (err: any) {
+    console.error("[saveAssignment] Error:", err);
+    return { success: false, error: err.message || "Failed to save assignment" };
+  }
+}
+
+/**
+ * Deletes an assignment using privileged supabaseAdmin.
+ */
+export async function deleteAssignment(id: string) {
+  await requireAdmin();
+
+  try {
+    const { error } = await supabaseAdmin.from("assignments").delete().eq("id", id);
+    if (error) throw error;
+    return { success: true };
+  } catch (err: any) {
+    console.error("[deleteAssignment] Error:", err);
+    return { success: false, error: err.message || "Failed to delete assignment" };
+  }
+}
+
+/**
+ * Toggles an assignment's published status using privileged supabaseAdmin.
+ */
+export async function togglePublishAssignment(id: string, currentStatus: boolean) {
+  await requireAdmin();
+
+  try {
+    const nextStatus = !currentStatus;
+    const { error } = await supabaseAdmin
+      .from("assignments")
+      .update({ is_published: nextStatus })
+      .eq("id", id);
+    if (error) throw error;
+
+    if (nextStatus) {
+      notifyAssignmentPublished(id).catch((err) => {
+        console.error("Failed to notify students on assignment toggle publish:", err);
+      });
+    }
+
+    return { success: true, nextStatus };
+  } catch (err: any) {
+    console.error("[togglePublishAssignment] Error:", err);
+    return { success: false, error: err.message || "Failed to toggle status" };
+  }
+}
