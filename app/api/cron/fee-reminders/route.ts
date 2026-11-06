@@ -109,15 +109,9 @@ export async function GET(request: Request) {
         continue;
       }
 
-      // 3. Compose concise Hinglish message (no fee amount mentioned)
-      const dueDate = inst.due_date;
-      let body = `Aapki fee installment ${dueDate} tak due hai. Kripya samay par jama karein.`;
-
-      if (dueDate === todayStr) {
-        body = `Aapki fee installment aaj due hai. Kripya jald se jald jama karein.`;
-      } else if (dueDate < todayStr) {
-        body = `Aapki fee installment overdue ho gayi hai. Kripya turant jama karein.`;
-      }
+      // 3. Compose concise Hindi message (no fee amount mentioned)
+      const courseTitle = feeData?.courses?.title || "Course";
+      let body = `Course: ${courseTitle} की फीस जमा करें। अगर फीस जमा हो गई है तो इस मैसेज को इग्नोर करें।`;
 
       // 4. Send notification to student (push + db notification record)
       try {

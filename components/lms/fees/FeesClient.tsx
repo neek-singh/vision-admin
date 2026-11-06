@@ -1061,7 +1061,7 @@ export default function FeesClient({
       ? selectedUnpaidMonths.join(", ") 
       : "Current Month";
 
-    return `Dear ${studentName},\n\nयह Vision IT Computer Institute की तरफ से आपकी मासिक फीस (Monthly Fees) का रिमाइंडर नोटिस है।\n\n📚 Course: ${courseTitle}\n🗓️ बकाया माह (Pending Months): ${monthsText}\n\nकृपया अपनी मासिक फीस समय पर इंस्टीट्यूट ऑफिस में जमा करें या ऑनलाइन UPI से भुगतान करें।\n\nकिसी भी जानकारी या सहायता के लिए संपर्क करें:\n📞 +91 81031 70595\n\nThank You! 🙏\nVision IT Computer Institute`;
+    return `Dear ${studentName},\n\nयह Vision IT Computer Institute की तरफ से आपकी मासिक फीस (Monthly Fees) का रिमाइंडर नोटिस है। Course: ${courseTitle}, माह ${monthsText} की फीस जमा करें। अगर फीस जमा हो गई है तो इस मैसेज को इग्नोर करें।\n\nकिसी भी जानकारी या सहायता के लिए संपर्क करें:\n📞 +91 81031 70595`;
   }, [showReminderModal, selectedUnpaidMonths]);
 
   // Send via WhatsApp from modal
