@@ -192,7 +192,6 @@ export default function FeesClient({
   
   // Monthly Fee Reminder Modal State
   const [showReminderModal, setShowReminderModal] = useState<any | null>(null);
-  const [reminderMonthlyRate, setReminderMonthlyRate] = useState<number>(1000);
   const [selectedUnpaidMonths, setSelectedUnpaidMonths] = useState<string[]>([]);
   const [reminderCandidateMonths, setReminderCandidateMonths] = useState<string[]>([]);
   const [reminderCustomPhone, setReminderCustomPhone] = useState<string>("");
@@ -1044,14 +1043,13 @@ export default function FeesClient({
     const { unpaidMonths, allDueMonths } = getStudentMonthStatus(fee);
     setSelectedUnpaidMonths(unpaidMonths);
     setReminderCandidateMonths(allDueMonths.length > 0 ? allDueMonths : (unpaidMonths.length > 0 ? unpaidMonths : [getLatestDueMonth().formatted]));
-    setReminderMonthlyRate(1000); // Default ₹1,000 per month
     setReminderCustomPhone((fee.students as any)?.phone || "");
     setCustomReminderMessage(null);
     setCopiedSMS(false);
     setShowReminderModal({ fee, balance });
   };
 
-  // Generated Reminder Message string (Devnagari Hindi)
+  // Generated Reminder Message string (Devnagari Hindi - No fee amount mentioned)
   const generatedReminderMessage = useMemo(() => {
     if (!showReminderModal) return "";
     const student = showReminderModal.fee.students as any;
@@ -1063,12 +1061,8 @@ export default function FeesClient({
       ? selectedUnpaidMonths.join(", ") 
       : "Current Month";
 
-    const totalCalculatedDue = selectedUnpaidMonths.length > 0 
-      ? selectedUnpaidMonths.length * reminderMonthlyRate 
-      : reminderMonthlyRate;
-
-    return `Dear ${studentName},\n\nयह Vision IT Computer Institute की तरफ से आपकी मासिक फीस (Monthly Fees) का रिमाइंडर नोटिस है।\n\n📚 Course: ${courseTitle}\n🗓️ बकाया माह (Pending Months): ${monthsText}\n💰 मासिक फीस (Monthly Due): ₹${reminderMonthlyRate.toLocaleString('en-IN')} (कुल fee: ₹${totalCalculatedDue.toLocaleString('en-IN')})\n\nकृपया अपनी मासिक फीस समय पर इंस्टीट्यूट ऑफिस में जमा करें या ऑनलाइन UPI से भुगतान करें।\n\nकिसी भी जानकारी या सहायता के लिए संपर्क करें:\n📞 +91 81031 70595\n\nThank You! 🙏\nVision IT Computer Institute`;
-  }, [showReminderModal, selectedUnpaidMonths, reminderMonthlyRate]);
+    return `Dear ${studentName},\n\nयह Vision IT Computer Institute की तरफ से आपकी मासिक फीस (Monthly Fees) का रिमाइंडर नोटिस है।\n\n📚 Course: ${courseTitle}\n🗓️ बकाया माह (Pending Months): ${monthsText}\n\nकृपया अपनी मासिक फीस समय पर इंस्टीट्यूट ऑफिस में जमा करें या ऑनलाइन UPI से भुगतान करें।\n\nकिसी भी जानकारी या सहायता के लिए संपर्क करें:\n📞 +91 81031 70595\n\nThank You! 🙏\nVision IT Computer Institute`;
+  }, [showReminderModal, selectedUnpaidMonths]);
 
   // Send via WhatsApp from modal
   const handleSendWhatsAppFromModal = () => {
@@ -2808,70 +2802,37 @@ export default function FeesClient({
                 </div>
               </div>
 
-              {/* Monthly Rate & Unpaid Months Config */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                      Monthly Fee Rate (₹):
-                    </label>
-                    <input 
-                      type="number"
-                      value={reminderMonthlyRate || ""}
-                      onChange={(e) => setReminderMonthlyRate(Number(e.target.value))}
-                      className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-emerald-500 font-bold text-xs text-slate-900 dark:text-white"
-                    />
-                  </div>
-                  <div className="flex items-center gap-1.5 pt-4">
-                    {[500, 1000, 1500, 2000].map(amt => (
-                      <button
-                        key={amt}
-                        type="button"
-                        onClick={() => setReminderMonthlyRate(amt)}
-                        className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-all cursor-pointer ${
-                          reminderMonthlyRate === amt 
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800' 
-                            : 'bg-slate-50 text-slate-500 border-slate-200 dark:bg-slate-800 dark:border-slate-700'
-                        }`}
-                      >
-                        ₹{amt}
-                      </button>
-                    ))}
-                  </div>
+              {/* Detected Unpaid Months Selection */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-center mb-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                    Pending Month(s) to Mention:
+                  </label>
+                  <span className="text-[10px] text-emerald-600 font-semibold">
+                    {selectedUnpaidMonths.length} month(s) selected
+                  </span>
                 </div>
-
-                {/* Detected Unpaid Months Selection */}
-                <div>
-                  <div className="flex justify-between items-center mb-1.5">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
-                      Pending Month(s) to Mention:
-                    </label>
-                    <span className="text-[10px] text-emerald-600 font-semibold">
-                      {selectedUnpaidMonths.length} month(s) × ₹{reminderMonthlyRate} = ₹{(selectedUnpaidMonths.length * reminderMonthlyRate).toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {reminderCandidateMonths.map((m) => (
-                      <button 
-                        key={m}
-                        type="button"
-                        onClick={() => {
-                          if (selectedUnpaidMonths.includes(m)) {
-                            setSelectedUnpaidMonths(selectedUnpaidMonths.filter(x => x !== m));
-                          } else {
-                            setSelectedUnpaidMonths([...selectedUnpaidMonths, m]);
-                          }
-                        }}
-                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all cursor-pointer ${
-                          selectedUnpaidMonths.includes(m)
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800/50'
-                            : 'bg-slate-50 text-slate-400 border-slate-200 line-through dark:bg-slate-800 dark:border-slate-700'
-                        }`}
-                      >
-                        {selectedUnpaidMonths.includes(m) ? "✓" : "✗"} {m}
-                      </button>
-                    ))}
-                  </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {reminderCandidateMonths.map((m) => (
+                    <button 
+                      key={m}
+                      type="button"
+                      onClick={() => {
+                        if (selectedUnpaidMonths.includes(m)) {
+                          setSelectedUnpaidMonths(selectedUnpaidMonths.filter(x => x !== m));
+                        } else {
+                          setSelectedUnpaidMonths([...selectedUnpaidMonths, m]);
+                        }
+                      }}
+                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all cursor-pointer ${
+                        selectedUnpaidMonths.includes(m)
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800/50'
+                          : 'bg-slate-50 text-slate-400 border-slate-200 line-through dark:bg-slate-800 dark:border-slate-700'
+                      }`}
+                    >
+                      {selectedUnpaidMonths.includes(m) ? "✓" : "✗"} {m}
+                    </button>
+                  ))}
                 </div>
               </div>
 

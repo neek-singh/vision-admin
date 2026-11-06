@@ -109,15 +109,14 @@ export async function GET(request: Request) {
         continue;
       }
 
-      // 3. Compose concise Hinglish message
-      const amount = inst.amount;
+      // 3. Compose concise Hinglish message (no fee amount mentioned)
       const dueDate = inst.due_date;
-      let body = `Aapki ₹${amount} ki fee installment ${dueDate} tak due hai. Kripya samay par jama karein.`;
+      let body = `Aapki fee installment ${dueDate} tak due hai. Kripya samay par jama karein.`;
 
       if (dueDate === todayStr) {
-        body = `Aapki ₹${amount} ki fee installment aaj due hai. Kripya jald se jald jama karein.`;
+        body = `Aapki fee installment aaj due hai. Kripya jald se jald jama karein.`;
       } else if (dueDate < todayStr) {
-        body = `Aapki ₹${amount} ki fee installment overdue ho gayi hai. Kripya turant jama karein.`;
+        body = `Aapki fee installment overdue ho gayi hai. Kripya turant jama karein.`;
       }
 
       // 4. Send notification to student (push + db notification record)
