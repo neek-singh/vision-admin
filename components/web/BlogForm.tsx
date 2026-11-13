@@ -118,38 +118,38 @@ export default function BlogForm({ initialData }: { initialData?: BlogData }) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="bg-white p-8 rounded-3xl shadow border max-w-4xl mx-auto space-y-6"
+      className="bg-white dark:bg-slate-900 p-4 sm:p-6 md:p-8 rounded-xl sm:rounded-2xl shadow-xs border border-slate-200/80 dark:border-slate-800/80 max-w-4xl mx-auto space-y-6"
     >
       {error && (
-        <div className="p-4 bg-red-50 text-red-700 rounded-xl">
+        <div className="p-3.5 bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400 text-xs font-medium rounded-xl border border-rose-200/60 dark:border-rose-900/40">
           {error}
         </div>
       )}
 
       {/* Title */}
       <div>
-        <label className="block text-xs font-black text-slate-900 uppercase tracking-widest mb-2">Blog Title</label>
+        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">Blog Title</label>
         <input
           name="title"
           value={formData.title}
           onChange={handleChange}
           placeholder="Enter blog title"
-          className="w-full p-4 border border-slate-200 rounded-xl font-black text-black text-lg placeholder:text-slate-400"
+          className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400 outline-none focus:border-blue-500 dark:focus:border-blue-500 transition-colors"
         />
       </div>
 
       {/* Slug */}
       <div>
-        <label className="block text-xs font-black text-slate-900 uppercase tracking-widest mb-2">URL Slug</label>
+        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">URL Slug</label>
         <div className="flex gap-2">
           <input
             name="slug"
             value={formData.slug}
             onChange={handleChange}
             placeholder="url-slug-here"
-            className="w-full p-3 border border-slate-200 rounded-xl font-black text-black placeholder:text-slate-400"
+            className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-mono text-xs font-normal text-slate-800 dark:text-slate-200 placeholder:text-slate-400 outline-none focus:border-blue-500 dark:focus:border-blue-500 transition-colors"
           />
-          <Button type="button" onClick={generateSlug} className="font-bold">
+          <Button type="button" onClick={generateSlug} variant="outline" size="sm" className="shrink-0">
             Generate
           </Button>
         </div>
@@ -157,17 +157,17 @@ export default function BlogForm({ initialData }: { initialData?: BlogData }) {
 
       {/* Featured Image */}
       <div>
-        <label className="block text-xs font-black text-slate-900 uppercase tracking-widest mb-2">Featured Image URL</label>
+        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">Featured Image URL</label>
         <div className="space-y-3">
           <input
             name="image_url"
             value={formData.image_url || ""}
             onChange={handleChange}
             placeholder="https://..."
-            className="w-full p-3 border border-slate-200 rounded-xl font-mono text-black text-sm"
+            className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-mono text-xs font-normal text-slate-800 dark:text-slate-200 placeholder:text-slate-400 outline-none focus:border-blue-500 dark:focus:border-blue-500 transition-colors"
           />
           {formData.image_url && (
-            <div className="relative w-40 h-24 rounded-xl overflow-hidden border border-slate-100 shadow-sm bg-slate-50">
+            <div className="relative w-40 h-24 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-xs bg-slate-100 dark:bg-slate-950">
               <img
                 src={formData.image_url}
                 alt="Thumbnail Preview"
@@ -181,7 +181,7 @@ export default function BlogForm({ initialData }: { initialData?: BlogData }) {
 
       {/* Content */}
       <div>
-        <label className="block text-xs font-black text-slate-900 uppercase tracking-widest mb-2">
+        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
           Blog Content (Supports HTML Code)
         </label>
         <textarea
@@ -190,23 +190,30 @@ export default function BlogForm({ initialData }: { initialData?: BlogData }) {
           onChange={handleChange}
           rows={15}
           placeholder="<h1>Blog Title</h1> <p>Start writing your HTML here...</p>"
-          className="w-full p-4 border border-slate-200 rounded-xl font-mono text-sm font-black text-black placeholder:text-slate-400"
+          className="w-full p-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-mono text-xs font-normal text-slate-800 dark:text-slate-200 placeholder:text-slate-400 outline-none focus:border-blue-500 dark:focus:border-blue-500 transition-colors leading-relaxed"
         />
       </div>
 
-      {/* Publish */}
-      <label className="flex gap-2 text-black">
-        <input
-          type="checkbox"
-          checked={formData.is_published}
-          onChange={handleCheckboxChange}
-          name="is_published"
-        />
-        Publish
+      {/* Publish Toggle */}
+      <label htmlFor="is_published" className="inline-flex items-center gap-3 cursor-pointer select-none">
+        <div className="relative">
+          <input
+            id="is_published"
+            type="checkbox"
+            checked={formData.is_published}
+            onChange={handleCheckboxChange}
+            name="is_published"
+            className="sr-only peer"
+          />
+          <div className="w-9 h-5 bg-slate-200 dark:bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 dark:after:border-slate-600 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+        </div>
+        <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+          Publish post (visible to public)
+        </span>
       </label>
 
       {/* Actions */}
-      <div className="flex gap-4">
+      <div className="flex gap-3 pt-2">
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? "Saving..." : "Save"}
         </Button>

@@ -69,14 +69,14 @@ export default async function EditBlogPage(
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-12 bg-gray-50 min-h-screen">
+    <div className="p-4 sm:p-6 max-w-5xl mx-auto space-y-6">
 
       {/* Header */}
-      <div className="max-w-4xl mx-auto mb-8">
-        <h1 className="text-3xl font-black text-blue-950">
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
           Edit Blog Post
         </h1>
-        <p className="text-gray-500 mt-2">
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
           Update your blog content and publish changes.
         </p>
       </div>

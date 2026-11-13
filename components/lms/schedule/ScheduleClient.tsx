@@ -2,19 +2,19 @@
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { 
-  Calendar, 
-  Plus, 
-  Clock, 
-  BookOpen, 
-  FileText, 
-  X, 
-  Trash2, 
-  ChevronRight, 
-  ChevronLeft, 
-  LayoutGrid, 
-  List, 
-  Users, 
+import {
+  Calendar,
+  Plus,
+  Clock,
+  BookOpen,
+  FileText,
+  X,
+  Trash2,
+  ChevronRight,
+  ChevronLeft,
+  LayoutGrid,
+  List,
+  Users,
   CheckCircle2,
   CalendarDays,
   Search,
@@ -34,61 +34,61 @@ import {
 import { createSchedule, deleteSchedule, getCurriculumTopics, updateScheduleDate, duplicateSchedule } from "@/app/actions/lms/schedule";
 
 const TYPE_CFG: Record<string, { bg: string, text: string, border: string, icon: any, label: string, accent: string }> = {
-  class: { 
-    bg: "bg-blue-50/60 dark:bg-blue-950/20", 
-    text: "text-blue-700 dark:text-blue-400", 
-    border: "border-blue-100/50 dark:border-blue-900/30", 
+  class: {
+    bg: "bg-blue-50/60 dark:bg-blue-950/20",
+    text: "text-blue-700 dark:text-blue-400",
+    border: "border-blue-100/50 dark:border-blue-900/30",
     accent: "bg-blue-600 dark:bg-blue-500",
-    icon: <BookOpen size={14} className="shrink-0" />, 
-    label: "Class" 
+    icon: <BookOpen size={14} className="shrink-0" />,
+    label: "Class"
   },
-  test: { 
-    bg: "bg-rose-50/60 dark:bg-rose-950/20", 
-    text: "text-rose-700 dark:text-rose-400", 
-    border: "border-rose-100/50 dark:border-rose-900/30", 
+  test: {
+    bg: "bg-rose-50/60 dark:bg-rose-950/20",
+    text: "text-rose-700 dark:text-rose-400",
+    border: "border-rose-100/50 dark:border-rose-900/30",
     accent: "bg-rose-600 dark:bg-rose-500",
-    icon: <FileText size={14} className="shrink-0" />, 
-    label: "Test" 
+    icon: <FileText size={14} className="shrink-0" />,
+    label: "Test"
   },
-  assignment: { 
-    bg: "bg-amber-50/60 dark:bg-amber-950/20", 
-    text: "text-amber-700 dark:text-amber-400", 
-    border: "border-amber-100/50 dark:border-amber-900/30", 
+  assignment: {
+    bg: "bg-amber-50/60 dark:bg-amber-950/20",
+    text: "text-amber-700 dark:text-amber-400",
+    border: "border-amber-100/50 dark:border-amber-900/30",
     accent: "bg-amber-600 dark:bg-amber-500",
-    icon: <PenTool size={14} className="shrink-0" />, 
-    label: "Assignment" 
+    icon: <PenTool size={14} className="shrink-0" />,
+    label: "Assignment"
   },
-  project: { 
-    bg: "bg-purple-50/60 dark:bg-purple-950/20", 
-    text: "text-purple-700 dark:text-purple-400", 
-    border: "border-purple-100/50 dark:border-purple-900/30", 
+  project: {
+    bg: "bg-purple-50/60 dark:bg-purple-950/20",
+    text: "text-purple-700 dark:text-purple-400",
+    border: "border-purple-100/50 dark:border-purple-900/30",
     accent: "bg-purple-600 dark:bg-purple-500",
-    icon: <FolderPlus size={14} className="shrink-0" />, 
-    label: "Project" 
+    icon: <FolderPlus size={14} className="shrink-0" />,
+    label: "Project"
   },
-  quiz: { 
-    bg: "bg-emerald-50/60 dark:bg-emerald-950/20", 
-    text: "text-emerald-700 dark:text-emerald-400", 
-    border: "border-emerald-100/50 dark:border-emerald-900/30", 
+  quiz: {
+    bg: "bg-emerald-50/60 dark:bg-emerald-950/20",
+    text: "text-emerald-700 dark:text-emerald-400",
+    border: "border-emerald-100/50 dark:border-emerald-900/30",
     accent: "bg-emerald-600 dark:bg-emerald-500",
-    icon: <HelpCircle size={14} className="shrink-0" />, 
-    label: "Quiz" 
+    icon: <HelpCircle size={14} className="shrink-0" />,
+    label: "Quiz"
   },
-  holiday: { 
-    bg: "bg-rose-50/60 dark:bg-rose-950/20", 
-    text: "text-rose-700 dark:text-rose-400", 
-    border: "border-rose-100/50 dark:border-rose-900/30", 
+  holiday: {
+    bg: "bg-rose-50/60 dark:bg-rose-950/20",
+    text: "text-rose-700 dark:text-rose-400",
+    border: "border-rose-100/50 dark:border-rose-900/30",
     accent: "bg-rose-600 dark:bg-rose-500",
-    icon: <Flag size={14} className="shrink-0" />, 
-    label: "Holiday" 
+    icon: <Flag size={14} className="shrink-0" />,
+    label: "Holiday"
   },
-  event: { 
-    bg: "bg-purple-50/60 dark:bg-purple-950/20", 
-    text: "text-purple-700 dark:text-purple-400", 
-    border: "border-purple-100/50 dark:border-purple-900/30", 
+  event: {
+    bg: "bg-purple-50/60 dark:bg-purple-950/20",
+    text: "text-purple-700 dark:text-purple-400",
+    border: "border-purple-100/50 dark:border-purple-900/30",
     accent: "bg-purple-600 dark:bg-purple-500",
-    icon: <Sparkles size={14} className="shrink-0" />, 
-    label: "Event" 
+    icon: <Sparkles size={14} className="shrink-0" />,
+    label: "Event"
   },
 };
 
@@ -96,16 +96,16 @@ function cfg(t: string) { return TYPE_CFG[t] || TYPE_CFG.class; }
 
 function fmt(d: Date) { return d.toISOString().split('T')[0]; }
 
-export default function ScheduleClient({ 
-  initialSchedules, 
-  courses, 
-  batches, 
-  batchesList = [] 
-}: { 
-  initialSchedules: any[], 
-  courses: any[], 
-  batches: string[], 
-  batchesList?: any[] 
+export default function ScheduleClient({
+  initialSchedules,
+  courses,
+  batches,
+  batchesList = []
+}: {
+  initialSchedules: any[],
+  courses: any[],
+  batches: string[],
+  batchesList?: any[]
 }) {
   const router = useRouter();
   const today = new Date();
@@ -119,7 +119,7 @@ export default function ScheduleClient({
   const [isDraggingActive, setIsDraggingActive] = useState(false);
   const [inspectingDate, setInspectingDate] = useState<string | null>(null);
   const [hoveredDate, setHoveredDate] = useState<string | null>(null);
-  
+
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
   const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -132,7 +132,7 @@ export default function ScheduleClient({
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
   const [mobileTab, setMobileTab] = useState<'calendar' | 'curriculum'>('calendar');
-  
+
   // Placement Mode and Collapsible modules state
   const [placementItem, setPlacementItem] = useState<{ title: string, type: 'class' | 'test' | 'assignment' | 'project' | 'quiz', originalTitle: string } | null>(null);
   const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>({});
@@ -287,7 +287,7 @@ export default function ScheduleClient({
         };
         startTime = to24(start);
         endTime = to24(end);
-      } catch (e) {}
+      } catch (e) { }
     }
     return { startTime, endTime };
   };
@@ -599,7 +599,7 @@ export default function ScheduleClient({
         }
         return !searchQuery || l.title.toLowerCase().includes(searchQuery.toLowerCase());
       });
-      
+
       const filteredChapters = (mod.lms_chapters || []).map((chap: any) => {
         if (selectedBatch !== "All Batches" && selectedBatchId) {
           const isAssigned = chap.batches?.includes(selectedBatchId);
@@ -680,7 +680,7 @@ export default function ScheduleClient({
     const count = filteredSchedules.length;
     if (count === 0) return;
     if (!confirm(`Are you sure you want to remove ALL ${count} scheduled items for the current selection?`)) return;
-    
+
     setLoading(true);
     const toRemoveIds = new Set(filteredSchedules.map(s => s.id));
     setSchedules(prev => prev.filter(s => !toRemoveIds.has(s.id)));
@@ -695,73 +695,73 @@ export default function ScheduleClient({
   return (
     <div className="space-y-4 text-slate-800 dark:text-slate-100">
       <div className="max-w-[1600px] mx-auto space-y-3">
-        
+
         {/* Top bar with selectors */}
         <div className="bg-white dark:bg-slate-900 py-2.5 px-3 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
             <div className="flex items-center gap-2 px-3 py-1.5 min-h-[36px] bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-200 dark:border-slate-700">
-               <BookOpen size={14} className="text-slate-400 dark:text-slate-500 shrink-0" />
-               <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Course</span>
-               <select 
-                value={selectedCourseId} 
+              <BookOpen size={14} className="text-slate-400 dark:text-slate-500 shrink-0" />
+              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Course</span>
+              <select
+                value={selectedCourseId}
                 onChange={(e) => setSelectedCourseId(e.target.value)}
                 className="bg-transparent text-slate-900 dark:text-slate-100 text-xs font-medium outline-none cursor-pointer border-none p-0 focus:ring-0"
-               >
-                 {courses.map(c => <option key={c.id} value={c.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{c.title}</option>)}
-               </select>
+              >
+                {courses.map(c => <option key={c.id} value={c.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{c.title}</option>)}
+              </select>
             </div>
 
             <div className="flex items-center gap-2 px-3 py-1.5 min-h-[36px] bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-200 dark:border-slate-700">
-               <Users size={14} className="text-slate-400 dark:text-slate-500 shrink-0" />
-               <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Batch</span>
-               <select 
-                value={selectedBatch} 
+              <Users size={14} className="text-slate-400 dark:text-slate-500 shrink-0" />
+              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Batch</span>
+              <select
+                value={selectedBatch}
                 onChange={(e) => setSelectedBatch(e.target.value)}
                 className="bg-transparent text-slate-900 dark:text-slate-100 text-xs font-medium outline-none cursor-pointer border-none p-0 focus:ring-0"
-               >
-                 {courseBatches.length > 1 && (
-                   <option value="All Batches" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">All Batches</option>
-                 )}
-                 {courseBatches.map((b: any, i: number) => (
-                   <option key={i} value={b.title} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{b.title}</option>
-                 ))}
-               </select>
+              >
+                {courseBatches.length > 1 && (
+                  <option value="All Batches" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">All Batches</option>
+                )}
+                {courseBatches.map((b: any, i: number) => (
+                  <option key={i} value={b.title} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{b.title}</option>
+                ))}
+              </select>
             </div>
           </div>
 
           <div className="flex items-center gap-2.5 w-full md:w-auto justify-between md:justify-end">
-             <div className="flex bg-slate-100 dark:bg-slate-800/60 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
-                <button onClick={() => setViewMode('calendar')} className={`min-h-[36px] min-w-[36px] flex items-center justify-center p-2 rounded-md transition-all cursor-pointer ${viewMode === 'calendar' ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`} aria-label="Calendar View"><LayoutGrid size={15} /></button>
-                <button onClick={() => setViewMode('list')} className={`min-h-[36px] min-w-[36px] flex items-center justify-center p-2 rounded-md transition-all cursor-pointer ${viewMode === 'list' ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`} aria-label="List View"><List size={15} /></button>
-             </div>
+            <div className="flex bg-slate-100 dark:bg-slate-800/60 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
+              <button onClick={() => setViewMode('calendar')} className={`min-h-[36px] min-w-[36px] flex items-center justify-center p-2 rounded-md transition-all cursor-pointer ${viewMode === 'calendar' ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`} aria-label="Calendar View"><LayoutGrid size={15} /></button>
+              <button onClick={() => setViewMode('list')} className={`min-h-[36px] min-w-[36px] flex items-center justify-center p-2 rounded-md transition-all cursor-pointer ${viewMode === 'list' ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`} aria-label="List View"><List size={15} /></button>
+            </div>
 
-             <div className="hidden sm:flex items-center gap-3 border-l border-slate-200 dark:border-slate-700 pl-3">
-                <span className="text-xs text-slate-500 dark:text-slate-400">Scheduled: <strong className="text-slate-900 dark:text-white font-semibold">{filteredSchedules.length}</strong></span>
-                <button 
-                  onClick={handleClearAll}
-                  disabled={filteredSchedules.length === 0}
-                  className="min-h-[36px] px-2 py-1 flex items-center text-xs font-medium text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 disabled:opacity-30 transition-colors cursor-pointer"
-                >
-                  Clear
-                </button>
-             </div>
+            <div className="hidden sm:flex items-center gap-3 border-l border-slate-200 dark:border-slate-700 pl-3">
+              <span className="text-xs text-slate-500 dark:text-slate-400">Scheduled: <strong className="text-slate-900 dark:text-white font-semibold">{filteredSchedules.length}</strong></span>
+              <button
+                onClick={handleClearAll}
+                disabled={filteredSchedules.length === 0}
+                className="min-h-[36px] px-2 py-1 flex items-center text-xs font-medium text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 disabled:opacity-30 transition-colors cursor-pointer"
+              >
+                Clear
+              </button>
+            </div>
 
-             <Link
-               href="/admin/calendar"
-               className="min-h-[36px] px-3.5 py-1.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-lg font-medium text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
-             >
-               <Calendar size={14} className="shrink-0 text-blue-600 dark:text-blue-400" />
-               <span>Full Calendar</span>
-             </Link>
+            <Link
+              href="/admin/calendar"
+              className="min-h-[36px] px-3.5 py-1.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-lg font-medium text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+            >
+              <Calendar size={14} className="shrink-0 text-blue-600 dark:text-blue-400" />
+              <span>Full Calendar</span>
+            </Link>
 
-             <button onClick={() => {
-                  setFormData({...formData, title: "", description: "", type: "holiday", course_id: selectedCourseId});
-                  setShowAddModal(true);
-                }}
-               className="min-h-[36px] px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 rounded-lg font-medium text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
-             >
-                <Plus size={14} className="shrink-0" /> New Entry
-             </button>
+            <button onClick={() => {
+              setFormData({ ...formData, title: "", description: "", type: "holiday", course_id: selectedCourseId });
+              setShowAddModal(true);
+            }}
+              className="min-h-[36px] px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 rounded-lg font-medium text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+            >
+              <Plus size={14} className="shrink-0" /> New Entry
+            </button>
           </div>
         </div>
 
@@ -788,683 +788,670 @@ export default function ScheduleClient({
         <div className="flex lg:hidden bg-slate-100 dark:bg-slate-800/60 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
           <button
             onClick={() => setMobileTab('calendar')}
-            className={`flex-1 min-h-[38px] py-2 text-center rounded-md text-xs font-medium transition-all cursor-pointer ${
-              mobileTab === 'calendar'
+            className={`flex-1 min-h-[38px] py-2 text-center rounded-md text-xs font-medium transition-all cursor-pointer ${mobileTab === 'calendar'
                 ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
                 : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'
-            }`}
+              }`}
           >
             Calendar
           </button>
           <button
             onClick={() => setMobileTab('curriculum')}
-            className={`flex-1 min-h-[38px] py-2 text-center rounded-md text-xs font-medium transition-all cursor-pointer ${
-              mobileTab === 'curriculum'
+            className={`flex-1 min-h-[38px] py-2 text-center rounded-md text-xs font-medium transition-all cursor-pointer ${mobileTab === 'curriculum'
                 ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
                 : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'
-            }`}
+              }`}
           >
             Curriculum
           </button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-          
+
           {/* Left Column: Entire Collapsible Curriculum Structure */}
           <div className={`lg:col-span-4 xl:col-span-4 space-y-4 lg:sticky lg:top-4 ${mobileTab === 'curriculum' ? 'block' : 'hidden lg:block'}`}>
-             <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-[calc(100vh-240px)] lg:h-[calc(100vh-180px)]">
-                <div className="p-3 border-b border-slate-100 dark:border-slate-800/60 space-y-2">
-                   <div className="flex items-center justify-between">
-                      <h2 className="text-xs font-medium text-slate-800 dark:text-slate-200 uppercase tracking-wider">Course Curriculum</h2>
-                      <Sparkles size={14} className="text-amber-500" />
-                   </div>
-                   
-                   {/* Search */}
-                   <div className="relative">
-                      <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                      <input 
-                        type="text" 
-                        placeholder="Search topics..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-8 pr-3 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-lg text-xs font-normal outline-none focus:border-blue-400 transition-all text-slate-800 dark:text-slate-100"
-                      />
-                   </div>
+            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-[calc(100vh-240px)] lg:h-[calc(100vh-180px)]">
+              <div className="p-3 border-b border-slate-100 dark:border-slate-800/60 space-y-2">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xs font-medium text-slate-800 dark:text-slate-200 uppercase tracking-wider">Course Curriculum</h2>
+                  <Sparkles size={14} className="text-amber-500" />
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-2 space-y-3 custom-scrollbar bg-slate-50/20 dark:bg-slate-950/15">
-                   
-                   {/* Modules & Lessons */}
-                   <div className="space-y-2">
-                      <h3 className="text-[9px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider pl-1">Modules</h3>
-                      
-                      {filteredModules.map((mod) => {
-                        const isExpanded = expandedModules[mod.id] !== false;
-                        return (
-                          <div key={mod.id} className="border border-slate-200/60 dark:border-slate-800/80 rounded-lg overflow-hidden bg-white dark:bg-slate-900 transition-all mb-2">
-                            {/* Module Header */}
-                            <div 
-                              onClick={() => toggleModuleExpand(mod.id)}
-                              className="flex items-center justify-between py-2 px-2.5 bg-slate-50/50 dark:bg-slate-900/40 cursor-pointer select-none border-b border-slate-100 dark:border-slate-800"
-                            >
-                              <h3 className="text-[11px] font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1.5 truncate flex-1 pr-2">
-                                <BookOpen size={12} className="text-blue-500 shrink-0" />
-                                {mod.title}
-                              </h3>
-                              <span className="text-slate-400 dark:text-slate-500 shrink-0">
-                                <ChevronDown size={12} className={`transform transition-transform duration-150 ${isExpanded ? 'rotate-180' : ''}`} />
-                              </span>
-                            </div>
+                {/* Search */}
+                <div className="relative">
+                  <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Search topics..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-8 pr-3 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-lg text-xs font-normal outline-none focus:border-blue-400 transition-all text-slate-800 dark:text-slate-100"
+                  />
+                </div>
+              </div>
 
-                            {/* Lessons and Chapters List */}
-                            {isExpanded && (
-                                <div className="p-1 space-y-1.5">
-                                  {/* Chapters */}
-                                  {(mod.lms_chapters || []).length > 0 && (
-                                    <div className="space-y-1">
-                                      {(mod.lms_chapters || []).map((chap: any) => {
-                                        const isChapExpanded = expandedChapters[chap.id] !== false;
-                                        return (
-                                          <div key={chap.id} className="rounded-md overflow-hidden bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
-                                            {/* Chapter Header */}
-                                            <div 
-                                              onClick={() => toggleChapterExpand(chap.id)}
-                                              className="flex items-center justify-between py-1.5 px-2 bg-slate-50/20 dark:bg-slate-900/10 cursor-pointer select-none border-b border-slate-100 dark:border-slate-800/40"
-                                            >
-                                              <span className="text-[10px] font-medium text-slate-700 dark:text-slate-300 truncate pr-2">Ch: {chap.title}</span>
-                                              <ChevronDown size={10} className={`transform transition-transform text-slate-400 ${isChapExpanded ? 'rotate-180' : ''}`} />
-                                            </div>
+              <div className="flex-1 overflow-y-auto p-2 space-y-3 custom-scrollbar bg-slate-50/20 dark:bg-slate-950/15">
 
-                                            {/* Chapter Lessons */}
-                                            {isChapExpanded && (
-                                              <div className="p-1 space-y-1 divide-y divide-slate-50 dark:divide-slate-800/40">
-                                                {(chap.lessons || []).length > 0 ? (
-                                                  (chap.lessons || []).map((lesson: any) => {
-                                                    const scheduleType = getLessonScheduleType(lesson.lesson_type || lesson.type);
-                                                    const fullTitle = getFullTitle(mod.title, chap.title, lesson.title);
-                                                    const scheduleId = scheduledItemsMap.get(`${scheduleType}:${fullTitle}`);
-                                                    const isScheduled = !!scheduleId;
-                                                    const isPending = placementItem?.type === scheduleType && placementItem?.title === fullTitle;
+                {/* Modules & Lessons */}
+                <div className="space-y-2">
+                  <h3 className="text-[9px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider pl-1">Modules</h3>
 
-                                                    return (
-                                                      <div 
-                                                        key={lesson.id} 
-                                                        draggable={!isScheduled}
-                                                        onDragStart={(e) => !isScheduled && handleSidebarDragStart(e, { title: fullTitle, type: scheduleType, originalTitle: lesson.title })}
-                                                        onDragEnd={handleDragEnd}
-                                                        className={`flex items-start justify-between gap-2 py-1 px-1.5 rounded-md transition-all ${
-                                                          isScheduled 
-                                                            ? 'bg-slate-50/60 dark:bg-slate-950/20 opacity-90' 
-                                                            : isPending 
-                                                              ? 'bg-blue-50/60 dark:bg-blue-950/30 border border-blue-200/50 dark:border-blue-800/50' 
-                                                              : 'bg-white dark:bg-slate-900 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 cursor-grab active:cursor-grabbing border border-transparent hover:border-slate-200/80 dark:hover:border-slate-700/80'
-                                                        }`}
-                                                        title={isScheduled ? "Already scheduled" : "Drag onto calendar date, or click Schedule"}
-                                                      >
-                                                        <div className="min-w-0 flex-1 flex items-center gap-1 select-none">
-                                                          {!isScheduled && <GripVertical size={10} className="text-slate-400 dark:text-slate-500 shrink-0 opacity-40 hover:opacity-100" />}
-                                                          {getLessonIcon(lesson.lesson_type || lesson.type)}
-                                                          <h5 className="text-[10px] font-normal text-slate-700 dark:text-slate-200 leading-snug break-words">{lesson.title}</h5>
-                                                        </div>
-                                                        
-                                                        <div className="shrink-0 flex items-center gap-1.5">
-                                                          {isScheduled ? (
-                                                            <>
-                                                              <span className="w-5 h-5 rounded-full bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400 flex items-center justify-center border border-green-100 dark:border-green-900/30">
-                                                                <CheckCircle2 size={12} />
-                                                              </span>
-                                                              <button
-                                                                type="button"
-                                                                onClick={(e) => {
-                                                                  e.stopPropagation();
-                                                                  handleDelete(scheduleId);
-                                                                }}
-                                                                className="min-h-[36px] min-w-[36px] p-2 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
-                                                                title="Remove from Schedule"
-                                                                aria-label="Remove from Schedule"
-                                                              >
-                                                                <Trash2 size={14} />
-                                                              </button>
-                                                            </>
-                                                          ) : (
-                                                            <button 
-                                                              type="button"
-                                                              onClick={() => startPlacement(fullTitle, scheduleType, lesson.title)}
-                                                              className={`min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer flex items-center gap-1 border ${
-                                                                isPending
-                                                                  ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
-                                                                  : 'bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 border-blue-100/50 dark:border-blue-900/40 hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600'
-                                                              }`}
-                                                              title="Click here, then click a calendar date to schedule"
-                                                            >
-                                                              <Plus size={12} />
-                                                              {isPending ? 'Active' : 'Schedule'}
-                                                            </button>
-                                                          )}
-                                                        </div>
-                                                      </div>
-                                                    );
-                                                  })
-                                                ) : (
-                                                  <p className="text-[9px] text-slate-400 dark:text-slate-600 italic p-2 text-center">No topics in this chapter.</p>
-                                                )}
-                                              </div>
-                                            )}
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-                                  )}
+                  {filteredModules.map((mod) => {
+                    const isExpanded = expandedModules[mod.id] !== false;
+                    return (
+                      <div key={mod.id} className="border border-slate-200/60 dark:border-slate-800/80 rounded-lg overflow-hidden bg-white dark:bg-slate-900 transition-all mb-2">
+                        {/* Module Header */}
+                        <div
+                          onClick={() => toggleModuleExpand(mod.id)}
+                          className="flex items-center justify-between py-2 px-2.5 bg-slate-50/50 dark:bg-slate-900/40 cursor-pointer select-none border-b border-slate-100 dark:border-slate-800"
+                        >
+                          <h3 className="text-[11px] font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1.5 truncate flex-1 pr-2">
+                            <BookOpen size={12} className="text-blue-500 shrink-0" />
+                            {mod.title}
+                          </h3>
+                          <span className="text-slate-400 dark:text-slate-500 shrink-0">
+                            <ChevronDown size={12} className={`transform transition-transform duration-150 ${isExpanded ? 'rotate-180' : ''}`} />
+                          </span>
+                        </div>
 
-                                  {/* Uncategorized Module Lessons */}
-                                  {(mod.lessons || []).length > 0 && (
-                                    <div className="p-1 space-y-1">
-                                      {(mod.lessons || []).map((lesson: any) => {
-                                        const scheduleType = getLessonScheduleType(lesson.lesson_type || lesson.type);
-                                        const fullTitle = getFullTitle(mod.title, null, lesson.title);
-                                        const scheduleId = scheduledItemsMap.get(`${scheduleType}:${fullTitle}`);
-                                        const isScheduled = !!scheduleId;
-                                        const isPending = placementItem?.type === scheduleType && placementItem?.title === fullTitle;
+                        {/* Lessons and Chapters List */}
+                        {isExpanded && (
+                          <div className="p-1 space-y-1.5">
+                            {/* Chapters */}
+                            {(mod.lms_chapters || []).length > 0 && (
+                              <div className="space-y-1">
+                                {(mod.lms_chapters || []).map((chap: any) => {
+                                  const isChapExpanded = expandedChapters[chap.id] !== false;
+                                  return (
+                                    <div key={chap.id} className="rounded-md overflow-hidden bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
+                                      {/* Chapter Header */}
+                                      <div
+                                        onClick={() => toggleChapterExpand(chap.id)}
+                                        className="flex items-center justify-between py-1.5 px-2 bg-slate-50/20 dark:bg-slate-900/10 cursor-pointer select-none border-b border-slate-100 dark:border-slate-800/40"
+                                      >
+                                        <span className="text-[10px] font-medium text-slate-700 dark:text-slate-300 truncate pr-2">Ch: {chap.title}</span>
+                                        <ChevronDown size={10} className={`transform transition-transform text-slate-400 ${isChapExpanded ? 'rotate-180' : ''}`} />
+                                      </div>
 
-                                        return (
-                                          <div 
-                                            key={lesson.id} 
-                                            draggable={!isScheduled}
-                                            onDragStart={(e) => !isScheduled && handleSidebarDragStart(e, { title: fullTitle, type: scheduleType, originalTitle: lesson.title })}
-                                            onDragEnd={handleDragEnd}
-                                            className={`flex items-start justify-between gap-2 py-1 px-1.5 rounded-md transition-all ${
-                                              isScheduled 
-                                                ? 'bg-slate-50/60 dark:bg-slate-950/20 opacity-90' 
-                                                : isPending 
-                                                  ? 'bg-blue-50/60 dark:bg-blue-950/30 border border-blue-200/50 dark:border-blue-800/50' 
-                                                  : 'bg-white dark:bg-slate-900 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 cursor-grab active:cursor-grabbing border border-transparent hover:border-slate-200/80 dark:hover:border-slate-700/80'
-                                            }`}
-                                            title={isScheduled ? "Already scheduled" : "Drag onto calendar date, or click Schedule"}
-                                          >
-                                            <div className="min-w-0 flex-1 flex items-center gap-1 select-none">
-                                              {!isScheduled && <GripVertical size={10} className="text-slate-400 dark:text-slate-500 shrink-0 opacity-40 hover:opacity-100" />}
-                                              {getLessonIcon(lesson.lesson_type || lesson.type)}
-                                              <h5 className="text-[10px] font-normal text-slate-700 dark:text-slate-200 leading-snug break-words">{lesson.title}</h5>
-                                            </div>
-                                            
-                                            <div className="shrink-0 flex items-center gap-1.5">
-                                              {isScheduled ? (
-                                                <>
-                                                  <span className="w-5 h-5 rounded-full bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400 flex items-center justify-center border border-green-100 dark:border-green-900/30">
-                                                    <CheckCircle2 size={12} />
-                                                  </span>
-                                                  <button
-                                                    type="button"
-                                                    onClick={(e) => {
-                                                      e.stopPropagation();
-                                                      handleDelete(scheduleId);
-                                                    }}
-                                                    className="min-h-[36px] min-w-[36px] p-2 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
-                                                    title="Remove from Schedule"
-                                                    aria-label="Remove from Schedule"
-                                                  >
-                                                    <Trash2 size={14} />
-                                                  </button>
-                                                </>
-                                              ) : (
-                                                <button 
-                                                  type="button"
-                                                  onClick={() => startPlacement(fullTitle, scheduleType, lesson.title)}
-                                                  className={`min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer flex items-center gap-1 border ${
-                                                    isPending
-                                                      ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
-                                                      : 'bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 border-blue-100/50 dark:border-blue-900/40 hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600'
-                                                  }`}
-                                                  title="Click here, then click a calendar date to schedule"
+                                      {/* Chapter Lessons */}
+                                      {isChapExpanded && (
+                                        <div className="p-1 space-y-1 divide-y divide-slate-50 dark:divide-slate-800/40">
+                                          {(chap.lessons || []).length > 0 ? (
+                                            (chap.lessons || []).map((lesson: any) => {
+                                              const scheduleType = getLessonScheduleType(lesson.lesson_type || lesson.type);
+                                              const fullTitle = getFullTitle(mod.title, chap.title, lesson.title);
+                                              const scheduleId = scheduledItemsMap.get(`${scheduleType}:${fullTitle}`);
+                                              const isScheduled = !!scheduleId;
+                                              const isPending = placementItem?.type === scheduleType && placementItem?.title === fullTitle;
+
+                                              return (
+                                                <div
+                                                  key={lesson.id}
+                                                  draggable={!isScheduled}
+                                                  onDragStart={(e) => !isScheduled && handleSidebarDragStart(e, { title: fullTitle, type: scheduleType, originalTitle: lesson.title })}
+                                                  onDragEnd={handleDragEnd}
+                                                  className={`flex items-start justify-between gap-2 py-1 px-1.5 rounded-md transition-all ${isScheduled
+                                                      ? 'bg-slate-50/60 dark:bg-slate-950/20 opacity-90'
+                                                      : isPending
+                                                        ? 'bg-blue-50/60 dark:bg-blue-950/30 border border-blue-200/50 dark:border-blue-800/50'
+                                                        : 'bg-white dark:bg-slate-900 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 cursor-grab active:cursor-grabbing border border-transparent hover:border-slate-200/80 dark:hover:border-slate-700/80'
+                                                    }`}
+                                                  title={isScheduled ? "Already scheduled" : "Drag onto calendar date, or click Schedule"}
                                                 >
-                                                  <Plus size={12} />
-                                                  {isPending ? 'Active' : 'Schedule'}
-                                                </button>
-                                              )}
-                                            </div>
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-                                  )}
+                                                  <div className="min-w-0 flex-1 flex items-center gap-1 select-none">
+                                                    {!isScheduled && <GripVertical size={10} className="text-slate-400 dark:text-slate-500 shrink-0 opacity-40 hover:opacity-100" />}
+                                                    {getLessonIcon(lesson.lesson_type || lesson.type)}
+                                                    <h5 className="text-[10px] font-normal text-slate-700 dark:text-slate-200 leading-snug break-words">{lesson.title}</h5>
+                                                  </div>
 
-                                  {(!mod.lessons || mod.lessons.length === 0) && (!mod.lms_chapters || mod.lms_chapters.length === 0) && (
-                                    <p className="text-[9px] text-slate-400 dark:text-slate-600 italic p-2 text-center">No topics in this module.</p>
+                                                  <div className="shrink-0 flex items-center gap-1.5">
+                                                    {isScheduled ? (
+                                                      <>
+                                                        <span className="w-5 h-5 rounded-full bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400 flex items-center justify-center border border-green-100 dark:border-green-900/30">
+                                                          <CheckCircle2 size={12} />
+                                                        </span>
+                                                        <button
+                                                          type="button"
+                                                          onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleDelete(scheduleId);
+                                                          }}
+                                                          className="min-h-[36px] min-w-[36px] p-2 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                                                          title="Remove from Schedule"
+                                                          aria-label="Remove from Schedule"
+                                                        >
+                                                          <Trash2 size={14} />
+                                                        </button>
+                                                      </>
+                                                    ) : (
+                                                      <button
+                                                        type="button"
+                                                        onClick={() => startPlacement(fullTitle, scheduleType, lesson.title)}
+                                                        className={`min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer flex items-center gap-1 border ${isPending
+                                                            ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
+                                                            : 'bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 border-blue-100/50 dark:border-blue-900/40 hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600'
+                                                          }`}
+                                                        title="Click here, then click a calendar date to schedule"
+                                                      >
+                                                        <Plus size={12} />
+                                                        {isPending ? 'Active' : 'Schedule'}
+                                                      </button>
+                                                    )}
+                                                  </div>
+                                                </div>
+                                              );
+                                            })
+                                          ) : (
+                                            <p className="text-[9px] text-slate-400 dark:text-slate-600 italic p-2 text-center">No topics in this chapter.</p>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+
+                            {/* Uncategorized Module Lessons */}
+                            {(mod.lessons || []).length > 0 && (
+                              <div className="p-1 space-y-1">
+                                {(mod.lessons || []).map((lesson: any) => {
+                                  const scheduleType = getLessonScheduleType(lesson.lesson_type || lesson.type);
+                                  const fullTitle = getFullTitle(mod.title, null, lesson.title);
+                                  const scheduleId = scheduledItemsMap.get(`${scheduleType}:${fullTitle}`);
+                                  const isScheduled = !!scheduleId;
+                                  const isPending = placementItem?.type === scheduleType && placementItem?.title === fullTitle;
+
+                                  return (
+                                    <div
+                                      key={lesson.id}
+                                      draggable={!isScheduled}
+                                      onDragStart={(e) => !isScheduled && handleSidebarDragStart(e, { title: fullTitle, type: scheduleType, originalTitle: lesson.title })}
+                                      onDragEnd={handleDragEnd}
+                                      className={`flex items-start justify-between gap-2 py-1 px-1.5 rounded-md transition-all ${isScheduled
+                                          ? 'bg-slate-50/60 dark:bg-slate-950/20 opacity-90'
+                                          : isPending
+                                            ? 'bg-blue-50/60 dark:bg-blue-950/30 border border-blue-200/50 dark:border-blue-800/50'
+                                            : 'bg-white dark:bg-slate-900 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 cursor-grab active:cursor-grabbing border border-transparent hover:border-slate-200/80 dark:hover:border-slate-700/80'
+                                        }`}
+                                      title={isScheduled ? "Already scheduled" : "Drag onto calendar date, or click Schedule"}
+                                    >
+                                      <div className="min-w-0 flex-1 flex items-center gap-1 select-none">
+                                        {!isScheduled && <GripVertical size={10} className="text-slate-400 dark:text-slate-500 shrink-0 opacity-40 hover:opacity-100" />}
+                                        {getLessonIcon(lesson.lesson_type || lesson.type)}
+                                        <h5 className="text-[10px] font-normal text-slate-700 dark:text-slate-200 leading-snug break-words">{lesson.title}</h5>
+                                      </div>
+
+                                      <div className="shrink-0 flex items-center gap-1.5">
+                                        {isScheduled ? (
+                                          <>
+                                            <span className="w-5 h-5 rounded-full bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400 flex items-center justify-center border border-green-100 dark:border-green-900/30">
+                                              <CheckCircle2 size={12} />
+                                            </span>
+                                            <button
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleDelete(scheduleId);
+                                              }}
+                                              className="min-h-[36px] min-w-[36px] p-2 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                                              title="Remove from Schedule"
+                                              aria-label="Remove from Schedule"
+                                            >
+                                              <Trash2 size={14} />
+                                            </button>
+                                          </>
+                                        ) : (
+                                          <button
+                                            type="button"
+                                            onClick={() => startPlacement(fullTitle, scheduleType, lesson.title)}
+                                            className={`min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer flex items-center gap-1 border ${isPending
+                                                ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
+                                                : 'bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 border-blue-100/50 dark:border-blue-900/40 hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600'
+                                              }`}
+                                            title="Click here, then click a calendar date to schedule"
+                                          >
+                                            <Plus size={12} />
+                                            {isPending ? 'Active' : 'Schedule'}
+                                          </button>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+
+                            {(!mod.lessons || mod.lessons.length === 0) && (!mod.lms_chapters || mod.lms_chapters.length === 0) && (
+                              <p className="text-[9px] text-slate-400 dark:text-slate-600 italic p-2 text-center">No topics in this module.</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Tests */}
+                <div className="space-y-2 pt-1.5">
+                  <h3 className="text-[9px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-widest pl-1">Examinations</h3>
+                  <div className="border border-slate-200/60 dark:border-slate-800/80 rounded-lg overflow-hidden bg-white dark:bg-slate-900 transition-all">
+                    <div
+                      onClick={() => toggleModuleExpand('tests-group')}
+                      className="flex items-center justify-between py-2 px-2.5 bg-slate-50/50 dark:bg-slate-900/40 cursor-pointer select-none border-b border-slate-100 dark:border-slate-800"
+                    >
+                      <h3 className="text-[11px] font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <FileText size={12} className="text-rose-500 shrink-0" />
+                        Tests & Exams
+                      </h3>
+                      <span className="text-slate-400 dark:text-slate-500 shrink-0">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="12"
+                          height="12"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className={`transform transition-transform duration-150 ${expandedModules['tests-group'] === true ? 'rotate-180' : ''}`}
+                        >
+                          <polyline points="6 9 12 15 18 9" />
+                        </svg>
+                      </span>
+                    </div>
+
+                    {expandedModules['tests-group'] === true && (
+                      <div className="p-1 space-y-1 divide-y divide-slate-50 dark:divide-slate-800/40">
+                        {filteredTests.length > 0 ? (
+                          filteredTests.map((test) => {
+                            const fullTitle = `Test: ${test.title}`;
+                            const scheduleId = scheduledItemsMap.get(`test:${fullTitle}`);
+                            const isScheduled = !!scheduleId;
+                            const isPending = placementItem?.type === 'test' && placementItem?.title === fullTitle;
+
+                            return (
+                              <div
+                                key={test.id}
+                                draggable={!isScheduled}
+                                onDragStart={(e) => !isScheduled && handleSidebarDragStart(e, { title: fullTitle, type: 'test', originalTitle: test.title })}
+                                onDragEnd={handleDragEnd}
+                                className={`flex items-start justify-between gap-2 py-1.5 px-2 rounded-md transition-all ${isScheduled
+                                    ? 'bg-slate-50/60 dark:bg-slate-950/20 opacity-90'
+                                    : isPending
+                                      ? 'bg-rose-50/60 dark:bg-rose-950/30 border border-rose-200/50 dark:border-rose-800/50'
+                                      : 'bg-white dark:bg-slate-900 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 cursor-grab active:cursor-grabbing border border-transparent hover:border-slate-200/80 dark:hover:border-slate-700/80'
+                                  }`}
+                                title={isScheduled ? "Already scheduled" : "Drag onto calendar date, or click Schedule"}
+                              >
+                                <div className="min-w-0 flex-1 flex items-center gap-1 select-none">
+                                  {!isScheduled && <GripVertical size={10} className="text-slate-400 dark:text-slate-500 shrink-0 opacity-40 hover:opacity-100" />}
+                                  <h5 className="text-[10px] font-normal text-slate-700 dark:text-slate-200 leading-snug break-words">{test.title}</h5>
+                                </div>
+
+                                <div className="shrink-0 flex items-center gap-1.5">
+                                  {isScheduled ? (
+                                    <>
+                                      <span className="w-5 h-5 rounded-full bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400 flex items-center justify-center border border-green-100 dark:border-green-900/30">
+                                        <CheckCircle2 size={12} />
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleDelete(scheduleId);
+                                        }}
+                                        className="min-h-[36px] min-w-[36px] p-2 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                                        title="Remove from Schedule"
+                                        aria-label="Remove from Schedule"
+                                      >
+                                        <Trash2 size={14} />
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => startPlacement(fullTitle, 'test', test.title)}
+                                      className={`min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer flex items-center gap-1 border ${isPending
+                                          ? 'bg-rose-600 border-rose-600 text-white shadow-sm'
+                                          : 'bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border-rose-100/50 dark:border-rose-900/40 hover:bg-rose-600 hover:text-white dark:hover:bg-rose-600'
+                                        }`}
+                                      title="Click here, then click a calendar date to schedule"
+                                    >
+                                      <Plus size={12} />
+                                      {isPending ? 'Active' : 'Schedule'}
+                                    </button>
                                   )}
                                 </div>
-                              )}
-                          </div>
-                        );
-                      })}
-                   </div>
-
-                   {/* Tests */}
-                   <div className="space-y-2 pt-1.5">
-                     <h3 className="text-[9px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-widest pl-1">Examinations</h3>
-                     <div className="border border-slate-200/60 dark:border-slate-800/80 rounded-lg overflow-hidden bg-white dark:bg-slate-900 transition-all">
-                        <div 
-                          onClick={() => toggleModuleExpand('tests-group')}
-                          className="flex items-center justify-between py-2 px-2.5 bg-slate-50/50 dark:bg-slate-900/40 cursor-pointer select-none border-b border-slate-100 dark:border-slate-800"
-                        >
-                          <h3 className="text-[11px] font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                            <FileText size={12} className="text-rose-500 shrink-0" />
-                            Tests & Exams
-                          </h3>
-                          <span className="text-slate-400 dark:text-slate-500 shrink-0">
-                            <svg 
-                              xmlns="http://www.w3.org/2000/svg" 
-                              width="12" 
-                              height="12" 
-                              viewBox="0 0 24 24" 
-                              fill="none" 
-                              stroke="currentColor" 
-                              strokeWidth="2" 
-                              strokeLinecap="round" 
-                              strokeLinejoin="round"
-                              className={`transform transition-transform duration-150 ${expandedModules['tests-group'] === true ? 'rotate-180' : ''}`}
-                            >
-                              <polyline points="6 9 12 15 18 9" />
-                            </svg>
-                          </span>
-                        </div>
-
-                        {expandedModules['tests-group'] === true && (
-                          <div className="p-1 space-y-1 divide-y divide-slate-50 dark:divide-slate-800/40">
-                            {filteredTests.length > 0 ? (
-                              filteredTests.map((test) => {
-                                const fullTitle = `Test: ${test.title}`;
-                                const scheduleId = scheduledItemsMap.get(`test:${fullTitle}`);
-                                const isScheduled = !!scheduleId;
-                                const isPending = placementItem?.type === 'test' && placementItem?.title === fullTitle;
-
-                                return (
-                                  <div 
-                                    key={test.id} 
-                                    draggable={!isScheduled}
-                                    onDragStart={(e) => !isScheduled && handleSidebarDragStart(e, { title: fullTitle, type: 'test', originalTitle: test.title })}
-                                    onDragEnd={handleDragEnd}
-                                    className={`flex items-start justify-between gap-2 py-1.5 px-2 rounded-md transition-all ${
-                                      isScheduled 
-                                        ? 'bg-slate-50/60 dark:bg-slate-950/20 opacity-90' 
-                                        : isPending 
-                                          ? 'bg-rose-50/60 dark:bg-rose-950/30 border border-rose-200/50 dark:border-rose-800/50' 
-                                          : 'bg-white dark:bg-slate-900 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 cursor-grab active:cursor-grabbing border border-transparent hover:border-slate-200/80 dark:hover:border-slate-700/80'
-                                    }`}
-                                    title={isScheduled ? "Already scheduled" : "Drag onto calendar date, or click Schedule"}
-                                  >
-                                    <div className="min-w-0 flex-1 flex items-center gap-1 select-none">
-                                      {!isScheduled && <GripVertical size={10} className="text-slate-400 dark:text-slate-500 shrink-0 opacity-40 hover:opacity-100" />}
-                                      <h5 className="text-[10px] font-normal text-slate-700 dark:text-slate-200 leading-snug break-words">{test.title}</h5>
-                                    </div>
-                                    
-                                    <div className="shrink-0 flex items-center gap-1.5">
-                                      {isScheduled ? (
-                                        <>
-                                          <span className="w-5 h-5 rounded-full bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400 flex items-center justify-center border border-green-100 dark:border-green-900/30">
-                                            <CheckCircle2 size={12} />
-                                          </span>
-                                          <button
-                                            type="button"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleDelete(scheduleId);
-                                            }}
-                                            className="min-h-[36px] min-w-[36px] p-2 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
-                                            title="Remove from Schedule"
-                                            aria-label="Remove from Schedule"
-                                          >
-                                            <Trash2 size={14} />
-                                          </button>
-                                        </>
-                                      ) : (
-                                        <button 
-                                          type="button"
-                                          onClick={() => startPlacement(fullTitle, 'test', test.title)}
-                                          className={`min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer flex items-center gap-1 border ${
-                                            isPending
-                                              ? 'bg-rose-600 border-rose-600 text-white shadow-sm'
-                                              : 'bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border-rose-100/50 dark:border-rose-900/40 hover:bg-rose-600 hover:text-white dark:hover:bg-rose-600'
-                                          }`}
-                                          title="Click here, then click a calendar date to schedule"
-                                        >
-                                          <Plus size={12} />
-                                          {isPending ? 'Active' : 'Schedule'}
-                                        </button>
-                                      )}
-                                    </div>
-                                  </div>
-                                );
-                              })
-                            ) : (
-                              <p className="text-[9px] text-slate-400 dark:text-slate-600 italic p-2.5 text-center">No tests found for this course.</p>
-                            )}
-                          </div>
+                              </div>
+                            );
+                          })
+                        ) : (
+                          <p className="text-[9px] text-slate-400 dark:text-slate-600 italic p-2.5 text-center">No tests found for this course.</p>
                         )}
-                     </div>
-                   </div>
-
-                   {/* Study Notes */}
-                   <div className="space-y-2 pt-1.5">
-                     <h3 className="text-[9px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-widest pl-1">Materials</h3>
-                     <div className="border border-slate-200/60 dark:border-slate-800/80 rounded-lg overflow-hidden bg-white dark:bg-slate-900 transition-all">
-                        <div 
-                          onClick={() => toggleModuleExpand('materials-group')}
-                          className="flex items-center justify-between py-2 px-2.5 bg-slate-50/50 dark:bg-slate-900/40 cursor-pointer select-none border-b border-slate-100 dark:border-slate-800"
-                        >
-                          <h3 className="text-[11px] font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                            <BookOpen size={12} className="text-amber-500 shrink-0" />
-                            Notes & Study Guides
-                          </h3>
-                          <span className="text-slate-400 dark:text-slate-500 shrink-0">
-                            <svg 
-                              xmlns="http://www.w3.org/2000/svg" 
-                              width="12" 
-                              height="12" 
-                              viewBox="0 0 24 24" 
-                              fill="none" 
-                              stroke="currentColor" 
-                              strokeWidth="2" 
-                              strokeLinecap="round" 
-                              strokeLinejoin="round"
-                              className={`transform transition-transform duration-150 ${expandedModules['materials-group'] === true ? 'rotate-180' : ''}`}
-                            >
-                              <polyline points="6 9 12 15 18 9" />
-                            </svg>
-                          </span>
-                        </div>
-
-                        {expandedModules['materials-group'] === true && (
-                          <div className="p-1 space-y-1 divide-y divide-slate-50 dark:divide-slate-800/40">
-                            {filteredMaterials.length > 0 ? (
-                              filteredMaterials.map((material) => {
-                                const fullTitle = `Note: ${material.title}`;
-                                const scheduleId = scheduledItemsMap.get(`assignment:${fullTitle}`);
-                                const isScheduled = !!scheduleId;
-                                const isPending = placementItem?.type === 'assignment' && placementItem?.title === fullTitle;
-
-                                return (
-                                  <div 
-                                    key={material.id} 
-                                    draggable={!isScheduled}
-                                    onDragStart={(e) => !isScheduled && handleSidebarDragStart(e, { title: fullTitle, type: 'assignment', originalTitle: material.title })}
-                                    onDragEnd={handleDragEnd}
-                                    className={`flex items-start justify-between gap-2 py-1.5 px-2 rounded-md transition-all ${
-                                      isScheduled 
-                                        ? 'bg-slate-50/60 dark:bg-slate-950/20 opacity-90' 
-                                        : isPending 
-                                          ? 'bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/50' 
-                                          : 'bg-white dark:bg-slate-900 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 cursor-grab active:cursor-grabbing border border-transparent hover:border-slate-200/80 dark:hover:border-slate-700/80'
-                                    }`}
-                                    title={isScheduled ? "Already scheduled" : "Drag onto calendar date, or click Schedule"}
-                                  >
-                                    <div className="min-w-0 flex-1 flex items-center gap-1 select-none">
-                                      {!isScheduled && <GripVertical size={10} className="text-slate-400 dark:text-slate-500 shrink-0 opacity-40 hover:opacity-100" />}
-                                      <h5 className="text-[10px] font-normal text-slate-700 dark:text-slate-200 leading-snug break-words">{material.title}</h5>
-                                    </div>
-                                    
-                                    <div className="shrink-0 flex items-center gap-1.5">
-                                      {isScheduled ? (
-                                        <>
-                                          <span className="w-5 h-5 rounded-full bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400 flex items-center justify-center border border-green-100 dark:border-green-900/30">
-                                            <CheckCircle2 size={12} />
-                                          </span>
-                                          <button
-                                            type="button"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleDelete(scheduleId);
-                                            }}
-                                            className="min-h-[36px] min-w-[36px] p-2 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
-                                            title="Remove from Schedule"
-                                            aria-label="Remove from Schedule"
-                                          >
-                                            <Trash2 size={14} />
-                                          </button>
-                                        </>
-                                      ) : (
-                                        <button 
-                                          type="button"
-                                          onClick={() => startPlacement(fullTitle, 'assignment', material.title)}
-                                          className={`min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer flex items-center gap-1 border ${
-                                            isPending
-                                              ? 'bg-amber-600 border-amber-600 text-white shadow-sm'
-                                              : 'bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border-amber-100/50 dark:border-amber-900/40 hover:bg-amber-600 hover:text-white dark:hover:bg-amber-600'
-                                          }`}
-                                          title="Click here, then click a calendar date to schedule"
-                                        >
-                                          <Plus size={12} />
-                                          {isPending ? 'Active' : 'Schedule'}
-                                        </button>
-                                      )}
-                                    </div>
-                                  </div>
-                                );
-                              })
-                            ) : (
-                              <p className="text-xs text-slate-400 dark:text-slate-500 italic p-2.5 text-center">No notes found for this course.</p>
-                            )}
-                          </div>
-                        )}
-                     </div>
-                   </div>
-
+                      </div>
+                    )}
+                  </div>
                 </div>
-             </div>
+
+                {/* Study Notes */}
+                <div className="space-y-2 pt-1.5">
+                  <h3 className="text-[9px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-widest pl-1">Materials</h3>
+                  <div className="border border-slate-200/60 dark:border-slate-800/80 rounded-lg overflow-hidden bg-white dark:bg-slate-900 transition-all">
+                    <div
+                      onClick={() => toggleModuleExpand('materials-group')}
+                      className="flex items-center justify-between py-2 px-2.5 bg-slate-50/50 dark:bg-slate-900/40 cursor-pointer select-none border-b border-slate-100 dark:border-slate-800"
+                    >
+                      <h3 className="text-[11px] font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <BookOpen size={12} className="text-amber-500 shrink-0" />
+                        Notes & Study Guides
+                      </h3>
+                      <span className="text-slate-400 dark:text-slate-500 shrink-0">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="12"
+                          height="12"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className={`transform transition-transform duration-150 ${expandedModules['materials-group'] === true ? 'rotate-180' : ''}`}
+                        >
+                          <polyline points="6 9 12 15 18 9" />
+                        </svg>
+                      </span>
+                    </div>
+
+                    {expandedModules['materials-group'] === true && (
+                      <div className="p-1 space-y-1 divide-y divide-slate-50 dark:divide-slate-800/40">
+                        {filteredMaterials.length > 0 ? (
+                          filteredMaterials.map((material) => {
+                            const fullTitle = `Note: ${material.title}`;
+                            const scheduleId = scheduledItemsMap.get(`assignment:${fullTitle}`);
+                            const isScheduled = !!scheduleId;
+                            const isPending = placementItem?.type === 'assignment' && placementItem?.title === fullTitle;
+
+                            return (
+                              <div
+                                key={material.id}
+                                draggable={!isScheduled}
+                                onDragStart={(e) => !isScheduled && handleSidebarDragStart(e, { title: fullTitle, type: 'assignment', originalTitle: material.title })}
+                                onDragEnd={handleDragEnd}
+                                className={`flex items-start justify-between gap-2 py-1.5 px-2 rounded-md transition-all ${isScheduled
+                                    ? 'bg-slate-50/60 dark:bg-slate-950/20 opacity-90'
+                                    : isPending
+                                      ? 'bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/50'
+                                      : 'bg-white dark:bg-slate-900 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 cursor-grab active:cursor-grabbing border border-transparent hover:border-slate-200/80 dark:hover:border-slate-700/80'
+                                  }`}
+                                title={isScheduled ? "Already scheduled" : "Drag onto calendar date, or click Schedule"}
+                              >
+                                <div className="min-w-0 flex-1 flex items-center gap-1 select-none">
+                                  {!isScheduled && <GripVertical size={10} className="text-slate-400 dark:text-slate-500 shrink-0 opacity-40 hover:opacity-100" />}
+                                  <h5 className="text-[10px] font-normal text-slate-700 dark:text-slate-200 leading-snug break-words">{material.title}</h5>
+                                </div>
+
+                                <div className="shrink-0 flex items-center gap-1.5">
+                                  {isScheduled ? (
+                                    <>
+                                      <span className="w-5 h-5 rounded-full bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400 flex items-center justify-center border border-green-100 dark:border-green-900/30">
+                                        <CheckCircle2 size={12} />
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleDelete(scheduleId);
+                                        }}
+                                        className="min-h-[36px] min-w-[36px] p-2 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                                        title="Remove from Schedule"
+                                        aria-label="Remove from Schedule"
+                                      >
+                                        <Trash2 size={14} />
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => startPlacement(fullTitle, 'assignment', material.title)}
+                                      className={`min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer flex items-center gap-1 border ${isPending
+                                          ? 'bg-amber-600 border-amber-600 text-white shadow-sm'
+                                          : 'bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border-amber-100/50 dark:border-amber-900/40 hover:bg-amber-600 hover:text-white dark:hover:bg-amber-600'
+                                        }`}
+                                      title="Click here, then click a calendar date to schedule"
+                                    >
+                                      <Plus size={12} />
+                                      {isPending ? 'Active' : 'Schedule'}
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })
+                        ) : (
+                          <p className="text-xs text-slate-400 dark:text-slate-500 italic p-2.5 text-center">No notes found for this course.</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+              </div>
+            </div>
           </div>
 
           {/* Right Column: Interactive Calendar or List View */}
           <div className={`lg:col-span-8 xl:col-span-8 space-y-4 ${mobileTab === 'calendar' ? 'block' : 'hidden lg:block'}`}>
-             {viewMode === 'calendar' ? (
-                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden min-h-[430px] flex flex-col">
-                   
-                   {/* Calendar Header */}
-                   <div className="py-2 px-3 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-2">
-                      <div className="flex items-center gap-2.5">
-                         <div className="p-2 bg-blue-600 text-white rounded-lg shadow-sm">
-                            <CalendarDays size={16} />
-                         </div>
-                         <div>
-                            <div className="flex items-center gap-2">
-                              <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-200 leading-tight">{monthNames[currentMonth]} {currentYear}</h2>
-                              {isDraggingActive && (
-                                <span className="px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 text-blue-600 dark:text-blue-400 text-xs font-medium animate-pulse">
-                                  Drag & Drop Active
+            {viewMode === 'calendar' ? (
+              <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden min-h-[430px] flex flex-col">
+
+                {/* Calendar Header */}
+                <div className="py-2 px-3 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 bg-blue-600 text-white rounded-lg shadow-sm">
+                      <CalendarDays size={16} />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-200 leading-tight">{monthNames[currentMonth]} {currentYear}</h2>
+                        {isDraggingActive && (
+                          <span className="px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 text-blue-600 dark:text-blue-400 text-xs font-medium animate-pulse">
+                            Drag & Drop Active
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Drag topics onto dates or tap a date to inspect and manage
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900 p-1 rounded-lg border border-slate-200 dark:border-slate-800">
+                    <button onClick={handlePrevMonth} className="min-h-[36px] min-w-[36px] p-2 flex items-center justify-center hover:bg-white dark:hover:bg-slate-800 hover:shadow-sm rounded-lg transition-all text-slate-600 dark:text-slate-400 cursor-pointer" aria-label="Previous Month"><ChevronLeft size={16} /></button>
+                    <button onClick={() => { setCurrentMonth(today.getMonth()); setCurrentYear(today.getFullYear()); }} className="min-h-[36px] px-3 py-1.5 text-xs font-medium uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-800 shadow-sm rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer">Today</button>
+                    <button onClick={handleNextMonth} className="min-h-[36px] min-w-[36px] p-2 flex items-center justify-center hover:bg-white dark:hover:bg-slate-800 hover:shadow-sm rounded-lg transition-all text-slate-600 dark:text-slate-400 cursor-pointer" aria-label="Next Month"><ChevronRight size={16} /></button>
+                  </div>
+                </div>
+
+                {/* Mobile Scroll Hint Banner */}
+                <div className="md:hidden px-3 py-1.5 bg-slate-50/80 dark:bg-slate-800/40 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                  <span className="flex items-center gap-1.5">
+                    <Info size={13} className="text-blue-500 shrink-0" />
+                    Scroll horizontally for 7-day grid or tap any date to inspect
+                  </span>
+                  <span className="text-slate-400 shrink-0 text-sm">⇄</span>
+                </div>
+
+                {/* Responsive Container for 7-column Calendar Grid */}
+                <div className="overflow-x-auto custom-scrollbar flex-1">
+                  <div className="min-w-[700px] flex flex-col min-h-full">
+                    {/* Grid Header Days */}
+                    <div className="grid grid-cols-7 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/20">
+                      {dayNames.map((d, i) => (
+                        <div key={i} className="p-2 text-center border-r border-slate-100 dark:border-slate-800 last:border-r-0">
+                          <p className={`text-xs font-semibold uppercase tracking-wider ${i === 0 ? 'text-rose-500 dark:text-rose-400 font-bold' : 'text-slate-500 dark:text-slate-400'
+                            }`}>{d}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="grid grid-cols-7 flex-1">
+                      {days.map((d, i) => {
+                        const dateStr = d.dateStr;
+                        const isToday = dateStr === fmt(today);
+                        const isSunday = i % 7 === 0;
+                        const dayEvents = dateStr ? filteredSchedules.filter(s => s.date === dateStr).sort((a: any, b: any) => (a.start_time || '').localeCompare(b.start_time || '')) : [];
+                        const isCellDragOver = dragOverDate === dateStr;
+
+                        return (
+                          <div
+                            key={i}
+                            onMouseEnter={() => !isDraggingActive && dateStr && setHoveredDate(dateStr)}
+                            onMouseLeave={() => setHoveredDate(null)}
+                            onDragOver={(e) => d.currentMonth && dateStr && handleCellDragOver(e, dateStr)}
+                            onDragLeave={(e) => d.currentMonth && dateStr && handleCellDragLeave(e, dateStr)}
+                            onDrop={(e) => d.currentMonth && dateStr && handleCellDrop(e, dateStr)}
+                            onClick={() => {
+                              if (!d.currentMonth || !dateStr) return;
+                              if (placementItem) {
+                                handlePlaceItem(dateStr);
+                              } else {
+                                setInspectingDate(dateStr);
+                              }
+                            }}
+                            className={`border-r border-slate-100 dark:border-slate-800 last:border-r-0 p-1.5 min-h-[88px] sm:min-h-[96px] flex flex-col gap-1 transition-all cursor-pointer relative ${!d.currentMonth
+                                ? 'bg-slate-50/20 dark:bg-slate-900/5 opacity-40'
+                                : isCellDragOver
+                                  ? 'ring-2 ring-blue-500 bg-blue-50/80 dark:bg-blue-950/60 border-blue-400 z-10 shadow-md scale-[1.01]'
+                                  : isDraggingActive
+                                    ? 'bg-blue-50/15 dark:bg-blue-950/10 border-dashed border-blue-200 dark:border-blue-900/50 hover:bg-blue-100/30'
+                                    : isToday
+                                      ? 'bg-blue-50/20 dark:bg-blue-950/10 border-2 border-blue-500/30'
+                                      : placementItem
+                                        ? 'bg-blue-50/10 dark:bg-blue-950/5 hover:bg-blue-100/30 dark:hover:bg-blue-900/20 border border-dashed border-blue-300 dark:border-blue-800/80 animate-pulse'
+                                        : isSunday
+                                          ? 'bg-rose-50/20 dark:bg-rose-950/10 hover:bg-rose-100/30 dark:hover:bg-rose-900/20'
+                                          : 'hover:bg-slate-50/30 dark:hover:bg-slate-900/10'
+                              }`}
+                          >
+                            <div className="flex justify-between items-center mb-0.5">
+                              <span className={`text-xs font-medium ${isToday
+                                  ? 'bg-blue-600 text-white w-5 h-5 flex items-center justify-center rounded-full font-mono font-semibold shadow-xs'
+                                  : isSunday && d.currentMonth
+                                    ? 'text-rose-500 dark:text-rose-400 font-semibold'
+                                    : 'text-slate-600 dark:text-slate-400'
+                                }`}>
+                                {d.day}
+                              </span>
+                              {isCellDragOver ? (
+                                <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider animate-pulse">Drop</span>
+                              ) : hoveredDate === dateStr && dayEvents.length > 0 && !isDraggingActive ? (
+                                <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200/60 dark:border-slate-700 shadow-sm pointer-events-none animate-in fade-in duration-100">
+                                  {dayEvents.length} {dayEvents.length === 1 ? 'item' : 'items'}
                                 </span>
-                              )}
+                              ) : null}
                             </div>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">
-                              Drag topics onto dates or tap a date to inspect and manage
-                            </p>
-                         </div>
-                      </div>
-    
-                      <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900 p-1 rounded-lg border border-slate-200 dark:border-slate-800">
-                         <button onClick={handlePrevMonth} className="min-h-[36px] min-w-[36px] p-2 flex items-center justify-center hover:bg-white dark:hover:bg-slate-800 hover:shadow-sm rounded-lg transition-all text-slate-600 dark:text-slate-400 cursor-pointer" aria-label="Previous Month"><ChevronLeft size={16} /></button>
-                         <button onClick={() => {setCurrentMonth(today.getMonth()); setCurrentYear(today.getFullYear());}} className="min-h-[36px] px-3 py-1.5 text-xs font-medium uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-800 shadow-sm rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer">Today</button>
-                         <button onClick={handleNextMonth} className="min-h-[36px] min-w-[36px] p-2 flex items-center justify-center hover:bg-white dark:hover:bg-slate-800 hover:shadow-sm rounded-lg transition-all text-slate-600 dark:text-slate-400 cursor-pointer" aria-label="Next Month"><ChevronRight size={16} /></button>
-                      </div>
-                   </div>
 
-                   {/* Mobile Scroll Hint Banner */}
-                   <div className="md:hidden px-3 py-1.5 bg-slate-50/80 dark:bg-slate-800/40 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-                     <span className="flex items-center gap-1.5">
-                       <Info size={13} className="text-blue-500 shrink-0" />
-                       Scroll horizontally for 7-day grid or tap any date to inspect
-                     </span>
-                     <span className="text-slate-400 shrink-0 text-sm">⇄</span>
-                   </div>
-
-                   {/* Responsive Container for 7-column Calendar Grid */}
-                   <div className="overflow-x-auto custom-scrollbar flex-1">
-                     <div className="min-w-[700px] flex flex-col min-h-full">
-                       {/* Grid Header Days */}
-                       <div className="grid grid-cols-7 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/20">
-                          {dayNames.map((d, i) => (
-                             <div key={i} className="p-2 text-center border-r border-slate-100 dark:border-slate-800 last:border-r-0">
-                                <p className={`text-xs font-semibold uppercase tracking-wider ${
-                                   i === 0 ? 'text-rose-500 dark:text-rose-400 font-bold' : 'text-slate-500 dark:text-slate-400'
-                                }`}>{d}</p>
-                             </div>
-                          ))}
-                       </div>
-        
-                       <div className="grid grid-cols-7 flex-1">
-                          {days.map((d, i) => {
-                             const dateStr = d.dateStr;
-                             const isToday = dateStr === fmt(today);
-                             const isSunday = i % 7 === 0;
-                             const dayEvents = dateStr ? filteredSchedules.filter(s => s.date === dateStr).sort((a: any, b: any) => (a.start_time || '').localeCompare(b.start_time || '')) : [];
-                             const isCellDragOver = dragOverDate === dateStr;
-                             
-                             return (
-                                <div 
-                                  key={i} 
-                                  onMouseEnter={() => !isDraggingActive && dateStr && setHoveredDate(dateStr)}
-                                  onMouseLeave={() => setHoveredDate(null)}
-                                  onDragOver={(e) => d.currentMonth && dateStr && handleCellDragOver(e, dateStr)}
-                                  onDragLeave={(e) => d.currentMonth && dateStr && handleCellDragLeave(e, dateStr)}
-                                  onDrop={(e) => d.currentMonth && dateStr && handleCellDrop(e, dateStr)}
-                                  onClick={() => {
-                                    if (!d.currentMonth || !dateStr) return;
-                                    if (placementItem) {
-                                      handlePlaceItem(dateStr);
-                                    } else {
-                                      setInspectingDate(dateStr);
-                                    }
-                                  }}
-                                  className={`border-r border-slate-100 dark:border-slate-800 last:border-r-0 p-1.5 min-h-[88px] sm:min-h-[96px] flex flex-col gap-1 transition-all cursor-pointer relative ${
-                                    !d.currentMonth 
-                                      ? 'bg-slate-50/20 dark:bg-slate-900/5 opacity-40' 
-                                      : isCellDragOver
-                                        ? 'ring-2 ring-blue-500 bg-blue-50/80 dark:bg-blue-950/60 border-blue-400 z-10 shadow-md scale-[1.01]'
-                                        : isDraggingActive
-                                          ? 'bg-blue-50/15 dark:bg-blue-950/10 border-dashed border-blue-200 dark:border-blue-900/50 hover:bg-blue-100/30'
-                                          : isToday 
-                                            ? 'bg-blue-50/20 dark:bg-blue-950/10 border-2 border-blue-500/30' 
-                                            : placementItem 
-                                              ? 'bg-blue-50/10 dark:bg-blue-950/5 hover:bg-blue-100/30 dark:hover:bg-blue-900/20 border border-dashed border-blue-300 dark:border-blue-800/80 animate-pulse' 
-                                              : isSunday
-                                                ? 'bg-rose-50/20 dark:bg-rose-950/10 hover:bg-rose-100/30 dark:hover:bg-rose-900/20'
-                                                : 'hover:bg-slate-50/30 dark:hover:bg-slate-900/10'
-                                  }`}
-                                >
-                                   <div className="flex justify-between items-center mb-0.5">
-                                      <span className={`text-xs font-medium ${
-                                        isToday 
-                                          ? 'bg-blue-600 text-white w-5 h-5 flex items-center justify-center rounded-full font-mono font-semibold shadow-xs' 
-                                          : isSunday && d.currentMonth
-                                            ? 'text-rose-500 dark:text-rose-400 font-semibold'
-                                            : 'text-slate-600 dark:text-slate-400'
-                                      }`}>
-                                         {d.day}
-                                      </span>
-                                      {isCellDragOver ? (
-                                        <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider animate-pulse">Drop</span>
-                                      ) : hoveredDate === dateStr && dayEvents.length > 0 && !isDraggingActive ? (
-                                        <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200/60 dark:border-slate-700 shadow-sm pointer-events-none animate-in fade-in duration-100">
-                                          {dayEvents.length} {dayEvents.length === 1 ? 'item' : 'items'}
-                                        </span>
-                                      ) : null}
-                                   </div>
-                                   
-                                   <div className="space-y-1 overflow-y-auto custom-scrollbar max-h-[64px]">
-                                     {dayEvents.map((ev: any) => {
-                                       const c = cfg(ev.type);
-                                       return (
-                                         <div 
-                                           key={ev.id} 
-                                           draggable={true}
-                                           onDragStart={(e) => handleCalendarItemDragStart(e, ev)}
-                                           onDragEnd={handleDragEnd}
-                                           title="Drag to reschedule to another date"
-                                           className={`group relative px-1.5 py-1 rounded-md ${c.bg} border ${c.border} border-l-2 ${c.accent.replace('bg-', 'border-')} shadow-xs transition-all overflow-hidden cursor-grab active:cursor-grabbing hover:shadow-sm select-none`}
-                                         >
-                                            <div className="flex items-center justify-between gap-1">
-                                              <h5 className="text-[11px] font-medium text-slate-800 dark:text-slate-200 truncate leading-tight flex-1 pointer-events-none">{ev.title}</h5>
-                                              <button 
-                                                onClick={(e) => { e.stopPropagation(); handleDelete(ev.id); }}
-                                                className="p-1 min-w-[28px] min-h-[28px] flex items-center justify-center text-slate-400 hover:text-rose-500 md:opacity-0 md:group-hover:opacity-100 opacity-100 transition-opacity cursor-pointer shrink-0 rounded"
-                                                title="Delete"
-                                                aria-label="Delete"
-                                              >
-                                                <Trash2 size={12} />
-                                              </button>
-                                            </div>
-                                         </div>
-                                       );
-                                     })}
-                                   </div>
+                            <div className="space-y-1 overflow-y-auto custom-scrollbar max-h-[64px]">
+                              {dayEvents.map((ev: any) => {
+                                const c = cfg(ev.type);
+                                return (
+                                  <div
+                                    key={ev.id}
+                                    draggable={true}
+                                    onDragStart={(e) => handleCalendarItemDragStart(e, ev)}
+                                    onDragEnd={handleDragEnd}
+                                    title="Drag to reschedule to another date"
+                                    className={`group relative px-1.5 py-1 rounded-md ${c.bg} border ${c.border} border-l-2 ${c.accent.replace('bg-', 'border-')} shadow-xs transition-all overflow-hidden cursor-grab active:cursor-grabbing hover:shadow-sm select-none`}
+                                  >
+                                    <div className="flex items-center justify-between gap-1">
+                                      <h5 className="text-[11px] font-medium text-slate-800 dark:text-slate-200 truncate leading-tight flex-1 pointer-events-none">{ev.title}</h5>
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); handleDelete(ev.id); }}
+                                        className="p-1 min-w-[28px] min-h-[28px] flex items-center justify-center text-slate-400 hover:text-rose-500 md:opacity-0 md:group-hover:opacity-100 opacity-100 transition-opacity cursor-pointer shrink-0 rounded"
+                                        title="Delete"
+                                        aria-label="Delete"
+                                      >
+                                        <Trash2 size={12} />
+                                      </button>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* List View */
+              <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col min-h-[550px]">
+                <div className="py-2.5 px-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/20">
+                  <h2 className="text-xs font-semibold text-slate-800 dark:text-slate-200 uppercase tracking-wider">Schedule History & Management</h2>
+                </div>
+                <div className="flex-1 overflow-y-auto">
+                  {filteredSchedules.length === 0 ? (
+                    <div className="py-28 text-center space-y-3">
+                      <Calendar size={36} className="mx-auto text-slate-200 dark:text-slate-800" />
+                      <p className="text-xs font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider">No scheduled items for this selection</p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
+                      {filteredSchedules
+                        .sort((a: any, b: any) => b.date.localeCompare(a.date))
+                        .map((ev: any) => {
+                          const c = cfg(ev.type);
+                          return (
+                            <div key={ev.id} className="py-3 px-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-900/20 transition-colors">
+                              <div className="flex items-center gap-4">
+                                <div className="text-center w-12 select-none">
+                                  <p className="text-[10px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider leading-none">
+                                    {new Date(ev.date).toLocaleDateString('en-US', { month: 'short' })}
+                                  </p>
+                                  <p className="text-lg font-medium text-slate-800 dark:text-slate-100 leading-tight mt-1 font-mono">{ev.date.split('-')[2]}</p>
                                 </div>
-                             )
-                          })}
-                       </div>
-                     </div>
-                   </div>
+                                <div className={`w-8 h-8 rounded-lg ${c.bg} ${c.text} flex items-center justify-center border ${c.border} shrink-0`}>
+                                  {c.icon}
+                                </div>
+                                <div>
+                                  <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                                    <h4 className="text-xs font-medium text-slate-800 dark:text-slate-100 leading-tight">{ev.title}</h4>
+                                    <span className={`px-2 py-0.5 rounded ${c.accent} text-white text-[10px] font-medium uppercase tracking-wider`}>
+                                      {c.label}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400">
+                                    {ev.type !== 'holiday' && ev.type !== 'event' && (
+                                      <div className="flex items-center gap-1 text-[10px] font-normal">
+                                        <Clock size={11} className="text-slate-400 shrink-0" /> {ev.start_time?.slice(0, 5)} - {ev.end_time?.slice(0, 5)}
+                                      </div>
+                                    )}
+                                    <div className="flex items-center gap-1 text-[10px] font-normal">
+                                      <Users size={11} className="text-slate-400 shrink-0" /> {ev.batch === "All Batches" ? "Global" : ev.batch}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => handleDelete(ev.id)}
+                                className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center bg-white dark:bg-slate-900 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-slate-400 hover:text-rose-600 rounded-lg border border-slate-200 dark:border-slate-800 hover:border-rose-200 dark:hover:border-rose-900/40 transition-all shadow-sm cursor-pointer"
+                                aria-label="Delete schedule item"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  )}
                 </div>
-             ) : (
-                /* List View */
-                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col min-h-[550px]">
-                   <div className="py-2.5 px-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/20">
-                      <h2 className="text-xs font-semibold text-slate-800 dark:text-slate-200 uppercase tracking-wider">Schedule History & Management</h2>
-                   </div>
-                   <div className="flex-1 overflow-y-auto">
-                     {filteredSchedules.length === 0 ? (
-                       <div className="py-28 text-center space-y-3">
-                         <Calendar size={36} className="mx-auto text-slate-200 dark:text-slate-800" />
-                         <p className="text-xs font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider">No scheduled items for this selection</p>
-                       </div>
-                     ) : (
-                       <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
-                         {filteredSchedules
-                           .sort((a: any, b: any) => b.date.localeCompare(a.date))
-                           .map((ev: any) => {
-                           const c = cfg(ev.type);
-                           return (
-                             <div key={ev.id} className="py-3 px-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-900/20 transition-colors">
-                               <div className="flex items-center gap-4">
-                                 <div className="text-center w-12 select-none">
-                                   <p className="text-[10px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider leading-none">
-                                     {new Date(ev.date).toLocaleDateString('en-US', { month: 'short' })}
-                                   </p>
-                                   <p className="text-lg font-medium text-slate-800 dark:text-slate-100 leading-tight mt-1 font-mono">{ev.date.split('-')[2]}</p>
-                                 </div>
-                                 <div className={`w-8 h-8 rounded-lg ${c.bg} ${c.text} flex items-center justify-center border ${c.border} shrink-0`}>
-                                   {c.icon}
-                                 </div>
-                                 <div>
-                                   <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                                     <h4 className="text-xs font-medium text-slate-800 dark:text-slate-100 leading-tight">{ev.title}</h4>
-                                     <span className={`px-2 py-0.5 rounded ${c.accent} text-white text-[10px] font-medium uppercase tracking-wider`}>
-                                       {c.label}
-                                     </span>
-                                   </div>
-                                   <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400">
-                                     {ev.type !== 'holiday' && ev.type !== 'event' && (
-                                       <div className="flex items-center gap-1 text-[10px] font-normal">
-                                         <Clock size={11} className="text-slate-400 shrink-0" /> {ev.start_time?.slice(0, 5)} - {ev.end_time?.slice(0, 5)}
-                                       </div>
-                                     )}
-                                     <div className="flex items-center gap-1 text-[10px] font-normal">
-                                       <Users size={11} className="text-slate-400 shrink-0" /> {ev.batch === "All Batches" ? "Global" : ev.batch}
-                                     </div>
-                                   </div>
-                                 </div>
-                               </div>
-                               <button 
-                                 onClick={() => handleDelete(ev.id)}
-                                 className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center bg-white dark:bg-slate-900 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-slate-400 hover:text-rose-600 rounded-lg border border-slate-200 dark:border-slate-800 hover:border-rose-200 dark:hover:border-rose-900/40 transition-all shadow-sm cursor-pointer"
-                                 aria-label="Delete schedule item"
-                               >
-                                 <Trash2 size={16} />
-                               </button>
-                             </div>
-                           );
-                         })}
-                       </div>
-                     )}
-                   </div>
-                </div>
-             )}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -1480,7 +1467,7 @@ export default function ScheduleClient({
               </div>
               <button onClick={() => setShowAddModal(false)} className="min-h-[36px] min-w-[36px] flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all text-slate-400 hover:text-slate-600 cursor-pointer" aria-label="Close"><X size={18} /></button>
             </div>
-            
+
             <form onSubmit={handleSubmit} className="p-5 space-y-4">
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Event Type</label>
@@ -1489,10 +1476,10 @@ export default function ScheduleClient({
                     const c = cfg(type);
                     const isSelected = formData.type === type;
                     return (
-                      <button 
-                        key={type} 
-                        type="button" 
-                        onClick={() => setFormData({...formData, type})}
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, type })}
                         className={`flex-1 min-h-[36px] py-2 rounded-md text-xs font-medium transition-all flex items-center justify-center gap-1.5 cursor-pointer ${isSelected ? `bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white` : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}
                       >
                         {c.icon} {c.label}
@@ -1504,12 +1491,12 @@ export default function ScheduleClient({
 
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Activity Title</label>
-                <input 
+                <input
                   required
-                  type="text" 
+                  type="text"
                   placeholder="Enter title..."
                   value={formData.title}
-                  onChange={(e) => setFormData({...formData, title: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   className="w-full px-3 py-2 bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 outline-none focus:border-slate-400 dark:focus:border-slate-500 transition-all text-sm placeholder:text-slate-400"
                 />
               </div>
@@ -1517,18 +1504,18 @@ export default function ScheduleClient({
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Date</label>
-                  <input 
+                  <input
                     required
-                    type="date" 
+                    type="date"
                     value={formData.date}
-                    onChange={(e) => setFormData({...formData, date: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                     className="w-full px-3 py-2 bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 outline-none focus:border-slate-400 transition-all text-sm cursor-pointer"
                   />
                 </div>
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Batch</label>
-                  <select 
+                  <select
                     value={formData.batch}
                     onChange={(e) => {
                       const val = e.target.value;
@@ -1546,10 +1533,10 @@ export default function ScheduleClient({
                           };
                           setFormData({ ...formData, batch: val, start_time: to24(start), end_time: to24(end) });
                         } catch (e) {
-                          setFormData({...formData, batch: val});
+                          setFormData({ ...formData, batch: val });
                         }
                       } else {
-                        setFormData({...formData, batch: val});
+                        setFormData({ ...formData, batch: val });
                       }
                     }}
                     className="w-full px-3 py-2 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:border-slate-400 transition-all text-sm cursor-pointer"
@@ -1563,14 +1550,14 @@ export default function ScheduleClient({
               </div>
 
               <div className="pt-1 flex gap-2.5">
-                <button 
+                <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
                   className="flex-1 min-h-[40px] py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg font-medium text-xs transition-all cursor-pointer"
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   disabled={loading}
                   className="flex-[2] min-h-[40px] py-2 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 rounded-lg font-medium text-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
@@ -1587,12 +1574,12 @@ export default function ScheduleClient({
       {inspectingDate && inspectingDateObj && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-150">
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-150 flex flex-col max-h-[88vh]">
-            
+
             {/* Modal Header with Date Nav */}
             <div className="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex items-center justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="flex items-center gap-0.5 bg-white dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 shrink-0">
-                  <button 
+                  <button
                     onClick={goToPrevDay}
                     title="Previous Day (Left Arrow)"
                     className="min-h-[36px] min-w-[36px] p-2 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
@@ -1600,14 +1587,14 @@ export default function ScheduleClient({
                   >
                     <ChevronLeft size={16} />
                   </button>
-                  <button 
+                  <button
                     onClick={() => setInspectingDate(fmt(today))}
                     title="Go to Today"
                     className="min-h-[36px] px-3 py-1 text-xs font-medium uppercase tracking-wider text-blue-600 dark:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors cursor-pointer"
                   >
                     Today
                   </button>
-                  <button 
+                  <button
                     onClick={goToNextDay}
                     title="Next Day (Right Arrow)"
                     className="min-h-[36px] min-w-[36px] p-2 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
@@ -1629,14 +1616,14 @@ export default function ScheduleClient({
                     )}
                   </div>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    {inspectingEvents.length === 0 
-                      ? "No schedule for this day" 
+                    {inspectingEvents.length === 0
+                      ? "No schedule for this day"
                       : `${inspectingEvents.length} item${inspectingEvents.length > 1 ? "s" : ""} scheduled`}
                   </p>
                 </div>
               </div>
 
-              <button 
+              <button
                 onClick={() => setInspectingDate(null)}
                 className="min-h-[36px] min-w-[36px] flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer shrink-0"
                 aria-label="Close"
@@ -1690,8 +1677,8 @@ export default function ScheduleClient({
                     const isPastOrToday = inspectingDate <= fmt(today);
 
                     return (
-                      <div 
-                        key={ev.id} 
+                      <div
+                        key={ev.id}
                         className={`p-3 rounded-xl border ${c.border} ${c.bg} border-l-4 ${c.accent.replace('bg-', 'border-')} shadow-sm transition-all space-y-2`}
                       >
                         <div className="flex items-start justify-between gap-3">
@@ -1714,7 +1701,7 @@ export default function ScheduleClient({
                             )}
                           </div>
 
-                          <button 
+                          <button
                             onClick={() => handleDelete(ev.id)}
                             className="min-h-[36px] min-w-[36px] p-2 flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors cursor-pointer shrink-0"
                             title="Delete from schedule"
@@ -1738,7 +1725,7 @@ export default function ScheduleClient({
                           <div className="flex items-center gap-1.5 flex-wrap">
                             {/* Attendance Shortcut */}
                             {(ev.type === 'class' || ev.type === 'test') && isPastOrToday && (
-                              <a 
+                              <a
                                 href={`/admin/lms/attendance?date=${inspectingDate}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
@@ -1784,14 +1771,14 @@ export default function ScheduleClient({
                 Tip: Press <kbd className="px-1 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-[10px]">←</kbd> <kbd className="px-1 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-[10px]">→</kbd> to switch days
               </div>
               <div className="flex items-center gap-2">
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => setInspectingDate(null)}
                   className="min-h-[36px] px-3.5 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
                 >
                   Close
                 </button>
-                <button 
+                <button
                   type="button"
                   onClick={() => {
                     setFormData({

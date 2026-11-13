@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { saveBatch } from "@/app/actions/web/batches";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
 
 interface BatchData {
   id?: string;
@@ -27,6 +27,7 @@ export default function BatchForm({
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<BatchData>({
     id: batch?.id || undefined,
@@ -45,42 +46,57 @@ export default function BatchForm({
     e.preventDefault();
 
     if (!formData.title.trim()) {
-      alert("Batch title is required");
+      setError("Batch title is required");
       return;
     }
 
+    setError(null);
     setLoading(true);
     try {
       const result = await saveBatch(formData);
       if (result.error) {
-        alert("Error: " + result.error);
+        setError(result.error);
       } else {
         router.push("/admin/batches");
         router.refresh();
       }
-    } catch (err) {
-      alert("Failed to save batch");
+    } catch (err: any) {
+      setError(err?.message || "Failed to save batch. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
+  const inputClass =
+    "w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500 dark:focus:border-blue-500 transition-all text-sm font-normal text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500";
+  const selectClass =
+    "w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500 dark:focus:border-blue-500 transition-all text-sm font-normal text-slate-900 dark:text-white appearance-none cursor-pointer";
+  const labelClass =
+    "block text-xs font-medium text-slate-700 dark:text-slate-300 normal-case mb-1.5";
+
   return (
-    <form onSubmit={handleSubmit} className="max-w-3xl bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-      <div className="px-8 py-6 border-b border-slate-100 bg-slate-50/50">
-        <h2 className="text-xl font-black text-slate-900">
+    <form onSubmit={handleSubmit} className="max-w-3xl bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden">
+      <div className="px-4 sm:px-6 md:px-8 py-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40">
+        <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
           {batch ? "Edit Batch" : "Create New Batch"}
         </h2>
-        <p className="text-sm text-slate-400 mt-1">
+        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
           {batch ? "Update batch details and configuration." : "Set up a new batch for student enrollment."}
         </p>
       </div>
 
-      <div className="p-8 space-y-6">
+      <div className="p-4 sm:p-6 md:p-8 space-y-5 sm:space-y-6">
+        {error && (
+          <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 flex items-center gap-2.5 text-xs text-rose-700 dark:text-rose-400">
+            <AlertCircle size={15} className="shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
+
         {/* Row 1: Title + Course */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
           <div>
-            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">
+            <label className={labelClass}>
               Batch Title *
             </label>
             <input
@@ -89,17 +105,17 @@ export default function BatchForm({
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               placeholder="e.g. BCC Morning Batch - Jan 2025"
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-slate-900"
+              className={inputClass}
             />
           </div>
           <div>
-            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">
+            <label className={labelClass}>
               Linked Course
             </label>
             <select
               value={formData.course_id}
               onChange={(e) => setFormData({ ...formData, course_id: e.target.value })}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-slate-900 appearance-none"
+              className={selectClass}
             >
               <option value="">Select a course...</option>
               {courses.map((course) => (
@@ -112,9 +128,9 @@ export default function BatchForm({
         </div>
 
         {/* Row 2: Faculty + Timing */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
           <div>
-            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">
+            <label className={labelClass}>
               Faculty / Instructor
             </label>
             <input
@@ -122,11 +138,11 @@ export default function BatchForm({
               value={formData.faculty_name}
               onChange={(e) => setFormData({ ...formData, faculty_name: e.target.value })}
               placeholder="e.g. Mr. Sharma"
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-slate-900"
+              className={inputClass}
             />
           </div>
           <div>
-            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">
+            <label className={labelClass}>
               Timing
             </label>
             <input
@@ -134,69 +150,69 @@ export default function BatchForm({
               value={formData.timing}
               onChange={(e) => setFormData({ ...formData, timing: e.target.value })}
               placeholder="e.g. 08:00 AM - 10:00 AM"
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-slate-900"
+              className={inputClass}
             />
           </div>
         </div>
 
         {/* Row 3: Dates */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
           <div>
-            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">
+            <label className={labelClass}>
               Start Date
             </label>
             <input
               type="date"
               value={formData.start_date}
               onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-slate-900"
+              className={inputClass}
             />
           </div>
           <div>
-            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">
+            <label className={labelClass}>
               End Date
             </label>
             <input
               type="date"
               value={formData.end_date}
               onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-slate-900"
+              className={inputClass}
             />
           </div>
         </div>
 
         {/* Row 4: Seats + Status */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6">
           <div>
-            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">
+            <label className={labelClass}>
               Max Seats
             </label>
             <input
               type="number"
               value={formData.max_seats}
               onChange={(e) => setFormData({ ...formData, max_seats: parseInt(e.target.value) || 0 })}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-slate-900"
+              className={inputClass}
             />
           </div>
           <div>
-            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">
+            <label className={labelClass}>
               Available Seats
             </label>
             <input
               type="number"
               value={formData.available_seats}
               onChange={(e) => setFormData({ ...formData, available_seats: parseInt(e.target.value) || 0 })}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-slate-900"
+              className={inputClass}
             />
           </div>
           <div>
-            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">
+            <label className={labelClass}>
               Status
             </label>
             <select
               value={formData.status}
               onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-slate-900 appearance-none"
+              className={selectClass}
             >
               <option value="active">Active</option>
               <option value="upcoming">Upcoming</option>
@@ -207,19 +223,19 @@ export default function BatchForm({
       </div>
 
       {/* Footer */}
-      <div className="px-8 py-6 bg-slate-50 border-t border-slate-100 flex gap-4">
+      <div className="px-4 sm:px-6 md:px-8 py-4 sm:py-5 bg-slate-50/60 dark:bg-slate-950/40 border-t border-slate-100 dark:border-slate-800 flex items-center gap-3">
         <button
           type="submit"
           disabled={loading}
-          className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl transition-all shadow-lg shadow-blue-600/20 flex items-center gap-2 disabled:opacity-50"
+          className="px-5 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-lg text-xs font-medium shadow-xs hover:bg-slate-800 dark:hover:bg-slate-100 transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
         >
-          {loading && <Loader2 size={16} className="animate-spin" />}
-          {batch ? "Update Batch" : "Create Batch"}
+          {loading && <Loader2 size={14} className="animate-spin" />}
+          <span>{batch ? "Update Batch" : "Create Batch"}</span>
         </button>
         <button
           type="button"
           onClick={() => router.back()}
-          className="px-8 py-3 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-all"
+          className="px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all cursor-pointer"
         >
           Cancel
         </button>
