@@ -1665,7 +1665,7 @@ export default function GoogleCalendarClient({
 
           {/* Quick link to Academic Schedule */}
           <Link
-            href="/admin/schedule"
+            href="/schedule"
             title="Curriculum Split View"
             className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-700 transition"
           >
@@ -2451,7 +2451,7 @@ export default function GoogleCalendarClient({
                         {/* Attendance Link for Live Class */}
                         {item.type === "class" && (
                           <Link
-                            href={`/admin/lms/attendance?date=${item.date}`}
+                            href={`/lms/attendance?date=${item.date}`}
                             className="px-2.5 py-1 bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-300 hover:bg-blue-100 rounded-md text-[11px] font-medium flex items-center gap-1 transition"
                           >
                             <CheckCircle2 size={12} /> Attendance

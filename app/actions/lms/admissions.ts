@@ -68,7 +68,7 @@ export async function submitAdmission(formData: AdmissionFormData) {
       return { error: "Failed to submit application. Please try again later." };
     }
 
-    revalidatePath("/admin/admissions");
+    revalidatePath("/admissions");
 
     // Send push notification to all admins (Trigger 1)
     try {
@@ -115,8 +115,8 @@ export async function updateAdmissionStatus(
       return { error: "Failed to update admission status." };
     }
 
-    revalidatePath("/admin/admissions");
-    revalidatePath("/admin/students");
+    revalidatePath("/admissions");
+    revalidatePath("/students");
 
     return { 
       success: true
@@ -141,7 +141,7 @@ export async function verifyAdmissionDocuments(admissionId: string, verified: bo
 
     if (error) throw error;
 
-    revalidatePath("/admin/admissions");
+    revalidatePath("/admissions");
     return { success: true };
   } catch (e: unknown) {
     console.error("verifyAdmissionDocuments error:", e);
@@ -163,7 +163,7 @@ export async function deleteAdmissionEntry(id: string) {
       return { error: "Failed to delete application" };
     }
 
-    revalidatePath("/admin/admissions");
+    revalidatePath("/admissions");
     return { success: true };
   } catch (e: unknown) {
     console.error("deleteAdmissionEntry auth error:", e);

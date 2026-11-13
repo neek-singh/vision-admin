@@ -37,7 +37,7 @@ export async function toggleBlockUser(
       })
       .eq("id", userId);
 
-    revalidatePath("/admin/users");
+    revalidatePath("/users");
     return { success: true };
   } catch (err: any) {
     console.error("toggleBlockUser error:", err);
@@ -63,7 +63,7 @@ export async function updateUserRole(userId: string, newRole: "admin" | "student
 
     if (error) throw error;
 
-    revalidatePath("/admin/users");
+    revalidatePath("/users");
     return { success: true };
   } catch (err: any) {
     console.error("updateUserRole error:", err);

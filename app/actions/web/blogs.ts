@@ -54,7 +54,7 @@ export async function saveBlog(formData: any) {
     if (formData.slug) {
       revalidatePath(`/blog/${formData.slug}`);
     }
-    revalidatePath("/admin/blogs");
+    revalidatePath("/blogs");
     return { success: true };
   } catch (e: any) {
     console.error("Failed to save blog to JSON:", e);
@@ -76,7 +76,7 @@ export async function deleteBlog(id: string) {
     fs.writeFileSync(blogsFilePath, JSON.stringify(updatedBlogs, null, 2), "utf-8");
 
     revalidatePath("/blog");
-    revalidatePath("/admin/blogs");
+    revalidatePath("/blogs");
     return { success: true };
   } catch (e: any) {
     console.error("Failed to delete blog from JSON:", e);

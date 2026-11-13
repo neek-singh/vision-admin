@@ -86,7 +86,7 @@ export default function AddStudentPage() {
         {/* Back navigation */}
         <div>
           <Link 
-            href="/admin/students" 
+            href="/students" 
             className="inline-flex items-center gap-2 text-sm font-normal text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
           >
             <ChevronLeft size={16} />

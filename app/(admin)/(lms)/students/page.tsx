@@ -72,7 +72,7 @@ export default async function AdminStudentsPage({
         </div>
         <div className="flex items-center gap-2">
           <Link
-            href="/admin/students/add"
+            href="/students/add"
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500 rounded-xl shadow-2xs hover:shadow-xs transition-all active:scale-[0.98]"
           >
             <UserPlus size={14} />

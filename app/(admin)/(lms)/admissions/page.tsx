@@ -162,7 +162,7 @@ export default async function AdminAdmissionsPage({
                 Filtered by &quot;{query}&quot;
               </span>
               <Link
-                href="/admin/admissions"
+                href="/admissions"
                 className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-blue-600 bg-slate-100 dark:bg-slate-800 rounded-lg transition-colors"
               >
                 <RotateCcw size={11} />
@@ -204,7 +204,7 @@ export default async function AdminAdmissionsPage({
                       </p>
                       {query && (
                         <Link
-                          href="/admin/admissions"
+                          href="/admissions"
                           className="mt-3.5 px-3 py-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-lg transition-colors"
                         >
                           Clear search

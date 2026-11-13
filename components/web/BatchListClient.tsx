@@ -111,7 +111,7 @@ export default function BatchListClient({ batches }: { batches: any[] }) {
                 {/* Actions */}
                 <div className="flex items-center gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                   <Link
-                    href={`/admin/batches/${batch.id}/edit`}
+                    href={`/batches/${batch.id}/edit`}
                     className="p-1.5 text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-md transition-colors"
                     title="Edit Batch"
                   >

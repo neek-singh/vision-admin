@@ -321,7 +321,7 @@ export default function CoursesTableClient({ initialCourses }: { initialCourses:
                       <td className="px-3.5 py-3">
                         <div className="flex items-center gap-1.5 min-w-0">
                           <Link
-                            href={`/admin/courses/${course.id}/edit`}
+                            href={`/courses/${course.id}/edit`}
                             className="text-xs font-semibold text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors truncate cursor-pointer"
                             title={`Edit ${course.title}`}
                           >
@@ -360,7 +360,7 @@ export default function CoursesTableClient({ initialCourses }: { initialCourses:
                       {/* 4. Enrolled (Only Number) */}
                       <td className="px-3.5 py-3 text-center">
                         <Link 
-                          href="/admin/students"
+                          href="/students"
                           className="inline-flex items-center justify-center min-w-[26px] h-[22px] px-2 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-blue-950/40 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-200 dark:hover:border-blue-800 border border-slate-200/60 dark:border-slate-700 tabular-nums transition-colors cursor-pointer"
                           title={`View ${enrolledCount} enrolled students`}
                         >
@@ -431,7 +431,7 @@ export default function CoursesTableClient({ initialCourses }: { initialCourses:
                             </a>
                           )}
                           <Link
-                            href="/admin/lms/content"
+                            href="/lms/content"
                             className="p-1 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer"
                             title="View & Edit Curriculum"
                             aria-label="View & Edit Curriculum"
@@ -439,7 +439,7 @@ export default function CoursesTableClient({ initialCourses }: { initialCourses:
                             <BookOpen size={13} />
                           </Link>
                           <Link
-                            href={`/admin/courses/${course.id}/edit`}
+                            href={`/courses/${course.id}/edit`}
                             className="p-1 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer"
                             title="Edit Course"
                             aria-label="Edit Course"
@@ -480,7 +480,7 @@ export default function CoursesTableClient({ initialCourses }: { initialCourses:
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex items-center gap-1.5">
                       <Link
-                        href={`/admin/courses/${course.id}/edit`}
+                        href={`/courses/${course.id}/edit`}
                         className="font-bold text-xs text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors leading-tight cursor-pointer"
                         title={`Edit ${course.title}`}
                       >
@@ -555,7 +555,7 @@ export default function CoursesTableClient({ initialCourses }: { initialCourses:
 
                     {/* Enrolled (Only Number) */}
                     <Link 
-                      href="/admin/students"
+                      href="/students"
                       className="inline-flex items-center justify-center min-w-[20px] h-[18px] px-1.5 rounded-full font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-blue-950/40 hover:text-blue-600 dark:hover:text-blue-400 border border-slate-200/60 dark:border-slate-700 tabular-nums transition-colors cursor-pointer"
                       title={`View ${enrolledCount} enrolled students`}
                     >
@@ -578,7 +578,7 @@ export default function CoursesTableClient({ initialCourses }: { initialCourses:
                       </a>
                     )}
                     <Link
-                      href="/admin/lms/content"
+                      href="/lms/content"
                       className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 rounded-lg transition-colors cursor-pointer"
                       title="View & Edit Curriculum"
                       aria-label="View & Edit Curriculum"
@@ -587,7 +587,7 @@ export default function CoursesTableClient({ initialCourses }: { initialCourses:
                       <span>Curriculum</span>
                     </Link>
                     <Link
-                      href={`/admin/courses/${course.id}/edit`}
+                      href={`/courses/${course.id}/edit`}
                       className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/60 rounded-lg transition-colors cursor-pointer"
                       title="Edit Course"
                     >

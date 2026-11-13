@@ -67,7 +67,7 @@ export async function saveCourse(formData: any) {
     if (formData.id) {
       revalidatePath(`/courses/${formData.id}`);
     }
-    revalidatePath("/admin/courses");
+    revalidatePath("/courses");
     return { success: true };
   } catch (e: any) {
     console.error("Failed to save course to DB:", e);
@@ -90,7 +90,7 @@ export async function deleteCourse(id: string) {
     }
 
     revalidatePath("/courses");
-    revalidatePath("/admin/courses");
+    revalidatePath("/courses");
     return { success: true };
   } catch (e: any) {
     console.error("Failed to delete course from DB:", e);
@@ -150,7 +150,7 @@ export async function toggleCourseVisibility(id: string, is_published: boolean) 
       return { error: "Failed to toggle visibility" };
     }
 
-    revalidatePath("/admin/courses");
+    revalidatePath("/courses");
     revalidatePath("/courses");
     if (id) {
       revalidatePath(`/courses/${id}`);
@@ -188,7 +188,7 @@ export async function setAllCoursesVisibility(is_published: boolean) {
       }
     }
 
-    revalidatePath("/admin/courses");
+    revalidatePath("/courses");
     revalidatePath("/courses");
     return { success: true, count: ids.length, is_published };
   } catch (e: any) {

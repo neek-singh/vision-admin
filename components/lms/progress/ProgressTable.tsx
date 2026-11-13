@@ -678,7 +678,7 @@ export default function ProgressTable({ initialRecords, availableCourses, stats 
                       {/* Action */}
                       <td className="px-5 py-3.5 text-right">
                         <a 
-                          href={`/admin/students?query=${encodeURIComponent(record.name)}`}
+                          href={`/students?query=${encodeURIComponent(record.name)}`}
                           className="inline-flex p-1.5 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-lg transition-colors"
                           title="View student profile"
                         >
@@ -793,7 +793,7 @@ export default function ProgressTable({ initialRecords, availableCourses, stats 
                       <span>{activeInfo.text}</span>
                     </div>
                     <a 
-                      href={`/admin/students?query=${encodeURIComponent(record.name)}`}
+                      href={`/students?query=${encodeURIComponent(record.name)}`}
                       className="inline-flex items-center gap-1 font-medium text-blue-600 dark:text-blue-400 hover:underline"
                     >
                       <span>Profile</span>

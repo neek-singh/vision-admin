@@ -18,7 +18,7 @@ export async function deleteContact(id: string) {
       return { error: "Failed to delete contact" };
     }
 
-    revalidatePath("/admin/contacts");
+    revalidatePath("/contacts");
     return { success: true };
   } catch (e: any) {
     console.error("Failed to delete contact:", e);

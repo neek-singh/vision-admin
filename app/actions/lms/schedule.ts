@@ -47,8 +47,8 @@ export async function createSchedule(data: {
 
       if (error) return { error: "Failed to create event" };
 
-      revalidatePath("/admin/schedule");
-      revalidatePath("/admin/calendar");
+      revalidatePath("/schedule");
+      revalidatePath("/calendar");
       return { success: true };
     }
 
@@ -80,8 +80,8 @@ export async function createSchedule(data: {
       console.error("[createSchedule] Failed to notify students:", notifErr);
     }
 
-    revalidatePath("/admin/schedule");
-    revalidatePath("/admin/calendar");
+    revalidatePath("/schedule");
+    revalidatePath("/calendar");
     return { success: true };
   } catch (err: unknown) {
     console.error("createSchedule error:", err);
@@ -97,8 +97,8 @@ export async function deleteSchedule(id: string) {
       supabase.from("events").delete().eq("id", id)
     ]);
     if (res1.error && res2.error) return { error: "Failed to delete item" };
-    revalidatePath("/admin/schedule");
-    revalidatePath("/admin/calendar");
+    revalidatePath("/schedule");
+    revalidatePath("/calendar");
     return { success: true };
   } catch (err: unknown) {
     console.error("deleteSchedule error:", err);
@@ -163,8 +163,8 @@ export async function updateScheduleDate(data: {
       console.error("[updateScheduleDate] Failed to notify students:", notifErr);
     }
 
-    revalidatePath("/admin/schedule");
-    revalidatePath("/admin/calendar");
+    revalidatePath("/schedule");
+    revalidatePath("/calendar");
     return { success: true };
   } catch (err: unknown) {
     console.error("updateScheduleDate error:", err);
@@ -206,8 +206,8 @@ export async function duplicateSchedule(id: string, targetDate: string) {
       if (error) return { error: "Failed to duplicate event" };
     }
 
-    revalidatePath("/admin/schedule");
-    revalidatePath("/admin/calendar");
+    revalidatePath("/schedule");
+    revalidatePath("/calendar");
     return { success: true };
   } catch (err: any) {
     console.error("duplicateSchedule error:", err);

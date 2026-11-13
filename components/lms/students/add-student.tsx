@@ -34,7 +34,7 @@ export default async function AdminStudentsPage({
         <h1 className="text-3xl font-bold text-blue-950">Manage Students</h1>
         <div className="flex gap-4">
           <a
-            href="/admin/students/add"
+            href="/students/add"
             className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-all"
           >
             Add Student

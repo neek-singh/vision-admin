@@ -78,9 +78,9 @@ export async function assignCourseToStudent(studentId: string, courseId: string,
             }
         }
 
-        revalidatePath("/admin/students");
-        revalidatePath("/admin/courses");
-        revalidatePath("/admin/fees");
+        revalidatePath("/students");
+        revalidatePath("/courses");
+        revalidatePath("/fees");
         revalidatePath("/courses");
         return { success: true };
     } catch (e: any) {
@@ -103,9 +103,9 @@ export async function removeCourseFromStudent(enrollmentId: string) {
             return { error: "Failed to remove course enrollment." };
         }
 
-        revalidatePath("/admin/students");
-        revalidatePath("/admin/courses");
-        revalidatePath("/admin/fees");
+        revalidatePath("/students");
+        revalidatePath("/courses");
+        revalidatePath("/fees");
         revalidatePath("/courses");
         return { success: true };
     } catch (e: any) {
@@ -128,7 +128,7 @@ export async function updateEnrollmentBatch(enrollmentId: string, batch: string 
             return { error: "Failed to update enrollment batch." };
         }
 
-        revalidatePath("/admin/students");
+        revalidatePath("/students");
         return { success: true };
     } catch (e: any) {
         console.error("updateEnrollmentBatch auth error:", e);
@@ -162,7 +162,7 @@ export async function updateStudentBatch(studentId: string, batch: string | null
             return { error: "Failed to update batch enrollments." };
         }
 
-        revalidatePath("/admin/students");
+        revalidatePath("/students");
         return { success: true };
     } catch (e: any) {
         console.error("updateStudentBatch auth error:", e);
@@ -185,8 +185,8 @@ export async function moveToTrashStudent(id: string) {
 
         if (error) throw error;
 
-        revalidatePath("/admin/students");
-        revalidatePath("/admin/fees");
+        revalidatePath("/students");
+        revalidatePath("/fees");
         return { success: true };
     } catch (e: any) {
         console.error("moveToTrashStudent error:", e);
@@ -208,8 +208,8 @@ export async function bulkMoveToTrashStudents(ids: string[]) {
 
         if (error) throw error;
 
-        revalidatePath("/admin/students");
-        revalidatePath("/admin/fees");
+        revalidatePath("/students");
+        revalidatePath("/fees");
         return { success: true };
     } catch (e: any) {
         console.error("bulkMoveToTrashStudents error:", e);
@@ -231,8 +231,8 @@ export async function restoreStudent(id: string) {
 
         if (error) throw error;
 
-        revalidatePath("/admin/students");
-        revalidatePath("/admin/fees");
+        revalidatePath("/students");
+        revalidatePath("/fees");
         return { success: true };
     } catch (e: any) {
         console.error("restoreStudent error:", e);
@@ -255,8 +255,8 @@ export async function bulkRestoreStudents(ids: string[]) {
 
         if (error) throw error;
 
-        revalidatePath("/admin/students");
-        revalidatePath("/admin/fees");
+        revalidatePath("/students");
+        revalidatePath("/fees");
         return { success: true };
     } catch (e: any) {
         console.error("bulkRestoreStudents error:", e);
@@ -274,8 +274,8 @@ export async function permanentDeleteStudent(id: string) {
 
         if (error) throw error;
 
-        revalidatePath("/admin/students");
-        revalidatePath("/admin/fees");
+        revalidatePath("/students");
+        revalidatePath("/fees");
         return { success: true };
     } catch (e: any) {
         console.error("permanentDeleteStudent error:", e);
@@ -293,8 +293,8 @@ export async function emptyTrashStudents() {
 
         if (error) throw error;
 
-        revalidatePath("/admin/students");
-        revalidatePath("/admin/fees");
+        revalidatePath("/students");
+        revalidatePath("/fees");
         return { success: true };
     } catch (e: any) {
         console.error("emptyTrashStudents error:", e);
@@ -323,10 +323,10 @@ export async function updateStudentAcademicStatus(data: {
 
         if (error) throw error;
 
-        revalidatePath("/admin/students");
-        revalidatePath("/admin/fees");
-        revalidatePath("/admin");
-        revalidatePath("/admin/lms/analytics");
+        revalidatePath("/students");
+        revalidatePath("/fees");
+        revalidatePath("/dashboard");
+        revalidatePath("/lms/analytics");
         return { success: true };
     } catch (e: any) {
         console.error("updateStudentAcademicStatus error:", e);
@@ -353,10 +353,10 @@ export async function bulkUpdateStudentStatus(
 
         if (error) throw error;
 
-        revalidatePath("/admin/students");
-        revalidatePath("/admin/fees");
-        revalidatePath("/admin");
-        revalidatePath("/admin/lms/analytics");
+        revalidatePath("/students");
+        revalidatePath("/fees");
+        revalidatePath("/dashboard");
+        revalidatePath("/lms/analytics");
         return { success: true };
     } catch (e: any) {
         console.error("bulkUpdateStudentStatus error:", e);

@@ -44,7 +44,7 @@ export default async function ManageStatsPage() {
       {/* Header */}
       <div className="flex items-center gap-3">
         <Link
-          href="/admin"
+          href="/dashboard"
           className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
         >
           <ArrowLeft size={16} className="text-slate-600 dark:text-slate-400" />

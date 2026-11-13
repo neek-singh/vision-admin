@@ -46,7 +46,7 @@ export default async function AdminBlogsPage() {
           </p>
         </div>
         <Link
-          href="/admin/blogs/new"
+          href="/blogs/new"
           className="inline-flex items-center gap-2 px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-md shadow-orange-500/20 hover:-translate-y-0.5 active:scale-[0.98]"
         >
           <Plus size={14} /> New Blog Post
@@ -88,7 +88,7 @@ export default async function AdminBlogsPage() {
               {blogsList.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-5 py-16 text-center text-slate-400 text-sm">
-                    No blogs found. <Link href="/admin/blogs/new" className="text-orange-500 hover:underline font-bold">Write your first post →</Link>
+                    No blogs found. <Link href="/blogs/new" className="text-orange-500 hover:underline font-bold">Write your first post →</Link>
                   </td>
                 </tr>
               ) : (
@@ -121,7 +121,7 @@ export default async function AdminBlogsPage() {
                     <td className="px-5 py-3.5 text-right">
                       <div className="flex items-center justify-end gap-3">
                         <Link
-                          href={`/admin/blogs/${blog.id}/edit`}
+                          href={`/blogs/${blog.id}/edit`}
                           className="text-orange-500 hover:text-orange-600 font-black text-[10px] uppercase tracking-widest flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
                         >
                           Edit <ArrowUpRight size={11} />
@@ -156,7 +156,7 @@ export default async function AdminBlogsPage() {
                     {blog.created_at ? new Date(blog.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—"}
                   </p>
                   <div className="flex items-center gap-3">
-                    <Link href={`/admin/blogs/${blog.id}/edit`} className="text-orange-500 font-black text-[10px] uppercase tracking-widest">
+                    <Link href={`/blogs/${blog.id}/edit`} className="text-orange-500 font-black text-[10px] uppercase tracking-widest">
                       Edit
                     </Link>
                     <DeleteButton id={blog.id} table="blogs" title={blog.title} />

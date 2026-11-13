@@ -29,7 +29,7 @@ export async function saveBatch(data: {
         console.error("saveBatch update error:", error);
         return { error: "Failed to update batch" };
       }
-      revalidatePath("/admin/batches");
+      revalidatePath("/batches");
       return { success: true };
     } else {
       const { error } = await supabase
@@ -40,7 +40,7 @@ export async function saveBatch(data: {
         console.error("saveBatch insert error:", error);
         return { error: "Failed to create batch" };
       }
-      revalidatePath("/admin/batches");
+      revalidatePath("/batches");
       return { success: true };
     }
   } catch (err: any) {
@@ -62,7 +62,7 @@ export async function deleteBatch(id: string) {
       console.error("deleteBatch error:", error);
       return { error: "Failed to delete batch" };
     }
-    revalidatePath("/admin/batches");
+    revalidatePath("/batches");
     return { success: true };
   } catch (err: any) {
     console.error("deleteBatch auth error:", err);

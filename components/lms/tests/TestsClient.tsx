@@ -342,7 +342,7 @@ export default function TestsClient({ courses, initialTests, availableBatches = 
                 Results
               </button>
               <button 
-                onClick={() => router.push(`/admin/lms/tests/${test.id}`)}
+                onClick={() => router.push(`/lms/tests/${test.id}`)}
                 className="py-3 bg-slate-900 hover:bg-rose-600 text-white text-[10px] font-black rounded-xl transition-all flex items-center justify-center gap-2"
               >
                 <PlayCircle size={14} />

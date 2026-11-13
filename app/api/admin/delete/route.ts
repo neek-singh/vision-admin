@@ -35,8 +35,8 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: "Delete operation failed" }, { status: 500 });
     }
 
-    revalidatePath("/admin/contacts");
-    revalidatePath("/admin/chats");
+    revalidatePath("/contacts");
+    revalidatePath("/chats");
     return NextResponse.json({ success: true });
   } catch (err: any) {
     console.error("DELETE handler exception:", err);
@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Failed to update follow status" }, { status: 500 });
       }
 
-      revalidatePath("/admin/chats");
+      revalidatePath("/chats");
       return NextResponse.json({ success: true });
     }
 
@@ -138,7 +138,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Failed to update status" }, { status: 500 });
       }
 
-      revalidatePath("/admin/chats");
+      revalidatePath("/chats");
       return NextResponse.json({ success: true });
     }
 

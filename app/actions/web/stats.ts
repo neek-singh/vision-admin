@@ -47,7 +47,7 @@ export async function updateStats(formData: FormData) {
     fs.writeFileSync(statsFilePath, JSON.stringify(newStats, null, 2), "utf-8");
 
     revalidatePath("/about");
-    revalidatePath("/admin/stats");
+    revalidatePath("/stats");
   } catch (error: any) {
     console.error("Failed to update stats:", error);
   }

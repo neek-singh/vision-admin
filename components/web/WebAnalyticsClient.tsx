@@ -295,7 +295,7 @@ export default function WebAnalyticsClient({
           <div className="flex items-center justify-between mt-2 text-xs text-slate-500 dark:text-slate-400">
             <span>Contact form leads</span>
             <Link
-              href="/admin/contacts"
+              href="/contacts"
               className="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-0.5 font-medium"
             >
               View <ArrowUpRight size={12} />
@@ -445,7 +445,7 @@ export default function WebAnalyticsClient({
               </span>
             </div>
             <Link
-              href="/admin/students"
+              href="/students"
               className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline shrink-0"
             >
               Manage Students →
@@ -525,7 +525,7 @@ export default function WebAnalyticsClient({
               </p>
             </div>
             <Link
-              href="/admin/batches"
+              href="/batches"
               className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline"
             >
               Batches →
@@ -585,7 +585,7 @@ export default function WebAnalyticsClient({
               </p>
             </div>
             <Link
-              href="/admin/blogs"
+              href="/blogs"
               className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline"
             >
               Manage →
@@ -634,7 +634,7 @@ export default function WebAnalyticsClient({
             </p>
           </div>
           <Link
-            href="/admin/students"
+            href="/students"
             className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline"
           >
             All Students ({students.length}) →

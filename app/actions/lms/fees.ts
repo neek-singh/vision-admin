@@ -44,7 +44,7 @@ export async function setupStudentFee(data: {
       if (instError) return { error: "Failed to create installments" };
     }
 
-    revalidatePath("/admin/fees");
+    revalidatePath("/fees");
     return { success: true };
   } catch (err: any) {
     console.error("setupStudentFee error:", err);
@@ -154,7 +154,7 @@ export async function recordPayment(data: {
       console.error("Failed to process fee payment notifications:", pushError);
     }
 
-    revalidatePath("/admin/fees");
+    revalidatePath("/fees");
     return { success: true };
   } catch (err: any) {
     console.error("recordPayment error:", err);
@@ -167,7 +167,7 @@ export async function deleteFeeRecord(id: string) {
     const { supabase } = await requireAdmin();
     const { error } = await supabase.from("fees").delete().eq("id", id);
     if (error) return { error: "Failed to delete fee record" };
-    revalidatePath("/admin/fees");
+    revalidatePath("/fees");
     return { success: true };
   } catch (err: any) {
     console.error("deleteFeeRecord error:", err);
@@ -230,7 +230,7 @@ export async function deletePayment(paymentId: string, feeId: string) {
       }
     }
 
-    revalidatePath("/admin/fees");
+    revalidatePath("/fees");
     return { success: true };
   } catch (err: any) {
     console.error("deletePayment error:", err);
@@ -279,7 +279,7 @@ export async function incrementStudentFee(feeId: string, incrementAmount: number
       .update({ status: newStatus })
       .eq("id", feeId);
 
-    revalidatePath("/admin/fees");
+    revalidatePath("/fees");
     return { success: true };
   } catch (err: any) {
     console.error("incrementStudentFee error:", err);

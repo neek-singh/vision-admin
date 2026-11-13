@@ -16,6 +16,20 @@ const nextConfig: NextConfig = {
   experimental: {
     instantNavigationDevToolsToggle: true,
   },
+  async redirects() {
+    return [
+      {
+        source: "/admin",
+        destination: "/dashboard",
+        permanent: false,
+      },
+      {
+        source: "/admin/:path*",
+        destination: "/:path*",
+        permanent: false,
+      },
+    ];
+  },
   async headers() {
     return [
       {

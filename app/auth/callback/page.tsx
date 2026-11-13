@@ -15,7 +15,7 @@ function AuthCallbackContent() {
             const isAdmin = await AuthServices.isAdmin()
 
             if (isAdmin) {
-                router.push('/admin')
+                router.push('/dashboard')
             } else {
                 router.push('/unauthorized')
             }

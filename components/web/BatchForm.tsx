@@ -57,7 +57,7 @@ export default function BatchForm({
       if (result.error) {
         setError(result.error);
       } else {
-        router.push("/admin/batches");
+        router.push("/batches");
         router.refresh();
       }
     } catch (err: any) {

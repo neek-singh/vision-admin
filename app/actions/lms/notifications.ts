@@ -96,7 +96,7 @@ export async function sendNotification(data: {
       })
     ));
 
-    revalidatePath("/admin/notifications");
+    revalidatePath("/notifications");
     return { success: true, count: students.length };
   } catch (err: unknown) {
     console.error("sendNotification error:", err);
@@ -128,7 +128,7 @@ export async function deleteNotification(id: string) {
     await supabase.from("notification_history").delete().eq("id", id);
     const { error } = await supabase.from("notifications").delete().eq("id", id);
     if (error) return { error: "Failed to delete notification" };
-    revalidatePath("/admin/notifications");
+    revalidatePath("/notifications");
     return { success: true };
   } catch (err: unknown) {
     console.error("deleteNotification error:", err);

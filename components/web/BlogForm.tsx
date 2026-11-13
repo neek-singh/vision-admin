@@ -100,7 +100,7 @@ export default function BlogForm({ initialData }: { initialData?: BlogData }) {
 
       if (result.error) throw new Error(result.error);
 
-      router.push("/admin/blogs");
+      router.push("/blogs");
       router.refresh();
     } catch (err: any) {
       console.error(err);
@@ -217,7 +217,7 @@ export default function BlogForm({ initialData }: { initialData?: BlogData }) {
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? "Saving..." : "Save"}
         </Button>
-        <Button href="/admin/blogs" variant="ghost">
+        <Button href="/blogs" variant="ghost">
           Cancel
         </Button>
       </div>

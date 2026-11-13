@@ -37,40 +37,40 @@ export interface NavSearchItem {
 
 const SEARCHABLE_ITEMS: NavSearchItem[] = [
   // Core
-  { title: "Admin Dashboard", path: "/admin", category: "Core", keywords: ["dashboard", "home", "stats", "overview", "lms", "learning", "students", "batches", "classes"] },
+  { title: "Dashboard", path: "/dashboard", category: "Core", keywords: ["dashboard", "home", "stats", "overview", "lms", "learning", "students", "batches", "classes"] },
 
   // LMS
-  { title: "Enquiry Admissions", path: "/admin/admissions", category: "LMS", icon: GraduationCap, keywords: ["admissions", "applications", "enquiries", "students", "leads"] },
-  { title: "Manage Students", path: "/admin/students", category: "LMS", icon: UsersIcon, keywords: ["students", "learners", "directory", "id cards", "profiles"] },
-  { title: "Add New Student", path: "/admin/students/add", category: "LMS", icon: UsersIcon, keywords: ["add student", "register student", "new enrollment"] },
-  { title: "Manage Courses", path: "/admin/courses", category: "LMS", icon: BookOpen, keywords: ["courses", "syllabus", "fees", "duration"] },
-  { title: "Add New Course", path: "/admin/courses/new", category: "LMS", icon: BookOpen, keywords: ["add course", "create course", "new course"] },
-  { title: "Course Curriculum", path: "/admin/lms/content", category: "LMS", icon: FileText, keywords: ["curriculum", "modules", "chapters", "lessons", "content"] },
-  { title: "Tests & Exams", path: "/admin/lms/tests", category: "LMS", icon: FileText, keywords: ["tests", "exams", "quizzes", "results", "marks"] },
-  { title: "Notes & Materials", path: "/admin/lms/materials", category: "LMS", icon: FileText, keywords: ["notes", "materials", "pdf", "resources", "downloads"] },
-  { title: "Projects & Assignments", path: "/admin/lms/projects", category: "LMS", keywords: ["projects", "assignments", "submissions", "code"] },
-  { title: "Daily Attendance", path: "/admin/lms/attendance", category: "LMS", keywords: ["attendance", "present", "absent", "qr scanner", "roll call"] },
-  { title: "Calendar & Events", path: "/admin/calendar", category: "LMS", icon: Calendar, keywords: ["calendar", "clander", "events", "dates", "schedule", "timetable"] },
-  { title: "Academic Schedule", path: "/admin/schedule", category: "LMS", icon: Calendar, keywords: ["schedule", "timing", "classes", "calendar", "clander", "timetable"] },
-  { title: "Notification Center", path: "/admin/notifications", category: "LMS", icon: Bell, keywords: ["notifications", "announcements", "broadcast", "alerts", "updates"] },
-  { title: "Fees Management", path: "/admin/fees", category: "LMS", icon: CreditCard, keywords: ["fees", "payments", "transactions", "receipts", "dues"] },
-  { title: "Expenses Management", path: "/admin/expenses", category: "LMS", keywords: ["expenses", "costs", "spending", "finance"] },
-  { title: "LMS Student Chats", path: "/admin/lms/chats", category: "LMS", icon: MessageSquare, keywords: ["chats", "messages", "support", "students"] },
-  { title: "LMS Analytics", path: "/admin/lms/analytics", category: "LMS", icon: TrendingUp, keywords: ["analytics", "performance", "metrics", "reports"] },
+  { title: "Enquiry Admissions", path: "/admissions", category: "LMS", icon: GraduationCap, keywords: ["admissions", "applications", "enquiries", "students", "leads"] },
+  { title: "Manage Students", path: "/students", category: "LMS", icon: UsersIcon, keywords: ["students", "learners", "directory", "id cards", "profiles"] },
+  { title: "Add New Student", path: "/students/add", category: "LMS", icon: UsersIcon, keywords: ["add student", "register student", "new enrollment"] },
+  { title: "Manage Courses", path: "/courses", category: "LMS", icon: BookOpen, keywords: ["courses", "syllabus", "fees", "duration"] },
+  { title: "Add New Course", path: "/courses/new", category: "LMS", icon: BookOpen, keywords: ["add course", "create course", "new course"] },
+  { title: "Course Curriculum", path: "/lms/content", category: "LMS", icon: FileText, keywords: ["curriculum", "modules", "chapters", "lessons", "content"] },
+  { title: "Tests & Exams", path: "/lms/tests", category: "LMS", icon: FileText, keywords: ["tests", "exams", "quizzes", "results", "marks"] },
+  { title: "Notes & Materials", path: "/lms/materials", category: "LMS", icon: FileText, keywords: ["notes", "materials", "pdf", "resources", "downloads"] },
+  { title: "Projects & Assignments", path: "/lms/projects", category: "LMS", keywords: ["projects", "assignments", "submissions", "code"] },
+  { title: "Daily Attendance", path: "/lms/attendance", category: "LMS", keywords: ["attendance", "present", "absent", "qr scanner", "roll call"] },
+  { title: "Calendar & Events", path: "/calendar", category: "LMS", icon: Calendar, keywords: ["calendar", "clander", "events", "dates", "schedule", "timetable"] },
+  { title: "Academic Schedule", path: "/schedule", category: "LMS", icon: Calendar, keywords: ["schedule", "timing", "classes", "calendar", "clander", "timetable"] },
+  { title: "Notification Center", path: "/notifications", category: "LMS", icon: Bell, keywords: ["notifications", "announcements", "broadcast", "alerts", "updates"] },
+  { title: "Fees Management", path: "/fees", category: "LMS", icon: CreditCard, keywords: ["fees", "payments", "transactions", "receipts", "dues"] },
+  { title: "Expenses Management", path: "/expenses", category: "LMS", keywords: ["expenses", "costs", "spending", "finance"] },
+  { title: "LMS Student Chats", path: "/lms/chats", category: "LMS", icon: MessageSquare, keywords: ["chats", "messages", "support", "students"] },
+  { title: "LMS Analytics", path: "/lms/analytics", category: "LMS", icon: TrendingUp, keywords: ["analytics", "performance", "metrics", "reports"] },
 
   // Web
-  { title: "Batches", path: "/admin/batches", category: "Web", icon: Calendar, keywords: ["batches", "cohorts", "groups", "admissions"] },
-  { title: "Add New Batch", path: "/admin/batches/new", category: "Web", icon: Calendar, keywords: ["add batch", "create batch", "new batch"] },
-  { title: "General Inquiries", path: "/admin/contacts", category: "Web", icon: MessageSquare, keywords: ["contacts", "inquiries", "leads", "messages", "form"] },
-  { title: "Blogs & Articles", path: "/admin/blogs", category: "Web", icon: FileText, keywords: ["blogs", "posts", "news", "articles", "stories"] },
-  { title: "Write Blog Post", path: "/admin/blogs/new", category: "Web", icon: FileText, keywords: ["write blog", "create blog", "new post", "new blog", "article"] },
-  { title: "Gallery Manager", path: "/admin/gallery", category: "Web", keywords: ["gallery", "photos", "images", "pictures", "upload"] },
-  { title: "Website Stats", path: "/admin/stats", category: "Web", keywords: ["stats", "about stats", "counters", "numbers"] },
-  { title: "Web Inquiries Chat", path: "/admin/chats", category: "Web", icon: MessageSquare, keywords: ["web chats", "messages", "inquiry chat"] },
-  { title: "Web & Growth Analytics", path: "/admin/analytics", category: "Web", icon: TrendingUp, keywords: ["analytics", "traffic", "leads", "funnel", "pageviews"] },
+  { title: "Batches", path: "/batches", category: "Web", icon: Calendar, keywords: ["batches", "cohorts", "groups", "admissions"] },
+  { title: "Add New Batch", path: "/batches/new", category: "Web", icon: Calendar, keywords: ["add batch", "create batch", "new batch"] },
+  { title: "General Inquiries", path: "/contacts", category: "Web", icon: MessageSquare, keywords: ["contacts", "inquiries", "leads", "messages", "form"] },
+  { title: "Blogs & Articles", path: "/blogs", category: "Web", icon: FileText, keywords: ["blogs", "posts", "news", "articles", "stories"] },
+  { title: "Write Blog Post", path: "/blogs/new", category: "Web", icon: FileText, keywords: ["write blog", "create blog", "new post", "new blog", "article"] },
+  { title: "Gallery Manager", path: "/gallery", category: "Web", keywords: ["gallery", "photos", "images", "pictures", "upload"] },
+  { title: "Website Stats", path: "/stats", category: "Web", keywords: ["stats", "about stats", "counters", "numbers"] },
+  { title: "Web Inquiries Chat", path: "/chats", category: "Web", icon: MessageSquare, keywords: ["web chats", "messages", "inquiry chat"] },
+  { title: "Web & Growth Analytics", path: "/analytics", category: "Web", icon: TrendingUp, keywords: ["analytics", "traffic", "leads", "funnel", "pageviews"] },
 
   // System
-  { title: "System Users & Admins", path: "/admin/users", category: "System", keywords: ["users", "admins", "staff", "permissions", "roles"] },
+  { title: "System Users & Admins", path: "/users", category: "System", keywords: ["users", "admins", "staff", "permissions", "roles"] },
 ];
 
 function formatDisplayName(rawName: string): string {
@@ -310,45 +310,47 @@ export default function AdminNavbar({
     const p = pathname.replace(/\/$/, "");
 
     // Specific sub-routes and dynamic edit forms
-    if (p === "/admin/courses/new") return "Add New Course";
-    if (/^\/admin\/courses\/[^/]+\/edit$/.test(p)) return "Edit Course";
-    if (p === "/admin/batches/new") return "Add New Batch";
-    if (/^\/admin\/batches\/[^/]+\/edit$/.test(p)) return "Edit Batch";
-    if (p === "/admin/blogs/new") return "Write Blog Post";
-    if (/^\/admin\/blogs\/[^/]+\/edit$/.test(p)) return "Edit Blog Post";
-    if (p === "/admin/students/add") return "Add New Student";
-    if (p === "/admin/courses") return "Manage Courses";
+    if (p === "/dashboard") return "Dashboard";
+    if (p === "/courses/new") return "Add New Course";
+    if (/^\/courses\/[^/]+\/edit$/.test(p)) return "Edit Course";
+    if (p === "/batches/new") return "Add New Batch";
+    if (/^\/batches\/[^/]+\/edit$/.test(p)) return "Edit Batch";
+    if (p === "/blogs/new") return "Write Blog Post";
+    if (/^\/blogs\/[^/]+\/edit$/.test(p)) return "Edit Blog Post";
+    if (p === "/students/add") return "Add New Student";
+    if (p === "/courses") return "Manage Courses";
 
     // Matching registered items in search index
     const item = SEARCHABLE_ITEMS.find((s) => s.path === p);
     if (item) return item.title;
 
     // Route category prefixes
-    if (p.startsWith("/admin/courses")) return "Manage Courses";
-    if (p.startsWith("/admin/batches")) return "Batches";
-    if (p.startsWith("/admin/blogs")) return "Blogs & Articles";
-    if (p.startsWith("/admin/students")) return "Manage Students";
-    if (p.startsWith("/admin/lms/content")) return "Course Curriculum";
-    if (p.startsWith("/admin/lms/tests")) return "Tests & Exams";
-    if (p.startsWith("/admin/lms/materials")) return "Notes & Materials";
-    if (p.startsWith("/admin/lms/projects")) return "Projects & Assignments";
-    if (p.startsWith("/admin/lms/attendance")) return "Daily Attendance";
-    if (p.startsWith("/admin/lms/chats")) return "Student Chats";
-    if (p.startsWith("/admin/lms/analytics")) return "LMS Analytics";
-    if (p.startsWith("/admin/lms")) return "LMS Portal";
-    if (p.startsWith("/admin/calendar")) return "Calendar & Events";
-    if (p.startsWith("/admin/schedule")) return "Academic Schedule";
-    if (p.startsWith("/admin/fees")) return "Fees Management";
-    if (p.startsWith("/admin/expenses")) return "Expenses Management";
-    if (p.startsWith("/admin/notifications")) return "Notification Center";
-    if (p.startsWith("/admin/users")) return "System Users";
-    if (p.startsWith("/admin/chats")) return "Inquiries Chat";
-    if (p.startsWith("/admin/analytics")) return "Analytics";
-    if (p.startsWith("/admin/admissions")) return "Enquiry Admissions";
-    if (p.startsWith("/admin/contacts")) return "General Enquiries";
-    if (p.startsWith("/admin/gallery")) return "Gallery Manager";
-    if (p.startsWith("/admin/stats")) return "Website Stats";
-    return "Admin";
+    if (p.startsWith("/courses")) return "Manage Courses";
+    if (p.startsWith("/batches")) return "Batches";
+    if (p.startsWith("/blogs")) return "Blogs & Articles";
+    if (p.startsWith("/students")) return "Manage Students";
+    if (p.startsWith("/lms/content")) return "Course Curriculum";
+    if (p.startsWith("/lms/tests")) return "Tests & Exams";
+    if (p.startsWith("/lms/materials")) return "Notes & Materials";
+    if (p.startsWith("/lms/projects")) return "Projects & Assignments";
+    if (p.startsWith("/lms/attendance")) return "Daily Attendance";
+    if (p.startsWith("/lms/chats")) return "Student Chats";
+    if (p.startsWith("/lms/analytics")) return "LMS Analytics";
+    if (p.startsWith("/lms/progress")) return "LMS Progress";
+    if (p.startsWith("/lms")) return "LMS Portal";
+    if (p.startsWith("/calendar")) return "Calendar & Events";
+    if (p.startsWith("/schedule")) return "Academic Schedule";
+    if (p.startsWith("/fees")) return "Fees Management";
+    if (p.startsWith("/expenses")) return "Expenses Management";
+    if (p.startsWith("/notifications")) return "Notification Center";
+    if (p.startsWith("/users")) return "System Users";
+    if (p.startsWith("/chats")) return "Inquiries Chat";
+    if (p.startsWith("/analytics")) return "Analytics";
+    if (p.startsWith("/admissions")) return "Enquiry Admissions";
+    if (p.startsWith("/contacts")) return "General Enquiries";
+    if (p.startsWith("/gallery")) return "Gallery Manager";
+    if (p.startsWith("/stats")) return "Website Stats";
+    return "Dashboard";
   }, [pathname]);
 
   const formattedProfileName = useMemo(() => {
@@ -520,7 +522,7 @@ export default function AdminNavbar({
                   </span>
                 </div>
                 <Link
-                  href="/admin/notifications"
+                  href="/notifications"
                   onClick={() => setIsNotificationsOpen(false)}
                   className="text-[11px] font-medium text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-0.5"
                 >
@@ -552,7 +554,7 @@ export default function AdminNavbar({
 
               <div className="p-2.5 bg-slate-50 dark:bg-slate-800/40 border-t border-slate-100 dark:border-slate-800">
                 <Link
-                  href="/admin/notifications"
+                  href="/notifications"
                   onClick={() => setIsNotificationsOpen(false)}
                   className="w-full py-1.5 bg-white dark:bg-slate-700 hover:bg-slate-100 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 transition-colors"
                 >
@@ -604,7 +606,7 @@ export default function AdminNavbar({
 
               <div className="p-1.5 space-y-0.5 text-xs">
                 <Link
-                  href="/admin/users"
+                  href="/users"
                   onClick={() => setIsProfileOpen(false)}
                   className="flex items-center gap-2 px-2.5 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
                 >
@@ -613,7 +615,7 @@ export default function AdminNavbar({
                 </Link>
 
                 <Link
-                  href="/admin/notifications"
+                  href="/notifications"
                   onClick={() => setIsProfileOpen(false)}
                   className="flex items-center gap-2 px-2.5 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
                 >

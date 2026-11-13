@@ -747,7 +747,7 @@ export default function ScheduleClient({
             </div>
 
             <Link
-              href="/admin/calendar"
+              href="/calendar"
               className="min-h-[36px] px-3.5 py-1.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-lg font-medium text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
             >
               <Calendar size={14} className="shrink-0 text-blue-600 dark:text-blue-400" />
@@ -1726,7 +1726,7 @@ export default function ScheduleClient({
                             {/* Attendance Shortcut */}
                             {(ev.type === 'class' || ev.type === 'test') && isPastOrToday && (
                               <a
-                                href={`/admin/lms/attendance?date=${inspectingDate}`}
+                                href={`/lms/attendance?date=${inspectingDate}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 flex items-center gap-1.5 transition-colors cursor-pointer"

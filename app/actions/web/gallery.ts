@@ -87,7 +87,7 @@ export async function uploadImage(formData: FormData) {
     fs.writeFileSync(galleryFilePath, JSON.stringify(gallery, null, 2), "utf-8");
 
     revalidatePath("/gallery");
-    revalidatePath("/admin/gallery");
+    revalidatePath("/gallery");
     return { success: true };
   } catch (error: any) {
     console.error("Failed to upload image to JSON:", error);
@@ -127,7 +127,7 @@ export async function addImageUrl(title: string, imageUrl: string) {
     fs.writeFileSync(galleryFilePath, JSON.stringify(gallery, null, 2), "utf-8");
 
     revalidatePath("/gallery");
-    revalidatePath("/admin/gallery");
+    revalidatePath("/gallery");
     return { success: true };
   } catch (error: any) {
     console.error("Failed to add image URL to JSON:", error);
@@ -161,7 +161,7 @@ export async function deleteImage(id: string, imageUrl: string) {
     }
 
     revalidatePath("/gallery");
-    revalidatePath("/admin/gallery");
+    revalidatePath("/gallery");
     return { success: true };
   } catch (error: any) {
     console.error("Failed to delete image from JSON:", error);

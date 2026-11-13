@@ -416,7 +416,7 @@ export default function CourseForm({ course }: { course?: Course }) {
       const result = await saveCourse(formData);
       if (result.error) throw new Error(result.error);
 
-      router.push("/admin/courses");
+      router.push("/courses");
       router.refresh();
     } catch (error: any) {
       alert("Error saving course: " + error.message);

@@ -24,7 +24,7 @@ export default async function BatchesPage() {
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage student cohorts linked to courses.</p>
         </div>
         <Link
-          href="/admin/batches/new"
+          href="/batches/new"
           className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-200 text-white dark:text-slate-900 rounded-lg text-sm font-medium transition-colors"
         >
           <Plus size={14} />

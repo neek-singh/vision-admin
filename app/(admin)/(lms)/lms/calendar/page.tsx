@@ -27,7 +27,7 @@ export default async function CalendarAdminPage() {
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Schedule classes, tests, and holidays.</p>
         </div>
         <Link
-          href="/admin/calendar"
+          href="/calendar"
           className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold flex items-center gap-2 shadow-sm transition w-fit"
         >
           <Calendar size={15} />

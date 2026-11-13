@@ -30,7 +30,7 @@ export async function addExpense(data: {
       return { error: "Failed to add expense" };
     }
 
-    revalidatePath("/admin/expenses");
+    revalidatePath("/expenses");
     return { success: true };
   } catch (err: any) {
     console.error("addExpense auth error:", err);
@@ -71,7 +71,7 @@ export async function updateExpense(
       return { error: "Failed to update expense" };
     }
 
-    revalidatePath("/admin/expenses");
+    revalidatePath("/expenses");
     return { success: true };
   } catch (err: any) {
     console.error("updateExpense auth error:", err);
@@ -93,7 +93,7 @@ export async function deleteExpense(id: string) {
       return { error: "Failed to delete expense" };
     }
 
-    revalidatePath("/admin/expenses");
+    revalidatePath("/expenses");
     return { success: true };
   } catch (err: any) {
     console.error("deleteExpense auth error:", err);

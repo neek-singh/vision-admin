@@ -37,47 +37,47 @@ const navGroups = [
   {
     label: "Core",
     items: [
-      { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+      { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     ]
   },
   {
     label: "Vision Learn (LMS)",
     items: [
-      { href: "/admin/lms/progress", label: "LMS Progress", icon: Clock },
-      { href: "/admin/admissions", label: "Enquiry Admissions", icon: GraduationCap },
-      { href: "/admin/students", label: "Manage Students", icon: Users },
-      { href: "/admin/students/add", label: "Add Student", icon: UserPlus },
-      { href: "/admin/courses", label: "Manage Courses", icon: BookOpen },
-      { href: "/admin/lms/content", label: "Course Curriculum", icon: FileText },
-      { href: "/admin/lms/tests", label: "Manage Tests", icon: ClipboardList },
-      { href: "/admin/lms/materials", label: "Notes & Materials", icon: FileText },
-      { href: "/admin/lms/projects", label: "Projects", icon: PenTool },
-      { href: "/admin/lms/attendance", label: "Daily Attendance", icon: CheckCircle2 },
-      { href: "/admin/calendar", label: "Calendar", icon: Calendar },
-      { href: "/admin/schedule", label: "Academic Schedule", icon: CalendarDays },
-      { href: "/admin/notifications", label: "Notifications", icon: Bell },
-      { href: "/admin/fees", label: "Fees Management", icon: Wallet },
-      { href: "/admin/expenses", label: "Expenses Management", icon: TrendingDown },
-      { href: "/admin/lms/chats", label: "LMS Chats", icon: MessageSquare },
-      { href: "/admin/lms/analytics", label: "LMS Analytics", icon: TrendingUp },
+      { href: "/lms/progress", label: "LMS Progress", icon: Clock },
+      { href: "/admissions", label: "Enquiry Admissions", icon: GraduationCap },
+      { href: "/students", label: "Manage Students", icon: Users },
+      { href: "/students/add", label: "Add Student", icon: UserPlus },
+      { href: "/courses", label: "Manage Courses", icon: BookOpen },
+      { href: "/lms/content", label: "Course Curriculum", icon: FileText },
+      { href: "/lms/tests", label: "Manage Tests", icon: ClipboardList },
+      { href: "/lms/materials", label: "Notes & Materials", icon: FileText },
+      { href: "/lms/projects", label: "Projects", icon: PenTool },
+      { href: "/lms/attendance", label: "Daily Attendance", icon: CheckCircle2 },
+      { href: "/calendar", label: "Calendar", icon: Calendar },
+      { href: "/schedule", label: "Academic Schedule", icon: CalendarDays },
+      { href: "/notifications", label: "Notifications", icon: Bell },
+      { href: "/fees", label: "Fees Management", icon: Wallet },
+      { href: "/expenses", label: "Expenses Management", icon: TrendingDown },
+      { href: "/lms/chats", label: "LMS Chats", icon: MessageSquare },
+      { href: "/lms/analytics", label: "LMS Analytics", icon: TrendingUp },
     ]
   },
   {
     label: "Vision Web (Website)",
     items: [
-      { href: "/admin/batches", label: "Batches", icon: Calendar },
-      { href: "/admin/contacts", label: "General Enquiries", icon: Mail },
-      { href: "/admin/blogs", label: "Blogs", icon: FileText },
-      { href: "/admin/gallery", label: "Gallery", icon: ImageIcon },
-      { href: "/admin/stats", label: "Website Stats", icon: ClipboardList },
-      { href: "/admin/chats", label: "Web Chats", icon: MessageSquare },
-      { href: "/admin/analytics", label: "Web Analytics", icon: TrendingUp },
+      { href: "/batches", label: "Batches", icon: Calendar },
+      { href: "/contacts", label: "General Enquiries", icon: Mail },
+      { href: "/blogs", label: "Blogs", icon: FileText },
+      { href: "/gallery", label: "Gallery", icon: ImageIcon },
+      { href: "/stats", label: "Website Stats", icon: ClipboardList },
+      { href: "/chats", label: "Web Chats", icon: MessageSquare },
+      { href: "/analytics", label: "Web Analytics", icon: TrendingUp },
     ]
   },
   {
     label: "System",
     items: [
-      { href: "/admin/users", label: "Manage Users", icon: UserCog },
+      { href: "/users", label: "Manage Users", icon: UserCog },
     ]
   }
 ];
@@ -200,7 +200,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         {/* Sidebar Header */}
         <div className={`h-16 flex items-center border-b border-slate-100 dark:border-slate-800/80 justify-between px-4 ${isCollapsed ? "lg:justify-center lg:px-0" : ""}`}>
           <div className={`flex items-center gap-2.5 ${isCollapsed ? "lg:hidden" : ""}`}>
-            <Link href="/admin" onClick={() => setIsMobileOpen(false)} className="flex items-center gap-2.5 group">
+            <Link href="/dashboard" onClick={() => setIsMobileOpen(false)} className="flex items-center gap-2.5 group">
               <div className="w-9 h-9 bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl relative flex items-center justify-center p-1 shadow-2xs">
                 <Image 
                   src="https://res.cloudinary.com/ddiooxxks/image/upload/f_auto,q_auto/logo_unnut8.png" 
@@ -264,7 +264,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 <div className="h-[1px] bg-slate-100 dark:bg-slate-800/80 my-2 mx-2"></div>
               )}
               {group.items.map((item) => {
-                const isActive = pathname === item.href || (item.href !== "/admin" && pathname.startsWith(item.href + "/"));
+                const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href + "/"));
                 return (
                   <Link
                     key={item.href}
@@ -328,8 +328,8 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         />
 
         {/* Content Container */}
-        <main className={`flex-1 ${pathname.startsWith('/admin/calendar') ? 'p-0 h-screen overflow-hidden' : 'overflow-y-auto p-4 lg:p-8'}`}>
-          <div className={pathname.startsWith('/admin/calendar') ? 'w-full h-full' : 'max-w-7xl mx-auto'}>
+        <main className={`flex-1 ${pathname.startsWith('/calendar') ? 'p-0 h-screen overflow-hidden' : 'overflow-y-auto p-4 lg:p-8'}`}>
+          <div className={pathname.startsWith('/calendar') ? 'w-full h-full' : 'max-w-7xl mx-auto'}>
             {children}
           </div>
         </main>

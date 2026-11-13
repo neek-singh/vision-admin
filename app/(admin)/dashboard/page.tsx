@@ -241,7 +241,7 @@ async function DashboardContent({
       label: "Total Students",
       value: totalStudents,
       sub: newThisWeek > 0 ? `+${newThisWeek} new this week` : "Active enrolled",
-      href: "/admin/students",
+      href: "/students",
       icon: Users,
       color: "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40",
       border: "border-slate-200/80 dark:border-slate-800/80",
@@ -250,7 +250,7 @@ async function DashboardContent({
       label: "Active Courses",
       value: totalCourses,
       sub: `${totalBatches} active batches`,
-      href: "/admin/courses",
+      href: "/courses",
       icon: BookOpen,
       color: "text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40",
       border: "border-slate-200/80 dark:border-slate-800/80",
@@ -262,7 +262,7 @@ async function DashboardContent({
         pendingAdmissions > 0
           ? `${pendingAdmissions} pending review`
           : `${todayAdmissions} new today`,
-      href: "/admin/admissions",
+      href: "/admissions",
       icon: GraduationCap,
       color: "text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/40",
       border: "border-slate-200/80 dark:border-slate-800/80",
@@ -271,7 +271,7 @@ async function DashboardContent({
       label: "Fees Collected",
       value: `₹${(totalCollection / 1000).toFixed(1)}k`,
       sub: `₹${(totalPending / 1000).toFixed(1)}k pending`,
-      href: "/admin/fees",
+      href: "/fees",
       icon: IndianRupee,
       color: "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40",
       border: "border-slate-200/80 dark:border-slate-800/80",
@@ -280,7 +280,7 @@ async function DashboardContent({
       label: "Website Enquiries",
       value: totalContacts,
       sub: todayContacts > 0 ? `${todayContacts} received today` : "General enquiries",
-      href: "/admin/contacts",
+      href: "/contacts",
       icon: Mail,
       color: "text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40",
       border: "border-slate-200/80 dark:border-slate-800/80",
@@ -290,37 +290,37 @@ async function DashboardContent({
   // ── Quick Actions ──
   const quickActions = [
     {
-      href: "/admin/students/add",
+      href: "/students/add",
       label: "Add Student",
       icon: UserPlus,
       cls: "text-blue-700 dark:text-blue-400 bg-blue-50/80 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-950/40 border-blue-200/50 dark:border-blue-900/40",
     },
     {
-      href: "/admin/batches/new",
+      href: "/batches/new",
       label: "Add Batch",
       icon: Calendar,
       cls: "text-violet-700 dark:text-violet-400 bg-violet-50/80 dark:bg-violet-950/20 hover:bg-violet-100 dark:hover:bg-violet-950/40 border-violet-200/50 dark:border-violet-900/40",
     },
     {
-      href: "/admin/courses/new",
+      href: "/courses/new",
       label: "Add Course",
       icon: BookOpen,
       cls: "text-indigo-700 dark:text-indigo-400 bg-indigo-50/80 dark:bg-indigo-950/20 hover:bg-indigo-100 dark:hover:bg-indigo-950/40 border-indigo-200/50 dark:border-indigo-900/40",
     },
     {
-      href: "/admin/blogs/new",
+      href: "/blogs/new",
       label: "Write Blog",
       icon: PenLine,
       cls: "text-amber-700 dark:text-amber-400 bg-amber-50/80 dark:bg-amber-950/20 hover:bg-amber-100 dark:hover:bg-amber-950/40 border-amber-200/50 dark:border-amber-900/40",
     },
     {
-      href: "/admin/lms/attendance",
+      href: "/lms/attendance",
       label: "Daily Attendance",
       icon: CheckCircle2,
       cls: "text-emerald-700 dark:text-emerald-400 bg-emerald-50/80 dark:bg-emerald-950/20 hover:bg-emerald-100 dark:hover:bg-emerald-950/40 border-emerald-200/50 dark:border-emerald-900/40",
     },
     {
-      href: "/admin/fees",
+      href: "/fees",
       label: "Collect Fees",
       icon: Wallet,
       cls: "text-cyan-700 dark:text-cyan-400 bg-cyan-50/80 dark:bg-cyan-950/20 hover:bg-cyan-100 dark:hover:bg-cyan-950/40 border-cyan-200/50 dark:border-cyan-900/40",
@@ -413,7 +413,7 @@ async function DashboardContent({
                 </div>
               </div>
               <Link
-                href="/admin/students"
+                href="/students"
                 className="text-blue-600 dark:text-blue-400 hover:underline font-bold text-[11px] flex items-center gap-0.5"
               >
                 View All <ArrowUpRight size={12} />
@@ -495,7 +495,7 @@ async function DashboardContent({
                           </td>
                           <td className="px-5 py-3 text-right">
                             <Link
-                              href="/admin/students"
+                              href="/students"
                               className="text-blue-600 dark:text-blue-400 hover:text-blue-700 font-semibold text-xs"
                             >
                               Manage
@@ -512,7 +512,7 @@ async function DashboardContent({
           <div className="px-5 py-2.5 bg-slate-50/50 dark:bg-slate-800/20 border-t border-slate-100 dark:border-slate-800/60 text-[11px] text-slate-400 font-medium flex justify-between items-center">
             <span>Tracking active student completions</span>
             <Link
-              href="/admin/lms/progress"
+              href="/lms/progress"
               className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             >
               Full Progress Matrix →
@@ -538,7 +538,7 @@ async function DashboardContent({
                 </div>
               </div>
               <Link
-                href="/admin/contacts"
+                href="/contacts"
                 className="text-rose-600 dark:text-rose-400 hover:underline font-bold text-[11px] flex items-center gap-0.5"
               >
                 View All <ArrowUpRight size={12} />
@@ -593,7 +593,7 @@ async function DashboardContent({
           <div className="px-5 py-2.5 bg-slate-50/50 dark:bg-slate-800/20 border-t border-slate-100 dark:border-slate-800/60 text-[11px] text-slate-400 font-medium flex justify-between items-center">
             <span>Direct leads & enquiry requests</span>
             <Link
-              href="/admin/contacts"
+              href="/contacts"
               className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             >
               Manage Inbox →
@@ -712,7 +712,7 @@ async function DashboardContent({
 
             <div className="space-y-2.5 mt-2.5">
               <Link
-                href="/admin/blogs"
+                href="/blogs"
                 className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50/70 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border border-slate-100 dark:border-slate-800/50 group"
               >
                 <div className="flex items-center gap-2.5">
@@ -735,7 +735,7 @@ async function DashboardContent({
               </Link>
 
               <Link
-                href="/admin/gallery"
+                href="/gallery"
                 className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50/70 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border border-slate-100 dark:border-slate-800/50 group"
               >
                 <div className="flex items-center gap-2.5">
@@ -762,7 +762,7 @@ async function DashboardContent({
           <div className="pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-[11px] text-slate-400">
             <span>Website CMS Hub</span>
             <Link
-              href="/admin/blogs/new"
+              href="/blogs/new"
               className="text-blue-600 dark:text-blue-400 hover:underline font-semibold"
             >
               + Create Post
