@@ -53,6 +53,7 @@ supabase/.temp/
 # Internal plans, agent notes, prompts & documentation
 *.md
 !README.md
+!docs/*.md
 .agents/
 .planning/
 *.log

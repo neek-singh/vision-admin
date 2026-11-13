@@ -5,7 +5,7 @@ import CalendarClient from "@/components/lms/calendar/CalendarClient";
 
 export default async function CalendarAdminPage() {
   const supabase = await createServerSupabaseClient();
-  
+
   const { data: courses } = await supabase
     .from("courses")
     .select("id, title")

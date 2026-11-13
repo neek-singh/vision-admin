@@ -12,7 +12,7 @@ export default function AddStudentPage() {
   const [password, setPassword] = useState("");
   const [selectedCourse, setSelectedCourse] = useState("");
   const [availableCourses, setAvailableCourses] = useState<{ id: string; title: string }[]>([]);
-  
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -68,9 +68,9 @@ export default function AddStudentPage() {
       if (data.credentials) {
         setCreatedCredentials(data.credentials);
       }
-      setName(""); 
-      setEmail(""); 
-      setPhone(""); 
+      setName("");
+      setEmail("");
+      setPhone("");
       setPassword("");
       setSelectedCourse("");
     } catch (err) {
@@ -82,228 +82,228 @@ export default function AddStudentPage() {
 
   return (
     <div className="space-y-6 text-slate-800 dark:text-slate-100 transition-colors duration-200">
-        
-        {/* Back navigation */}
-        <div>
-          <Link 
-            href="/students" 
-            className="inline-flex items-center gap-2 text-sm font-normal text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
-          >
-            <ChevronLeft size={16} />
-            Back to Students List
-          </Link>
-        </div>
 
-        {/* Outer Form Card */}
-        <div className="bg-white dark:bg-[#0f172a] p-6 sm:p-10 rounded-[2.5rem] border border-slate-200/60 dark:border-slate-800/80 shadow-xl overflow-hidden">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 lg:gap-16">
-            
-            {/* Form Side */}
-            <div className="lg:col-span-2 space-y-8">
-              <div className="space-y-2">
-                <h1 className="text-2xl sm:text-3xl font-medium text-slate-900 dark:text-slate-100 tracking-tight">Register New Student</h1>
-                <p className="text-slate-400 dark:text-slate-400 font-normal text-sm sm:text-base">Create a new student profile and generate secure access credentials.</p>
-              </div>
+      {/* Back navigation */}
+      <div>
+        <Link
+          href="/students"
+          className="inline-flex items-center gap-2 text-sm font-normal text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
+        >
+          <ChevronLeft size={16} />
+          Back to Students List
+        </Link>
+      </div>
 
-              <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
-                {error && (
-                  <div className="p-4 bg-rose-50/50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 rounded-2xl border border-rose-100/50 dark:border-rose-900/40 flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
-                    <AlertCircle size={20} className="shrink-0" />
-                    <p className="font-medium text-sm">{error}</p>
-                  </div>
-                )}
+      {/* Outer Form Card */}
+      <div className="bg-white dark:bg-[#0f172a] p-6 sm:p-10 rounded-[2.5rem] border border-slate-200/60 dark:border-slate-800/80 shadow-xl overflow-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 lg:gap-16">
 
-                {success && createdCredentials && (
-                  <div className="p-5 sm:p-6 bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 rounded-3xl border border-emerald-200/60 dark:border-emerald-900/40 space-y-4 animate-in zoom-in-95 duration-200">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-sm">
-                        <CheckCircle2 size={24} />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-base leading-none text-emerald-900 dark:text-emerald-300">Student Registered & Ready!</p>
-                        <p className="text-emerald-600/90 dark:text-emerald-400/80 text-xs font-normal mt-1">
-                          Credentials generated and fee profile initialized. Student can log in immediately.
-                        </p>
-                      </div>
+          {/* Form Side */}
+          <div className="lg:col-span-2 space-y-8">
+            <div className="space-y-2">
+              <h1 className="text-2xl sm:text-3xl font-medium text-slate-900 dark:text-slate-100 tracking-tight">Register New Student</h1>
+              <p className="text-slate-400 dark:text-slate-400 font-normal text-sm sm:text-base">Create a new student profile and generate secure access credentials.</p>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
+              {error && (
+                <div className="p-4 bg-rose-50/50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 rounded-2xl border border-rose-100/50 dark:border-rose-900/40 flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
+                  <AlertCircle size={20} className="shrink-0" />
+                  <p className="font-medium text-sm">{error}</p>
+                </div>
+              )}
+
+              {success && createdCredentials && (
+                <div className="p-5 sm:p-6 bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 rounded-3xl border border-emerald-200/60 dark:border-emerald-900/40 space-y-4 animate-in zoom-in-95 duration-200">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-sm">
+                      <CheckCircle2 size={24} />
                     </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-white/90 dark:bg-slate-900/80 p-4 rounded-2xl border border-emerald-200/50 dark:border-emerald-800/40 shadow-sm">
-                      <div>
-                        <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1">Student ID (Username)</p>
-                        <p className="font-mono text-base font-bold text-slate-800 dark:text-slate-100 select-all">{createdCredentials.student_id}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1">Login Password</p>
-                        <p className="font-mono text-base font-bold text-slate-800 dark:text-slate-100 select-all">{createdCredentials.password}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-1">
-                      <button
-                        type="button"
-                        onClick={handleCopyCredentials}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded-xl transition-all shadow-sm cursor-pointer"
-                      >
-                        {copied ? <Check size={14} /> : <Copy size={14} />}
-                        {copied ? "Copied to Clipboard!" : "Copy Login Credentials"}
-                      </button>
-
-                      <span className="text-[11px] text-emerald-700/80 dark:text-emerald-400/80">
-                        Portal: <code className="font-mono">learn.visionitinstitute.com</code>
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-6">
-                  {/* Name field */}
-                  <div className="space-y-1.5">
-                    <label htmlFor="student-name" className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Student Full Name</label>
-                    <div className="relative">
-                      <input
-                        required
-                        id="student-name"
-                        type="text"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        placeholder="e.g. Rahul Sharma"
-                        className="w-full px-5 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-800 dark:text-slate-100 text-sm font-normal"
-                      />
+                    <div>
+                      <p className="font-semibold text-base leading-none text-emerald-900 dark:text-emerald-300">Student Registered & Ready!</p>
+                      <p className="text-emerald-600/90 dark:text-emerald-400/80 text-xs font-normal mt-1">
+                        Credentials generated and fee profile initialized. Student can log in immediately.
+                      </p>
                     </div>
                   </div>
 
-                  {/* Mobile number field */}
-                  <div className="space-y-1.5">
-                    <label htmlFor="student-phone" className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Mobile Number</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-white/90 dark:bg-slate-900/80 p-4 rounded-2xl border border-emerald-200/50 dark:border-emerald-800/40 shadow-sm">
+                    <div>
+                      <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1">Student ID (Username)</p>
+                      <p className="font-mono text-base font-bold text-slate-800 dark:text-slate-100 select-all">{createdCredentials.student_id}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1">Login Password</p>
+                      <p className="font-mono text-base font-bold text-slate-800 dark:text-slate-100 select-all">{createdCredentials.password}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-1">
+                    <button
+                      type="button"
+                      onClick={handleCopyCredentials}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded-xl transition-all shadow-sm cursor-pointer"
+                    >
+                      {copied ? <Check size={14} /> : <Copy size={14} />}
+                      {copied ? "Copied to Clipboard!" : "Copy Login Credentials"}
+                    </button>
+
+                    <span className="text-[11px] text-emerald-700/80 dark:text-emerald-400/80">
+                      Portal: <code className="font-mono">learn.visionitinstitute.com</code>
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-6">
+                {/* Name field */}
+                <div className="space-y-1.5">
+                  <label htmlFor="student-name" className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Student Full Name</label>
+                  <div className="relative">
                     <input
                       required
-                      id="student-phone"
-                      type="tel"
-                      pattern="[0-9]{10}"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="e.g. 9876543210"
+                      id="student-name"
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="e.g. Rahul Sharma"
                       className="w-full px-5 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-800 dark:text-slate-100 text-sm font-normal"
                     />
-                  </div>
-
-                  {/* Email address field */}
-                  <div className="space-y-1.5">
-                    <label htmlFor="student-email" className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Email Address (Optional)</label>
-                    <input
-                      id="student-email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="e.g. rahul@example.com"
-                      className="w-full px-5 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-800 dark:text-slate-100 text-sm font-normal"
-                    />
-                  </div>
-
-                  {/* Primary Course field */}
-                  <div className="space-y-1.5">
-                    <label htmlFor="student-course" className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Primary Course</label>
-                    <select
-                      id="student-course"
-                      value={selectedCourse}
-                      onChange={(e) => setSelectedCourse(e.target.value)}
-                      className="w-full px-5 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-800 dark:text-slate-100 text-sm font-normal appearance-none cursor-pointer"
-                    >
-                      <option value="">Select Primary Course</option>
-                      {availableCourses.map((course) => (
-                        <option key={course.id} value={course.id}>
-                          {course.title}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Password field */}
-                  <div className="space-y-1.5 sm:col-span-2">
-                    <div className="flex items-center justify-between">
-                      <label htmlFor="student-password" className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                        Login Password (Optional)
-                      </label>
-                      <span className="text-[11px] text-slate-400">Default: firstname@123</span>
-                    </div>
-                    <div className="relative">
-                      <input
-                        id="student-password"
-                        type="text"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="e.g. Rahul@2026 (Leave empty to auto-generate)"
-                        className="w-full px-5 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-800 dark:text-slate-100 text-sm font-normal"
-                      />
-                    </div>
                   </div>
                 </div>
 
-                <div className="pt-6 flex flex-col sm:flex-row items-center justify-end border-t border-slate-100 dark:border-slate-850 gap-4">
-                  <p className="text-[10px] font-medium text-slate-400 dark:text-slate-500 tracking-wide flex items-center gap-2 mr-auto">
-                    <KeyRound size={13} className="text-emerald-500" />
-                    Credentials and course fee profile will be generated instantly
-                  </p>
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    className="w-full sm:w-auto px-8 py-3 bg-slate-950 dark:bg-slate-900 hover:bg-blue-600 dark:hover:bg-blue-700 hover:text-white text-white font-medium rounded-xl shadow-lg flex items-center justify-center gap-2.5 transition-all disabled:opacity-50 text-sm cursor-pointer"
+                {/* Mobile number field */}
+                <div className="space-y-1.5">
+                  <label htmlFor="student-phone" className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Mobile Number</label>
+                  <input
+                    required
+                    id="student-phone"
+                    type="tel"
+                    pattern="[0-9]{10}"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="e.g. 9876543210"
+                    className="w-full px-5 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-800 dark:text-slate-100 text-sm font-normal"
+                  />
+                </div>
+
+                {/* Email address field */}
+                <div className="space-y-1.5">
+                  <label htmlFor="student-email" className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Email Address (Optional)</label>
+                  <input
+                    id="student-email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="e.g. rahul@example.com"
+                    className="w-full px-5 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-800 dark:text-slate-100 text-sm font-normal"
+                  />
+                </div>
+
+                {/* Primary Course field */}
+                <div className="space-y-1.5">
+                  <label htmlFor="student-course" className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Primary Course</label>
+                  <select
+                    id="student-course"
+                    value={selectedCourse}
+                    onChange={(e) => setSelectedCourse(e.target.value)}
+                    className="w-full px-5 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-800 dark:text-slate-100 text-sm font-normal appearance-none cursor-pointer"
                   >
-                    {isLoading ? <Loader2 size={16} className="animate-spin" /> : (
-                      <>
-                        <UserPlus size={16} />
-                        Register Student
-                      </>
-                    )}
-                  </button>
+                    <option value="">Select Primary Course</option>
+                    {availableCourses.map((course) => (
+                      <option key={course.id} value={course.id}>
+                        {course.title}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              </form>
-            </div>
 
-            {/* Sidebar / Info Side */}
-            <div className="space-y-6">
-              <div className="bg-slate-50/50 dark:bg-slate-900/20 p-8 rounded-[2.5rem] border border-slate-200/50 dark:border-slate-800 space-y-6">
-                <h3 className="text-sm font-medium text-slate-800 dark:text-slate-200 flex items-center gap-2.5">
-                  <Fingerprint className="text-blue-600 dark:text-blue-455" size={18} />
-                  Quick Guidelines
-                </h3>
-                
-                <div className="space-y-6">
-                  <div className="flex gap-4">
-                    <div className="w-8 h-8 shrink-0 bg-white dark:bg-slate-850 border border-slate-200/80 dark:border-slate-800 rounded-xl flex items-center justify-center text-xs font-medium text-blue-600 dark:text-blue-400 shadow-sm select-none">01</div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 font-normal leading-relaxed">
-                      Student ID is auto-generated in <span className="text-slate-700 dark:text-slate-300 font-medium">VIT2026STD001</span> format.
-                    </p>
+                {/* Password field */}
+                <div className="space-y-1.5 sm:col-span-2">
+                  <div className="flex items-center justify-between">
+                    <label htmlFor="student-password" className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                      Login Password (Optional)
+                    </label>
+                    <span className="text-[11px] text-slate-400">Default: firstname@123</span>
                   </div>
-                  
-                  <div className="flex gap-4">
-                    <div className="w-8 h-8 shrink-0 bg-white dark:bg-slate-850 border border-slate-200/80 dark:border-slate-800 rounded-xl flex items-center justify-center text-xs font-medium text-emerald-600 dark:text-emerald-400 shadow-sm select-none">02</div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 font-normal leading-relaxed">
-                      <span className="text-slate-700 dark:text-slate-300 font-medium">Instant Credentials & Fees:</span> Login credentials and fee ledger are created on registration. The student can log in right away.
-                    </p>
-                  </div>
-
-                  <div className="flex gap-4">
-                    <div className="w-8 h-8 shrink-0 bg-white dark:bg-slate-850 border border-slate-200/80 dark:border-slate-800 rounded-xl flex items-center justify-center text-xs font-medium text-blue-600 dark:text-blue-400 shadow-sm select-none">03</div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 font-normal leading-relaxed">
-                      Once registered, you can <span className="text-slate-700 dark:text-slate-300 font-medium">assign courses</span> from the student list dashboard.
-                    </p>
+                  <div className="relative">
+                    <input
+                      id="student-password"
+                      type="text"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="e.g. Rahul@2026 (Leave empty to auto-generate)"
+                      className="w-full px-5 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-800 dark:text-slate-100 text-sm font-normal"
+                    />
                   </div>
                 </div>
               </div>
 
-              <div className="p-8 border-2 border-dashed border-slate-200/50 dark:border-slate-800 rounded-[2.5rem] flex flex-col items-center text-center space-y-3">
-                <div className="w-10 h-10 bg-slate-50 dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl flex items-center justify-center text-slate-400 dark:text-slate-500">
-                  <ShieldCheck size={20} />
-                </div>
-                <p className="text-[10px] font-normal text-slate-400 dark:text-slate-500 uppercase tracking-wider leading-relaxed">
-                  System automatically verifies<br />for duplicate email/phone numbers.
+              <div className="pt-6 flex flex-col sm:flex-row items-center justify-end border-t border-slate-100 dark:border-slate-850 gap-4">
+                <p className="text-[10px] font-medium text-slate-400 dark:text-slate-500 tracking-wide flex items-center gap-2 mr-auto">
+                  <KeyRound size={13} className="text-emerald-500" />
+                  Credentials and course fee profile will be generated instantly
                 </p>
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full sm:w-auto px-8 py-3 bg-slate-950 dark:bg-slate-900 hover:bg-blue-600 dark:hover:bg-blue-700 hover:text-white text-white font-medium rounded-xl shadow-lg flex items-center justify-center gap-2.5 transition-all disabled:opacity-50 text-sm cursor-pointer"
+                >
+                  {isLoading ? <Loader2 size={16} className="animate-spin" /> : (
+                    <>
+                      <UserPlus size={16} />
+                      Register Student
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Sidebar / Info Side */}
+          <div className="space-y-6">
+            <div className="bg-slate-50/50 dark:bg-slate-900/20 p-8 rounded-[2.5rem] border border-slate-200/50 dark:border-slate-800 space-y-6">
+              <h3 className="text-sm font-medium text-slate-800 dark:text-slate-200 flex items-center gap-2.5">
+                <Fingerprint className="text-blue-600 dark:text-blue-455" size={18} />
+                Quick Guidelines
+              </h3>
+
+              <div className="space-y-6">
+                <div className="flex gap-4">
+                  <div className="w-8 h-8 shrink-0 bg-white dark:bg-slate-850 border border-slate-200/80 dark:border-slate-800 rounded-xl flex items-center justify-center text-xs font-medium text-blue-600 dark:text-blue-400 shadow-sm select-none">01</div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-normal leading-relaxed">
+                    Student ID is auto-generated in <span className="text-slate-700 dark:text-slate-300 font-medium">VIT2026STD001</span> format.
+                  </p>
+                </div>
+
+                <div className="flex gap-4">
+                  <div className="w-8 h-8 shrink-0 bg-white dark:bg-slate-850 border border-slate-200/80 dark:border-slate-800 rounded-xl flex items-center justify-center text-xs font-medium text-emerald-600 dark:text-emerald-400 shadow-sm select-none">02</div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-normal leading-relaxed">
+                    <span className="text-slate-700 dark:text-slate-300 font-medium">Instant Credentials & Fees:</span> Login credentials and fee ledger are created on registration. The student can log in right away.
+                  </p>
+                </div>
+
+                <div className="flex gap-4">
+                  <div className="w-8 h-8 shrink-0 bg-white dark:bg-slate-850 border border-slate-200/80 dark:border-slate-800 rounded-xl flex items-center justify-center text-xs font-medium text-blue-600 dark:text-blue-400 shadow-sm select-none">03</div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-normal leading-relaxed">
+                    Once registered, you can <span className="text-slate-700 dark:text-slate-300 font-medium">assign courses</span> from the student list dashboard.
+                  </p>
+                </div>
               </div>
             </div>
 
+            <div className="p-8 border-2 border-dashed border-slate-200/50 dark:border-slate-800 rounded-[2.5rem] flex flex-col items-center text-center space-y-3">
+              <div className="w-10 h-10 bg-slate-50 dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl flex items-center justify-center text-slate-400 dark:text-slate-500">
+                <ShieldCheck size={20} />
+              </div>
+              <p className="text-[10px] font-normal text-slate-400 dark:text-slate-500 uppercase tracking-wider leading-relaxed">
+                System automatically verifies<br />for duplicate email/phone numbers.
+              </p>
+            </div>
           </div>
+
         </div>
+      </div>
 
     </div>
   );

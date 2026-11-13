@@ -22,7 +22,7 @@ export default async function AdminBlogsPage() {
   try {
     const p = "c:\\Users\\as007\\vision-web\\features\\blog\\data\\blogs.json";
     if (fs.existsSync(p)) blogsList = JSON.parse(fs.readFileSync(p, "utf-8"));
-  } catch {}
+  } catch { }
 
   const published = blogsList.filter(b => b.is_published);
   const drafts = blogsList.filter(b => !b.is_published);
@@ -104,11 +104,10 @@ export default async function AdminBlogsPage() {
                       )}
                     </td>
                     <td className="px-5 py-3.5">
-                      <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
-                        blog.is_published
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${blog.is_published
                           ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400"
                           : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
-                      }`}>
+                        }`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${blog.is_published ? "bg-emerald-500" : "bg-slate-400"}`} />
                         {blog.is_published ? "Published" : "Draft"}
                       </span>
@@ -145,9 +144,8 @@ export default async function AdminBlogsPage() {
               <div key={blog.id} className="p-4 space-y-2.5">
                 <div className="flex justify-between items-start gap-3">
                   <h4 className="font-bold text-sm text-slate-900 dark:text-white flex-1 leading-snug">{blog.title}</h4>
-                  <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest shrink-0 ${
-                    blog.is_published ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30" : "bg-slate-100 text-slate-500 dark:bg-slate-800"
-                  }`}>
+                  <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest shrink-0 ${blog.is_published ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30" : "bg-slate-100 text-slate-500 dark:bg-slate-800"
+                    }`}>
                     {blog.is_published ? "Live" : "Draft"}
                   </span>
                 </div>
