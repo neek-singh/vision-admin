@@ -697,42 +697,46 @@ export default function ScheduleClient({
       <div className="max-w-[1600px] mx-auto space-y-3">
 
         {/* Top bar with selectors */}
-        <div className="bg-white dark:bg-slate-900 py-2.5 px-3 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-            <div className="flex items-center gap-2 px-3 py-1.5 min-h-[36px] bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-200 dark:border-slate-700">
+        <div className="bg-white dark:bg-slate-900 p-2.5 sm:p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5">
+          <div className="grid grid-cols-2 gap-2 w-full md:w-auto md:flex md:flex-wrap md:items-center">
+            <div className="flex items-center gap-2 px-2.5 py-1.5 min-h-[36px] bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/80 dark:border-slate-700 w-full md:w-auto">
               <BookOpen size={14} className="text-slate-400 dark:text-slate-500 shrink-0" />
-              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Course</span>
-              <select
-                value={selectedCourseId}
-                onChange={(e) => setSelectedCourseId(e.target.value)}
-                className="bg-transparent text-slate-900 dark:text-slate-100 text-xs font-medium outline-none cursor-pointer border-none p-0 focus:ring-0"
-              >
-                {courses.map(c => <option key={c.id} value={c.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{c.title}</option>)}
-              </select>
+              <div className="min-w-0 flex-1">
+                <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block leading-tight">Course</span>
+                <select
+                  value={selectedCourseId}
+                  onChange={(e) => setSelectedCourseId(e.target.value)}
+                  className="bg-transparent text-slate-900 dark:text-slate-100 text-xs font-semibold outline-none cursor-pointer border-none p-0 focus:ring-0 w-full truncate"
+                >
+                  {courses.map(c => <option key={c.id} value={c.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{c.title}</option>)}
+                </select>
+              </div>
             </div>
 
-            <div className="flex items-center gap-2 px-3 py-1.5 min-h-[36px] bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-200 dark:border-slate-700">
+            <div className="flex items-center gap-2 px-2.5 py-1.5 min-h-[36px] bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/80 dark:border-slate-700 w-full md:w-auto">
               <Users size={14} className="text-slate-400 dark:text-slate-500 shrink-0" />
-              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Batch</span>
-              <select
-                value={selectedBatch}
-                onChange={(e) => setSelectedBatch(e.target.value)}
-                className="bg-transparent text-slate-900 dark:text-slate-100 text-xs font-medium outline-none cursor-pointer border-none p-0 focus:ring-0"
-              >
-                {courseBatches.length > 1 && (
-                  <option value="All Batches" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">All Batches</option>
-                )}
-                {courseBatches.map((b: any, i: number) => (
-                  <option key={i} value={b.title} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{b.title}</option>
-                ))}
-              </select>
+              <div className="min-w-0 flex-1">
+                <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block leading-tight">Batch</span>
+                <select
+                  value={selectedBatch}
+                  onChange={(e) => setSelectedBatch(e.target.value)}
+                  className="bg-transparent text-slate-900 dark:text-slate-100 text-xs font-semibold outline-none cursor-pointer border-none p-0 focus:ring-0 w-full truncate"
+                >
+                  {courseBatches.length > 1 && (
+                    <option value="All Batches" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">All Batches</option>
+                  )}
+                  {courseBatches.map((b: any, i: number) => (
+                    <option key={i} value={b.title} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{b.title}</option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 w-full md:w-auto justify-between md:justify-end">
-            <div className="flex bg-slate-100 dark:bg-slate-800/60 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
-              <button onClick={() => setViewMode('calendar')} className={`min-h-[36px] min-w-[36px] flex items-center justify-center p-2 rounded-md transition-all cursor-pointer ${viewMode === 'calendar' ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`} aria-label="Calendar View"><LayoutGrid size={15} /></button>
-              <button onClick={() => setViewMode('list')} className={`min-h-[36px] min-w-[36px] flex items-center justify-center p-2 rounded-md transition-all cursor-pointer ${viewMode === 'list' ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`} aria-label="List View"><List size={15} /></button>
+          <div className="flex items-center gap-2 w-full md:w-auto justify-between md:justify-end">
+            <div className="flex bg-slate-100 dark:bg-slate-800/60 p-0.5 rounded-xl border border-slate-200/80 dark:border-slate-700 shrink-0">
+              <button onClick={() => setViewMode('calendar')} className={`min-h-[34px] min-w-[34px] flex items-center justify-center p-1.5 rounded-lg transition-all cursor-pointer ${viewMode === 'calendar' ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`} aria-label="Calendar View"><LayoutGrid size={15} /></button>
+              <button onClick={() => setViewMode('list')} className={`min-h-[34px] min-w-[34px] flex items-center justify-center p-1.5 rounded-lg transition-all cursor-pointer ${viewMode === 'list' ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`} aria-label="List View"><List size={15} /></button>
             </div>
 
             <div className="hidden sm:flex items-center gap-3 border-l border-slate-200 dark:border-slate-700 pl-3">
@@ -746,22 +750,24 @@ export default function ScheduleClient({
               </button>
             </div>
 
-            <Link
-              href="/calendar"
-              className="min-h-[36px] px-3.5 py-1.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-lg font-medium text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
-            >
-              <Calendar size={14} className="shrink-0 text-blue-600 dark:text-blue-400" />
-              <span>Full Calendar</span>
-            </Link>
+            <div className="flex items-center gap-1.5 flex-1 md:flex-initial justify-end">
+              <Link
+                href="/calendar"
+                className="min-h-[34px] px-2.5 sm:px-3.5 py-1.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-xl font-medium text-xs transition-colors flex items-center gap-1 cursor-pointer shrink-0"
+              >
+                <Calendar size={13} className="shrink-0 text-blue-600 dark:text-blue-400" />
+                <span className="hidden xs:inline">Calendar</span>
+              </Link>
 
-            <button onClick={() => {
-              setFormData({ ...formData, title: "", description: "", type: "holiday", course_id: selectedCourseId });
-              setShowAddModal(true);
-            }}
-              className="min-h-[36px] px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 rounded-lg font-medium text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
-            >
-              <Plus size={14} className="shrink-0" /> New Entry
-            </button>
+              <button onClick={() => {
+                setFormData({ ...formData, title: "", description: "", type: "holiday", course_id: selectedCourseId });
+                setShowAddModal(true);
+              }}
+                className="min-h-[34px] px-2.5 sm:px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 rounded-xl font-medium text-xs transition-colors flex items-center gap-1 cursor-pointer shrink-0"
+              >
+                <Plus size={14} className="shrink-0" /> <span className="hidden xs:inline">New</span> Entry
+              </button>
+            </div>
           </div>
         </div>
 
@@ -785,24 +791,26 @@ export default function ScheduleClient({
         )}
 
         {/* Mobile Tab Toggle */}
-        <div className="flex lg:hidden bg-slate-100 dark:bg-slate-800/60 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
+        <div className="flex lg:hidden bg-slate-100 dark:bg-slate-800/60 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700">
           <button
             onClick={() => setMobileTab('calendar')}
-            className={`flex-1 min-h-[38px] py-2 text-center rounded-md text-xs font-medium transition-all cursor-pointer ${mobileTab === 'calendar'
-                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+            className={`flex-1 min-h-[36px] py-2 text-center rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${mobileTab === 'calendar'
+                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm'
                 : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'
               }`}
           >
-            Calendar
+            <CalendarDays size={14} />
+            <span>Calendar</span>
           </button>
           <button
             onClick={() => setMobileTab('curriculum')}
-            className={`flex-1 min-h-[38px] py-2 text-center rounded-md text-xs font-medium transition-all cursor-pointer ${mobileTab === 'curriculum'
-                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+            className={`flex-1 min-h-[36px] py-2 text-center rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${mobileTab === 'curriculum'
+                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm'
                 : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'
               }`}
           >
-            Curriculum
+            <BookOpen size={14} />
+            <span>Curriculum</span>
           </button>
         </div>
 
@@ -1407,31 +1415,31 @@ export default function ScheduleClient({
                         .map((ev: any) => {
                           const c = cfg(ev.type);
                           return (
-                            <div key={ev.id} className="py-3 px-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-900/20 transition-colors">
-                              <div className="flex items-center gap-4">
-                                <div className="text-center w-12 select-none">
-                                  <p className="text-[10px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider leading-none">
+                            <div key={ev.id} className="p-3 sm:py-3 sm:px-4 flex items-center justify-between gap-2.5 hover:bg-slate-50/70 dark:hover:bg-slate-900/20 transition-colors">
+                              <div className="flex items-center gap-3 min-w-0 flex-1">
+                                <div className="text-center w-10 sm:w-12 select-none shrink-0 bg-slate-50 dark:bg-slate-800/60 p-1.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                                  <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider leading-none">
                                     {new Date(ev.date).toLocaleDateString('en-US', { month: 'short' })}
                                   </p>
-                                  <p className="text-lg font-medium text-slate-800 dark:text-slate-100 leading-tight mt-1 font-mono">{ev.date.split('-')[2]}</p>
+                                  <p className="text-base sm:text-lg font-black text-slate-800 dark:text-slate-100 leading-tight mt-1 font-mono">{ev.date.split('-')[2]}</p>
                                 </div>
-                                <div className={`w-8 h-8 rounded-lg ${c.bg} ${c.text} flex items-center justify-center border ${c.border} shrink-0`}>
+                                <div className={`w-8 h-8 rounded-xl ${c.bg} ${c.text} flex items-center justify-center border ${c.border} shrink-0`}>
                                   {c.icon}
                                 </div>
-                                <div>
-                                  <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                                    <h4 className="text-xs font-medium text-slate-800 dark:text-slate-100 leading-tight">{ev.title}</h4>
-                                    <span className={`px-2 py-0.5 rounded ${c.accent} text-white text-[10px] font-medium uppercase tracking-wider`}>
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                                    <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 leading-tight truncate">{ev.title}</h4>
+                                    <span className={`px-1.5 py-0.5 rounded-md ${c.accent} text-white text-[9px] font-black uppercase tracking-wider shrink-0`}>
                                       {c.label}
                                     </span>
                                   </div>
-                                  <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400">
+                                  <div className="flex items-center gap-2.5 text-slate-500 dark:text-slate-400 flex-wrap">
                                     {ev.type !== 'holiday' && ev.type !== 'event' && (
-                                      <div className="flex items-center gap-1 text-[10px] font-normal">
+                                      <div className="flex items-center gap-1 text-[10px] font-semibold">
                                         <Clock size={11} className="text-slate-400 shrink-0" /> {ev.start_time?.slice(0, 5)} - {ev.end_time?.slice(0, 5)}
                                       </div>
                                     )}
-                                    <div className="flex items-center gap-1 text-[10px] font-normal">
+                                    <div className="flex items-center gap-1 text-[10px] font-semibold">
                                       <Users size={11} className="text-slate-400 shrink-0" /> {ev.batch === "All Batches" ? "Global" : ev.batch}
                                     </div>
                                   </div>
@@ -1439,10 +1447,10 @@ export default function ScheduleClient({
                               </div>
                               <button
                                 onClick={() => handleDelete(ev.id)}
-                                className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center bg-white dark:bg-slate-900 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-slate-400 hover:text-rose-600 rounded-lg border border-slate-200 dark:border-slate-800 hover:border-rose-200 dark:hover:border-rose-900/40 transition-all shadow-sm cursor-pointer"
+                                className="p-2 min-h-[34px] min-w-[34px] flex items-center justify-center bg-slate-50 hover:bg-rose-50 dark:bg-slate-800/60 dark:hover:bg-rose-950/20 text-slate-400 hover:text-rose-600 rounded-xl border border-slate-200/80 dark:border-slate-800 hover:border-rose-200 dark:hover:border-rose-900/40 transition-all cursor-pointer shrink-0"
                                 aria-label="Delete schedule item"
                               >
-                                <Trash2 size={16} />
+                                <Trash2 size={15} />
                               </button>
                             </div>
                           );
