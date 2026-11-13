@@ -20,7 +20,6 @@ const CRITICAL_PRECACHE_URLS = [
   '/offline',
   '/manifest.webmanifest',
   '/icon.png',
-  '/globals.css',
 ];
 
 /**
