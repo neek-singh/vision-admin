@@ -697,27 +697,27 @@ export default function ScheduleClient({
       <div className="max-w-[1600px] mx-auto space-y-3">
         
         {/* Top bar with selectors */}
-        <div className="bg-white dark:bg-slate-900 py-2 px-3 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-center justify-between gap-3">
+        <div className="bg-white dark:bg-slate-900 py-2.5 px-3 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-200 dark:border-slate-700">
-               <BookOpen size={13} className="text-slate-400 dark:text-slate-500 shrink-0" />
-               <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider">Course</span>
+            <div className="flex items-center gap-2 px-3 py-1.5 min-h-[36px] bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-200 dark:border-slate-700">
+               <BookOpen size={14} className="text-slate-400 dark:text-slate-500 shrink-0" />
+               <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Course</span>
                <select 
                 value={selectedCourseId} 
                 onChange={(e) => setSelectedCourseId(e.target.value)}
-                className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-xs font-medium outline-none cursor-pointer border-none p-0 focus:ring-0"
+                className="bg-transparent text-slate-900 dark:text-slate-100 text-xs font-medium outline-none cursor-pointer border-none p-0 focus:ring-0"
                >
                  {courses.map(c => <option key={c.id} value={c.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{c.title}</option>)}
                </select>
             </div>
 
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-200 dark:border-slate-700">
-               <Users size={13} className="text-slate-400 dark:text-slate-500 shrink-0" />
-               <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider">Batch</span>
+            <div className="flex items-center gap-2 px-3 py-1.5 min-h-[36px] bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-200 dark:border-slate-700">
+               <Users size={14} className="text-slate-400 dark:text-slate-500 shrink-0" />
+               <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Batch</span>
                <select 
                 value={selectedBatch} 
                 onChange={(e) => setSelectedBatch(e.target.value)}
-                className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-xs font-medium outline-none cursor-pointer border-none p-0 focus:ring-0"
+                className="bg-transparent text-slate-900 dark:text-slate-100 text-xs font-medium outline-none cursor-pointer border-none p-0 focus:ring-0"
                >
                  {courseBatches.length > 1 && (
                    <option value="All Batches" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">All Batches</option>
@@ -731,8 +731,8 @@ export default function ScheduleClient({
 
           <div className="flex items-center gap-2.5 w-full md:w-auto justify-between md:justify-end">
              <div className="flex bg-slate-100 dark:bg-slate-800/60 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
-                <button onClick={() => setViewMode('calendar')} className={`p-1.5 rounded-md transition-all cursor-pointer ${viewMode === 'calendar' ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}><LayoutGrid size={14} /></button>
-                <button onClick={() => setViewMode('list')} className={`p-1.5 rounded-md transition-all cursor-pointer ${viewMode === 'list' ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}><List size={14} /></button>
+                <button onClick={() => setViewMode('calendar')} className={`min-h-[36px] min-w-[36px] flex items-center justify-center p-2 rounded-md transition-all cursor-pointer ${viewMode === 'calendar' ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`} aria-label="Calendar View"><LayoutGrid size={15} /></button>
+                <button onClick={() => setViewMode('list')} className={`min-h-[36px] min-w-[36px] flex items-center justify-center p-2 rounded-md transition-all cursor-pointer ${viewMode === 'list' ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`} aria-label="List View"><List size={15} /></button>
              </div>
 
              <div className="hidden sm:flex items-center gap-3 border-l border-slate-200 dark:border-slate-700 pl-3">
@@ -740,7 +740,7 @@ export default function ScheduleClient({
                 <button 
                   onClick={handleClearAll}
                   disabled={filteredSchedules.length === 0}
-                  className="text-xs font-medium text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 disabled:opacity-30 transition-colors cursor-pointer"
+                  className="min-h-[36px] px-2 py-1 flex items-center text-xs font-medium text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 disabled:opacity-30 transition-colors cursor-pointer"
                 >
                   Clear
                 </button>
@@ -748,9 +748,9 @@ export default function ScheduleClient({
 
              <Link
                href="/admin/calendar"
-               className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-lg font-medium text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+               className="min-h-[36px] px-3.5 py-1.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-lg font-medium text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
              >
-               <Calendar size={13} className="shrink-0 text-blue-600 dark:text-blue-400" />
+               <Calendar size={14} className="shrink-0 text-blue-600 dark:text-blue-400" />
                <span>Full Calendar</span>
              </Link>
 
@@ -758,26 +758,26 @@ export default function ScheduleClient({
                   setFormData({...formData, title: "", description: "", type: "holiday", course_id: selectedCourseId});
                   setShowAddModal(true);
                 }}
-               className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 rounded-lg font-medium text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+               className="min-h-[36px] px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 rounded-lg font-medium text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
              >
-                <Plus size={13} className="shrink-0" /> New Entry
+                <Plus size={14} className="shrink-0" /> New Entry
              </button>
           </div>
         </div>
 
         {/* Placement Mode Alert Banner */}
         {placementItem && (
-          <div className="p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="p-3 bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 bg-blue-500 rounded-full animate-ping shrink-0" />
-              <p className="text-xs text-slate-700 dark:text-slate-300">
-                Placement mode: Click a date to schedule <span className="font-medium text-slate-900 dark:text-white">{placementItem.originalTitle}</span>
+              <span className="w-2.5 h-2.5 bg-blue-500 rounded-full animate-ping shrink-0" />
+              <p className="text-xs text-blue-950 dark:text-blue-200">
+                Placement mode: Click a date to schedule <span className="font-semibold text-slate-900 dark:text-white">{placementItem.originalTitle}</span>
               </p>
             </div>
             <button
               type="button"
               onClick={() => setPlacementItem(null)}
-              className="px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium transition-all cursor-pointer"
+              className="min-h-[36px] px-3.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 text-xs font-medium transition-all cursor-pointer"
             >
               Cancel
             </button>
@@ -785,10 +785,10 @@ export default function ScheduleClient({
         )}
 
         {/* Mobile Tab Toggle */}
-        <div className="flex lg:hidden bg-slate-100 dark:bg-slate-800/60 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
+        <div className="flex lg:hidden bg-slate-100 dark:bg-slate-800/60 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
           <button
             onClick={() => setMobileTab('calendar')}
-            className={`flex-1 py-1.5 text-center rounded-md text-xs font-medium transition-all cursor-pointer ${
+            className={`flex-1 min-h-[38px] py-2 text-center rounded-md text-xs font-medium transition-all cursor-pointer ${
               mobileTab === 'calendar'
                 ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
                 : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'
@@ -798,7 +798,7 @@ export default function ScheduleClient({
           </button>
           <button
             onClick={() => setMobileTab('curriculum')}
-            className={`flex-1 py-1.5 text-center rounded-md text-xs font-medium transition-all cursor-pointer ${
+            className={`flex-1 min-h-[38px] py-2 text-center rounded-md text-xs font-medium transition-all cursor-pointer ${
               mobileTab === 'curriculum'
                 ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
                 : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'
@@ -907,11 +907,11 @@ export default function ScheduleClient({
                                                           <h5 className="text-[10px] font-normal text-slate-700 dark:text-slate-200 leading-snug break-words">{lesson.title}</h5>
                                                         </div>
                                                         
-                                                        <div className="shrink-0 flex items-center gap-1">
+                                                        <div className="shrink-0 flex items-center gap-1.5">
                                                           {isScheduled ? (
                                                             <>
-                                                              <span className="w-4 h-4 rounded-full bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400 flex items-center justify-center border border-green-100 dark:border-green-900/30">
-                                                                <CheckCircle2 size={10} />
+                                                              <span className="w-5 h-5 rounded-full bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400 flex items-center justify-center border border-green-100 dark:border-green-900/30">
+                                                                <CheckCircle2 size={12} />
                                                               </span>
                                                               <button
                                                                 type="button"
@@ -919,24 +919,25 @@ export default function ScheduleClient({
                                                                   e.stopPropagation();
                                                                   handleDelete(scheduleId);
                                                                 }}
-                                                                className="p-0.5 rounded text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                                                                className="min-h-[36px] min-w-[36px] p-2 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
                                                                 title="Remove from Schedule"
+                                                                aria-label="Remove from Schedule"
                                                               >
-                                                                <Trash2 size={10} />
+                                                                <Trash2 size={14} />
                                                               </button>
                                                             </>
                                                           ) : (
                                                             <button 
                                                               type="button"
                                                               onClick={() => startPlacement(fullTitle, scheduleType, lesson.title)}
-                                                              className={`px-1.5 py-0.5 rounded-md text-[9px] font-medium transition-colors cursor-pointer flex items-center gap-0.5 border ${
+                                                              className={`min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer flex items-center gap-1 border ${
                                                                 isPending
                                                                   ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
                                                                   : 'bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 border-blue-100/50 dark:border-blue-900/40 hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600'
                                                               }`}
                                                               title="Click here, then click a calendar date to schedule"
                                                             >
-                                                              <Plus size={8} />
+                                                              <Plus size={12} />
                                                               {isPending ? 'Active' : 'Schedule'}
                                                             </button>
                                                           )}
@@ -986,11 +987,11 @@ export default function ScheduleClient({
                                               <h5 className="text-[10px] font-normal text-slate-700 dark:text-slate-200 leading-snug break-words">{lesson.title}</h5>
                                             </div>
                                             
-                                            <div className="shrink-0 flex items-center gap-1">
+                                            <div className="shrink-0 flex items-center gap-1.5">
                                               {isScheduled ? (
                                                 <>
-                                                  <span className="w-4 h-4 rounded-full bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400 flex items-center justify-center border border-green-100 dark:border-green-900/30">
-                                                    <CheckCircle2 size={10} />
+                                                  <span className="w-5 h-5 rounded-full bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400 flex items-center justify-center border border-green-100 dark:border-green-900/30">
+                                                    <CheckCircle2 size={12} />
                                                   </span>
                                                   <button
                                                     type="button"
@@ -998,24 +999,25 @@ export default function ScheduleClient({
                                                       e.stopPropagation();
                                                       handleDelete(scheduleId);
                                                     }}
-                                                    className="p-0.5 rounded text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                                                    className="min-h-[36px] min-w-[36px] p-2 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
                                                     title="Remove from Schedule"
+                                                    aria-label="Remove from Schedule"
                                                   >
-                                                    <Trash2 size={10} />
+                                                    <Trash2 size={14} />
                                                   </button>
                                                 </>
                                               ) : (
                                                 <button 
                                                   type="button"
                                                   onClick={() => startPlacement(fullTitle, scheduleType, lesson.title)}
-                                                  className={`px-1.5 py-0.5 rounded-md text-[9px] font-medium transition-colors cursor-pointer flex items-center gap-0.5 border ${
+                                                  className={`min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer flex items-center gap-1 border ${
                                                     isPending
                                                       ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
                                                       : 'bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 border-blue-100/50 dark:border-blue-900/40 hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600'
                                                   }`}
                                                   title="Click here, then click a calendar date to schedule"
                                                 >
-                                                  <Plus size={8} />
+                                                  <Plus size={12} />
                                                   {isPending ? 'Active' : 'Schedule'}
                                                 </button>
                                               )}
@@ -1095,11 +1097,11 @@ export default function ScheduleClient({
                                       <h5 className="text-[10px] font-normal text-slate-700 dark:text-slate-200 leading-snug break-words">{test.title}</h5>
                                     </div>
                                     
-                                    <div className="shrink-0 flex items-center gap-1">
+                                    <div className="shrink-0 flex items-center gap-1.5">
                                       {isScheduled ? (
                                         <>
-                                          <span className="w-4 h-4 rounded-full bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400 flex items-center justify-center border border-green-100 dark:border-green-900/30">
-                                            <CheckCircle2 size={10} />
+                                          <span className="w-5 h-5 rounded-full bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400 flex items-center justify-center border border-green-100 dark:border-green-900/30">
+                                            <CheckCircle2 size={12} />
                                           </span>
                                           <button
                                             type="button"
@@ -1107,24 +1109,25 @@ export default function ScheduleClient({
                                               e.stopPropagation();
                                               handleDelete(scheduleId);
                                             }}
-                                            className="p-0.5 rounded text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                                            className="min-h-[36px] min-w-[36px] p-2 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
                                             title="Remove from Schedule"
+                                            aria-label="Remove from Schedule"
                                           >
-                                            <Trash2 size={10} />
+                                            <Trash2 size={14} />
                                           </button>
                                         </>
                                       ) : (
                                         <button 
                                           type="button"
                                           onClick={() => startPlacement(fullTitle, 'test', test.title)}
-                                          className={`px-1.5 py-0.5 rounded-md text-[9px] font-medium transition-colors cursor-pointer flex items-center gap-0.5 border ${
+                                          className={`min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer flex items-center gap-1 border ${
                                             isPending
                                               ? 'bg-rose-600 border-rose-600 text-white shadow-sm'
                                               : 'bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border-rose-100/50 dark:border-rose-900/40 hover:bg-rose-600 hover:text-white dark:hover:bg-rose-600'
                                           }`}
                                           title="Click here, then click a calendar date to schedule"
                                         >
-                                          <Plus size={8} />
+                                          <Plus size={12} />
                                           {isPending ? 'Active' : 'Schedule'}
                                         </button>
                                       )}
@@ -1199,11 +1202,11 @@ export default function ScheduleClient({
                                       <h5 className="text-[10px] font-normal text-slate-700 dark:text-slate-200 leading-snug break-words">{material.title}</h5>
                                     </div>
                                     
-                                    <div className="shrink-0 flex items-center gap-1">
+                                    <div className="shrink-0 flex items-center gap-1.5">
                                       {isScheduled ? (
                                         <>
-                                          <span className="w-4 h-4 rounded-full bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400 flex items-center justify-center border border-green-100 dark:border-green-900/30">
-                                            <CheckCircle2 size={10} />
+                                          <span className="w-5 h-5 rounded-full bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400 flex items-center justify-center border border-green-100 dark:border-green-900/30">
+                                            <CheckCircle2 size={12} />
                                           </span>
                                           <button
                                             type="button"
@@ -1211,24 +1214,25 @@ export default function ScheduleClient({
                                               e.stopPropagation();
                                               handleDelete(scheduleId);
                                             }}
-                                            className="p-0.5 rounded text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                                            className="min-h-[36px] min-w-[36px] p-2 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
                                             title="Remove from Schedule"
+                                            aria-label="Remove from Schedule"
                                           >
-                                            <Trash2 size={10} />
+                                            <Trash2 size={14} />
                                           </button>
                                         </>
                                       ) : (
                                         <button 
                                           type="button"
                                           onClick={() => startPlacement(fullTitle, 'assignment', material.title)}
-                                          className={`px-1.5 py-0.5 rounded-md text-[9px] font-medium transition-colors cursor-pointer flex items-center gap-0.5 border ${
+                                          className={`min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer flex items-center gap-1 border ${
                                             isPending
                                               ? 'bg-amber-600 border-amber-600 text-white shadow-sm'
-                                              : 'bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border-amber-100/50 dark:border-amber-900/40 hover:bg-amber-600 hover:text-white dark:hover:bg-blue-600'
+                                              : 'bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border-amber-100/50 dark:border-amber-900/40 hover:bg-amber-600 hover:text-white dark:hover:bg-amber-600'
                                           }`}
                                           title="Click here, then click a calendar date to schedule"
                                         >
-                                          <Plus size={8} />
+                                          <Plus size={12} />
                                           {isPending ? 'Active' : 'Schedule'}
                                         </button>
                                       )}
@@ -1237,7 +1241,7 @@ export default function ScheduleClient({
                                 );
                               })
                             ) : (
-                              <p className="text-[9px] text-slate-400 dark:text-slate-650 italic p-2.5 text-center">No notes found for this course.</p>
+                              <p className="text-xs text-slate-400 dark:text-slate-500 italic p-2.5 text-center">No notes found for this course.</p>
                             )}
                           </div>
                         )}
@@ -1254,145 +1258,160 @@ export default function ScheduleClient({
                 <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden min-h-[430px] flex flex-col">
                    
                    {/* Calendar Header */}
-                   <div className="py-1.5 px-3 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                         <div className="p-1.5 bg-blue-600 text-white rounded-lg shadow-md">
-                            <CalendarDays size={14} />
+                   <div className="py-2 px-3 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-2">
+                      <div className="flex items-center gap-2.5">
+                         <div className="p-2 bg-blue-600 text-white rounded-lg shadow-sm">
+                            <CalendarDays size={16} />
                          </div>
                          <div>
                             <div className="flex items-center gap-2">
-                              <h2 className="text-sm font-medium text-slate-800 dark:text-slate-200 leading-tight">{monthNames[currentMonth]} {currentYear}</h2>
+                              <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-200 leading-tight">{monthNames[currentMonth]} {currentYear}</h2>
                               {isDraggingActive && (
-                                <span className="px-1.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 text-blue-600 dark:text-blue-400 text-[8px] font-medium animate-pulse">
+                                <span className="px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 text-blue-600 dark:text-blue-400 text-xs font-medium animate-pulse">
                                   Drag & Drop Active
                                 </span>
                               )}
                             </div>
-                            <p className="text-[8px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                              Drag topics onto dates or drag items to reschedule
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                              Drag topics onto dates or tap a date to inspect and manage
                             </p>
                          </div>
                       </div>
     
-                      <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-900 p-0.5 rounded-lg border border-slate-100 dark:border-slate-800">
-                         <button onClick={handlePrevMonth} className="p-1 hover:bg-white dark:hover:bg-slate-800 hover:shadow-sm rounded transition-all text-slate-650 dark:text-slate-400 cursor-pointer"><ChevronLeft size={12} /></button>
-                         <button onClick={() => {setCurrentMonth(today.getMonth()); setCurrentYear(today.getFullYear());}} className="px-2 py-0.5 text-[8px] font-medium uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-800 shadow-sm rounded border border-blue-50 dark:border-blue-900/30 cursor-pointer">Today</button>
-                         <button onClick={handleNextMonth} className="p-1 hover:bg-white dark:hover:bg-slate-800 hover:shadow-sm rounded transition-all text-slate-655 dark:text-slate-400 cursor-pointer"><ChevronRight size={12} /></button>
+                      <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900 p-1 rounded-lg border border-slate-200 dark:border-slate-800">
+                         <button onClick={handlePrevMonth} className="min-h-[36px] min-w-[36px] p-2 flex items-center justify-center hover:bg-white dark:hover:bg-slate-800 hover:shadow-sm rounded-lg transition-all text-slate-600 dark:text-slate-400 cursor-pointer" aria-label="Previous Month"><ChevronLeft size={16} /></button>
+                         <button onClick={() => {setCurrentMonth(today.getMonth()); setCurrentYear(today.getFullYear());}} className="min-h-[36px] px-3 py-1.5 text-xs font-medium uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-800 shadow-sm rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer">Today</button>
+                         <button onClick={handleNextMonth} className="min-h-[36px] min-w-[36px] p-2 flex items-center justify-center hover:bg-white dark:hover:bg-slate-800 hover:shadow-sm rounded-lg transition-all text-slate-600 dark:text-slate-400 cursor-pointer" aria-label="Next Month"><ChevronRight size={16} /></button>
                       </div>
                    </div>
-    
-                   {/* Grid Header Days */}
-                   <div className="grid grid-cols-7 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/20">
-                      {dayNames.map((d, i) => (
-                         <div key={i} className="p-1 text-center border-r border-slate-100 dark:border-slate-800 last:border-r-0">
-                            <p className={`text-[7px] font-medium uppercase tracking-[0.2em] ${
-                               i === 0 ? 'text-rose-500 dark:text-rose-400 font-black' : 'text-slate-400 dark:text-slate-500'
-                            }`}>{d}</p>
-                         </div>
-                      ))}
+
+                   {/* Mobile Scroll Hint Banner */}
+                   <div className="md:hidden px-3 py-1.5 bg-slate-50/80 dark:bg-slate-800/40 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                     <span className="flex items-center gap-1.5">
+                       <Info size={13} className="text-blue-500 shrink-0" />
+                       Scroll horizontally for 7-day grid or tap any date to inspect
+                     </span>
+                     <span className="text-slate-400 shrink-0 text-sm">⇄</span>
                    </div>
-    
-                   <div className="grid grid-cols-7 flex-1">
-                      {days.map((d, i) => {
-                         const dateStr = d.dateStr;
-                         const isToday = dateStr === fmt(today);
-                         const isSunday = i % 7 === 0;
-                         const dayEvents = dateStr ? filteredSchedules.filter(s => s.date === dateStr).sort((a: any, b: any) => (a.start_time || '').localeCompare(b.start_time || '')) : [];
-                         const isCellDragOver = dragOverDate === dateStr;
-                         
-                         return (
-                            <div 
-                              key={i} 
-                              onMouseEnter={() => !isDraggingActive && dateStr && setHoveredDate(dateStr)}
-                              onMouseLeave={() => setHoveredDate(null)}
-                              onDragOver={(e) => d.currentMonth && dateStr && handleCellDragOver(e, dateStr)}
-                              onDragLeave={(e) => d.currentMonth && dateStr && handleCellDragLeave(e, dateStr)}
-                              onDrop={(e) => d.currentMonth && dateStr && handleCellDrop(e, dateStr)}
-                              onClick={() => {
-                                if (!d.currentMonth || !dateStr) return;
-                                if (placementItem) {
-                                  handlePlaceItem(dateStr);
-                                } else {
-                                  setInspectingDate(dateStr);
-                                }
-                              }}
-                              className={`border-r border-slate-100 dark:border-slate-800 last:border-r-0 p-1 min-h-[78px] flex flex-col gap-0.5 transition-all cursor-pointer relative ${
-                                !d.currentMonth 
-                                  ? 'bg-slate-50/20 dark:bg-slate-900/5 opacity-40' 
-                                  : isCellDragOver
-                                    ? 'ring-2 ring-blue-500 bg-blue-50/80 dark:bg-blue-950/60 border-blue-400 z-10 shadow-md scale-[1.01]'
-                                    : isDraggingActive
-                                      ? 'bg-blue-50/15 dark:bg-blue-950/10 border-dashed border-blue-200 dark:border-blue-900/50 hover:bg-blue-100/30'
-                                      : isToday 
-                                        ? 'bg-blue-50/20 dark:bg-blue-955/10 border-2 border-blue-500/30' 
-                                        : placementItem 
-                                          ? 'bg-blue-50/10 dark:bg-blue-955/5 hover:bg-blue-100/30 dark:hover:bg-blue-900/20 border border-dashed border-blue-300 dark:border-blue-800/80 animate-pulse' 
-                                          : isSunday
-                                            ? 'bg-rose-50/20 dark:bg-rose-950/10 hover:bg-rose-100/30 dark:hover:bg-rose-900/20'
-                                            : 'hover:bg-slate-50/30 dark:hover:bg-slate-900/10'
-                              }`}
-                            >
-                               <div className="flex justify-between items-center mb-0.5">
-                                  <span className={`text-[8px] font-medium ${
-                                    isToday 
-                                      ? 'bg-blue-600 text-white w-4 h-4 flex items-center justify-center rounded-full font-mono' 
-                                      : isSunday && d.currentMonth
-                                        ? 'text-rose-500 dark:text-rose-400 font-bold'
-                                        : 'text-slate-400 dark:text-slate-500'
-                                  }`}>
-                                     {d.day}
-                                  </span>
-                                  {isCellDragOver ? (
-                                    <span className="text-[7px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider animate-pulse">Drop</span>
-                                  ) : hoveredDate === dateStr && dayEvents.length > 0 && !isDraggingActive ? (
-                                    <span className="text-[7px] font-medium text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800 px-1 py-0.2 rounded border border-slate-200/60 dark:border-slate-700 shadow-sm pointer-events-none animate-in fade-in duration-100">
-                                      {dayEvents.length} {dayEvents.length === 1 ? 'item' : 'items'}
-                                    </span>
-                                  ) : null}
-                               </div>
-                               
-                               <div className="space-y-0.5 overflow-y-auto custom-scrollbar max-h-[50px]">
-                                 {dayEvents.map((ev: any) => {
-                                   const c = cfg(ev.type);
-                                   return (
-                                     <div 
-                                       key={ev.id} 
-                                       draggable={true}
-                                       onDragStart={(e) => handleCalendarItemDragStart(e, ev)}
-                                       onDragEnd={handleDragEnd}
-                                       title="Drag to reschedule to another date"
-                                       className={`group relative px-1 py-0.5 rounded ${c.bg} border ${c.border} border-l-2 ${c.accent.replace('bg-', 'border-')} shadow-sm transition-all overflow-hidden cursor-grab active:cursor-grabbing hover:shadow-md select-none`}
-                                     >
-                                        <div className="flex items-center justify-between gap-0.5">
-                                          <h5 className="text-[7px] font-normal text-slate-800 dark:text-slate-200 truncate leading-tight flex-1 pointer-events-none">{ev.title}</h5>
-                                          <button 
-                                            onClick={(e) => { e.stopPropagation(); handleDelete(ev.id); }}
-                                            className="p-0.5 hover:text-rose-500 text-slate-400 hover:text-rose-500 md:opacity-0 md:group-hover:opacity-100 opacity-100 transition-opacity cursor-pointer shrink-0"
-                                            title="Delete"
-                                          >
-                                            <Trash2 size={8} />
-                                          </button>
-                                        </div>
-                                     </div>
-                                   );
-                                 })}
-                               </div>
-                            </div>
-                         )
-                      })}
+
+                   {/* Responsive Container for 7-column Calendar Grid */}
+                   <div className="overflow-x-auto custom-scrollbar flex-1">
+                     <div className="min-w-[700px] flex flex-col min-h-full">
+                       {/* Grid Header Days */}
+                       <div className="grid grid-cols-7 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/20">
+                          {dayNames.map((d, i) => (
+                             <div key={i} className="p-2 text-center border-r border-slate-100 dark:border-slate-800 last:border-r-0">
+                                <p className={`text-xs font-semibold uppercase tracking-wider ${
+                                   i === 0 ? 'text-rose-500 dark:text-rose-400 font-bold' : 'text-slate-500 dark:text-slate-400'
+                                }`}>{d}</p>
+                             </div>
+                          ))}
+                       </div>
+        
+                       <div className="grid grid-cols-7 flex-1">
+                          {days.map((d, i) => {
+                             const dateStr = d.dateStr;
+                             const isToday = dateStr === fmt(today);
+                             const isSunday = i % 7 === 0;
+                             const dayEvents = dateStr ? filteredSchedules.filter(s => s.date === dateStr).sort((a: any, b: any) => (a.start_time || '').localeCompare(b.start_time || '')) : [];
+                             const isCellDragOver = dragOverDate === dateStr;
+                             
+                             return (
+                                <div 
+                                  key={i} 
+                                  onMouseEnter={() => !isDraggingActive && dateStr && setHoveredDate(dateStr)}
+                                  onMouseLeave={() => setHoveredDate(null)}
+                                  onDragOver={(e) => d.currentMonth && dateStr && handleCellDragOver(e, dateStr)}
+                                  onDragLeave={(e) => d.currentMonth && dateStr && handleCellDragLeave(e, dateStr)}
+                                  onDrop={(e) => d.currentMonth && dateStr && handleCellDrop(e, dateStr)}
+                                  onClick={() => {
+                                    if (!d.currentMonth || !dateStr) return;
+                                    if (placementItem) {
+                                      handlePlaceItem(dateStr);
+                                    } else {
+                                      setInspectingDate(dateStr);
+                                    }
+                                  }}
+                                  className={`border-r border-slate-100 dark:border-slate-800 last:border-r-0 p-1.5 min-h-[88px] sm:min-h-[96px] flex flex-col gap-1 transition-all cursor-pointer relative ${
+                                    !d.currentMonth 
+                                      ? 'bg-slate-50/20 dark:bg-slate-900/5 opacity-40' 
+                                      : isCellDragOver
+                                        ? 'ring-2 ring-blue-500 bg-blue-50/80 dark:bg-blue-950/60 border-blue-400 z-10 shadow-md scale-[1.01]'
+                                        : isDraggingActive
+                                          ? 'bg-blue-50/15 dark:bg-blue-950/10 border-dashed border-blue-200 dark:border-blue-900/50 hover:bg-blue-100/30'
+                                          : isToday 
+                                            ? 'bg-blue-50/20 dark:bg-blue-950/10 border-2 border-blue-500/30' 
+                                            : placementItem 
+                                              ? 'bg-blue-50/10 dark:bg-blue-950/5 hover:bg-blue-100/30 dark:hover:bg-blue-900/20 border border-dashed border-blue-300 dark:border-blue-800/80 animate-pulse' 
+                                              : isSunday
+                                                ? 'bg-rose-50/20 dark:bg-rose-950/10 hover:bg-rose-100/30 dark:hover:bg-rose-900/20'
+                                                : 'hover:bg-slate-50/30 dark:hover:bg-slate-900/10'
+                                  }`}
+                                >
+                                   <div className="flex justify-between items-center mb-0.5">
+                                      <span className={`text-xs font-medium ${
+                                        isToday 
+                                          ? 'bg-blue-600 text-white w-5 h-5 flex items-center justify-center rounded-full font-mono font-semibold shadow-xs' 
+                                          : isSunday && d.currentMonth
+                                            ? 'text-rose-500 dark:text-rose-400 font-semibold'
+                                            : 'text-slate-600 dark:text-slate-400'
+                                      }`}>
+                                         {d.day}
+                                      </span>
+                                      {isCellDragOver ? (
+                                        <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider animate-pulse">Drop</span>
+                                      ) : hoveredDate === dateStr && dayEvents.length > 0 && !isDraggingActive ? (
+                                        <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200/60 dark:border-slate-700 shadow-sm pointer-events-none animate-in fade-in duration-100">
+                                          {dayEvents.length} {dayEvents.length === 1 ? 'item' : 'items'}
+                                        </span>
+                                      ) : null}
+                                   </div>
+                                   
+                                   <div className="space-y-1 overflow-y-auto custom-scrollbar max-h-[64px]">
+                                     {dayEvents.map((ev: any) => {
+                                       const c = cfg(ev.type);
+                                       return (
+                                         <div 
+                                           key={ev.id} 
+                                           draggable={true}
+                                           onDragStart={(e) => handleCalendarItemDragStart(e, ev)}
+                                           onDragEnd={handleDragEnd}
+                                           title="Drag to reschedule to another date"
+                                           className={`group relative px-1.5 py-1 rounded-md ${c.bg} border ${c.border} border-l-2 ${c.accent.replace('bg-', 'border-')} shadow-xs transition-all overflow-hidden cursor-grab active:cursor-grabbing hover:shadow-sm select-none`}
+                                         >
+                                            <div className="flex items-center justify-between gap-1">
+                                              <h5 className="text-[11px] font-medium text-slate-800 dark:text-slate-200 truncate leading-tight flex-1 pointer-events-none">{ev.title}</h5>
+                                              <button 
+                                                onClick={(e) => { e.stopPropagation(); handleDelete(ev.id); }}
+                                                className="p-1 min-w-[28px] min-h-[28px] flex items-center justify-center text-slate-400 hover:text-rose-500 md:opacity-0 md:group-hover:opacity-100 opacity-100 transition-opacity cursor-pointer shrink-0 rounded"
+                                                title="Delete"
+                                                aria-label="Delete"
+                                              >
+                                                <Trash2 size={12} />
+                                              </button>
+                                            </div>
+                                         </div>
+                                       );
+                                     })}
+                                   </div>
+                                </div>
+                             )
+                          })}
+                       </div>
+                     </div>
                    </div>
                 </div>
              ) : (
                 /* List View */
-                <div className="bg-white dark:bg-[#0f172a] rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col min-h-[550px]">
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col min-h-[550px]">
                    <div className="py-2.5 px-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/20">
-                      <h2 className="text-xs font-medium text-slate-800 dark:text-slate-200 uppercase tracking-wider">Schedule History & Management</h2>
+                      <h2 className="text-xs font-semibold text-slate-800 dark:text-slate-200 uppercase tracking-wider">Schedule History & Management</h2>
                    </div>
                    <div className="flex-1 overflow-y-auto">
                      {filteredSchedules.length === 0 ? (
                        <div className="py-28 text-center space-y-3">
                          <Calendar size={36} className="mx-auto text-slate-200 dark:text-slate-800" />
-                         <p className="text-[10px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider">No scheduled items for this selection</p>
+                         <p className="text-xs font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider">No scheduled items for this selection</p>
                        </div>
                      ) : (
                        <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
@@ -1404,7 +1423,7 @@ export default function ScheduleClient({
                              <div key={ev.id} className="py-3 px-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-900/20 transition-colors">
                                <div className="flex items-center gap-4">
                                  <div className="text-center w-12 select-none">
-                                   <p className="text-[9px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider leading-none">
+                                   <p className="text-[10px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider leading-none">
                                      {new Date(ev.date).toLocaleDateString('en-US', { month: 'short' })}
                                    </p>
                                    <p className="text-lg font-medium text-slate-800 dark:text-slate-100 leading-tight mt-1 font-mono">{ev.date.split('-')[2]}</p>
@@ -1415,27 +1434,28 @@ export default function ScheduleClient({
                                  <div>
                                    <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                                      <h4 className="text-xs font-medium text-slate-800 dark:text-slate-100 leading-tight">{ev.title}</h4>
-                                     <span className={`px-1.5 py-0.5 rounded-sm ${c.accent} text-white text-[7px] font-medium uppercase tracking-wider`}>
+                                     <span className={`px-2 py-0.5 rounded ${c.accent} text-white text-[10px] font-medium uppercase tracking-wider`}>
                                        {c.label}
                                      </span>
                                    </div>
                                    <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400">
                                      {ev.type !== 'holiday' && ev.type !== 'event' && (
-                                       <div className="flex items-center gap-1 text-[9px] font-normal">
-                                         <Clock size={10} className="text-slate-400 dark:text-slate-555 shrink-0" /> {ev.start_time?.slice(0, 5)} - {ev.end_time?.slice(0, 5)}
+                                       <div className="flex items-center gap-1 text-[10px] font-normal">
+                                         <Clock size={11} className="text-slate-400 shrink-0" /> {ev.start_time?.slice(0, 5)} - {ev.end_time?.slice(0, 5)}
                                        </div>
                                      )}
-                                     <div className="flex items-center gap-1 text-[9px] font-normal">
-                                       <Users size={10} className="text-slate-400 dark:text-slate-555 shrink-0" /> {ev.batch === "All Batches" ? "Global" : ev.batch}
+                                     <div className="flex items-center gap-1 text-[10px] font-normal">
+                                       <Users size={11} className="text-slate-400 shrink-0" /> {ev.batch === "All Batches" ? "Global" : ev.batch}
                                      </div>
                                    </div>
                                  </div>
                                </div>
                                <button 
                                  onClick={() => handleDelete(ev.id)}
-                                 className="p-2 bg-white dark:bg-slate-900 hover:bg-rose-50 dark:hover:bg-rose-955/20 text-slate-350 hover:text-rose-600 rounded-lg border border-slate-100 dark:border-slate-800 hover:border-rose-105 hover:border-rose-100 dark:hover:border-rose-900/40 transition-all shadow-sm cursor-pointer"
+                                 className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center bg-white dark:bg-slate-900 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-slate-400 hover:text-rose-600 rounded-lg border border-slate-200 dark:border-slate-800 hover:border-rose-200 dark:hover:border-rose-900/40 transition-all shadow-sm cursor-pointer"
+                                 aria-label="Delete schedule item"
                                >
-                                 <Trash2 size={14} />
+                                 <Trash2 size={16} />
                                </button>
                              </div>
                            );
@@ -1458,7 +1478,7 @@ export default function ScheduleClient({
                 <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Schedule Activity</h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Add an event or holiday to the calendar</p>
               </div>
-              <button onClick={() => setShowAddModal(false)} className="w-8 h-8 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all text-slate-400 hover:text-slate-600 cursor-pointer"><X size={16} /></button>
+              <button onClick={() => setShowAddModal(false)} className="min-h-[36px] min-w-[36px] flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all text-slate-400 hover:text-slate-600 cursor-pointer" aria-label="Close"><X size={18} /></button>
             </div>
             
             <form onSubmit={handleSubmit} className="p-5 space-y-4">
@@ -1473,7 +1493,7 @@ export default function ScheduleClient({
                         key={type} 
                         type="button" 
                         onClick={() => setFormData({...formData, type})}
-                        className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-all flex items-center justify-center gap-1.5 cursor-pointer ${isSelected ? `bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white` : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                        className={`flex-1 min-h-[36px] py-2 rounded-md text-xs font-medium transition-all flex items-center justify-center gap-1.5 cursor-pointer ${isSelected ? `bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white` : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}
                       >
                         {c.icon} {c.label}
                       </button>
@@ -1546,13 +1566,13 @@ export default function ScheduleClient({
                 <button 
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="flex-1 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg font-medium text-xs transition-all cursor-pointer"
+                  className="flex-1 min-h-[40px] py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg font-medium text-xs transition-all cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button 
                   disabled={loading}
-                  className="flex-[2] py-2 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 rounded-lg font-medium text-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  className="flex-[2] min-h-[40px] py-2 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 rounded-lg font-medium text-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   {loading ? <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white dark:border-slate-900/30 dark:border-t-slate-900 rounded-full animate-spin" /> : <ArrowRight size={13} />}
                   Confirm Schedule
@@ -1575,23 +1595,25 @@ export default function ScheduleClient({
                   <button 
                     onClick={goToPrevDay}
                     title="Previous Day (Left Arrow)"
-                    className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+                    className="min-h-[36px] min-w-[36px] p-2 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+                    aria-label="Previous Day"
                   >
-                    <ChevronLeft size={14} />
+                    <ChevronLeft size={16} />
                   </button>
                   <button 
                     onClick={() => setInspectingDate(fmt(today))}
                     title="Go to Today"
-                    className="px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-blue-600 dark:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors cursor-pointer"
+                    className="min-h-[36px] px-3 py-1 text-xs font-medium uppercase tracking-wider text-blue-600 dark:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors cursor-pointer"
                   >
                     Today
                   </button>
                   <button 
                     onClick={goToNextDay}
                     title="Next Day (Right Arrow)"
-                    className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+                    className="min-h-[36px] min-w-[36px] p-2 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+                    aria-label="Next Day"
                   >
-                    <ChevronRight size={14} />
+                    <ChevronRight size={16} />
                   </button>
                 </div>
 
@@ -1601,12 +1623,12 @@ export default function ScheduleClient({
                       {formattedInspectingDate}
                     </h3>
                     {inspectingDate === fmt(today) && (
-                      <span className="px-1.5 py-0.2 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 text-[9px] font-medium border border-blue-200 dark:border-blue-800">
+                      <span className="px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 text-xs font-medium border border-blue-200 dark:border-blue-800">
                         Today
                       </span>
                     )}
                   </div>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                     {inspectingEvents.length === 0 
                       ? "No schedule for this day" 
                       : `${inspectingEvents.length} item${inspectingEvents.length > 1 ? "s" : ""} scheduled`}
@@ -1616,9 +1638,10 @@ export default function ScheduleClient({
 
               <button 
                 onClick={() => setInspectingDate(null)}
-                className="w-8 h-8 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer shrink-0"
+                className="min-h-[36px] min-w-[36px] flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer shrink-0"
+                aria-label="Close"
               >
-                <X size={16} />
+                <X size={18} />
               </button>
             </div>
 
@@ -1639,7 +1662,7 @@ export default function ScheduleClient({
                   </div>
                   <div>
                     <p className="text-xs font-medium text-slate-700 dark:text-slate-300">Nothing scheduled on this date</p>
-                    <p className="text-[11px] text-slate-400 mt-0.5">Drag topics here from the left sidebar or schedule below.</p>
+                    <p className="text-xs text-slate-400 mt-0.5">Drag topics here from the curriculum or schedule below.</p>
                   </div>
                   <button
                     onClick={() => {
@@ -1654,9 +1677,9 @@ export default function ScheduleClient({
                       setInspectingDate(null);
                       setShowAddModal(true);
                     }}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 rounded-lg text-xs font-medium transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1.5 min-h-[38px] px-3.5 py-2 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 rounded-lg text-xs font-medium transition-colors cursor-pointer"
                   >
-                    <Plus size={13} />
+                    <Plus size={14} />
                     Schedule Activity
                   </button>
                 </div>
@@ -1674,10 +1697,10 @@ export default function ScheduleClient({
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-                              <span className={`px-1.5 py-0.2 rounded text-[9px] font-medium uppercase tracking-wider ${c.accent} text-white flex items-center gap-1`}>
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider ${c.accent} text-white flex items-center gap-1`}>
                                 {c.label}
                               </span>
-                              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                                 {ev.batch === "All Batches" ? "Global (All Batches)" : ev.batch}
                               </span>
                             </div>
@@ -1685,7 +1708,7 @@ export default function ScheduleClient({
                               {ev.title}
                             </h4>
                             {ev.description && (
-                              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">
+                              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">
                                 {ev.description}
                               </p>
                             )}
@@ -1693,19 +1716,20 @@ export default function ScheduleClient({
 
                           <button 
                             onClick={() => handleDelete(ev.id)}
-                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors cursor-pointer shrink-0"
+                            className="min-h-[36px] min-w-[36px] p-2 flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors cursor-pointer shrink-0"
                             title="Delete from schedule"
+                            aria-label="Delete from schedule"
                           >
-                            <Trash2 size={13} />
+                            <Trash2 size={16} />
                           </button>
                         </div>
 
                         {/* Meta Bar & Quick Actions */}
                         <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2">
-                          <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400 text-[10px]">
+                          <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400 text-xs">
                             {ev.start_time && (
                               <span className="flex items-center gap-1">
-                                <Clock size={11} className="text-slate-400" />
+                                <Clock size={12} className="text-slate-400" />
                                 <span>{ev.start_time.slice(0, 5)} - {ev.end_time ? ev.end_time.slice(0, 5) : ""}</span>
                               </span>
                             )}
@@ -1718,10 +1742,10 @@ export default function ScheduleClient({
                                 href={`/admin/lms/attendance?date=${inspectingDate}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="px-2 py-1 rounded-md text-[10px] font-medium bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 flex items-center gap-1 transition-colors cursor-pointer"
+                                className="min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 flex items-center gap-1.5 transition-colors cursor-pointer"
                                 title="Open attendance for this date"
                               >
-                                <CheckCircle2 size={10} />
+                                <CheckCircle2 size={13} />
                                 Attendance
                               </a>
                             )}
@@ -1729,20 +1753,20 @@ export default function ScheduleClient({
                             {/* Duplicate (+1 Day) */}
                             <button
                               onClick={() => handleDuplicateItem(ev)}
-                              className="px-2 py-1 rounded-md text-[10px] font-medium bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-1 transition-colors cursor-pointer"
+                              className="min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-medium bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-1.5 transition-colors cursor-pointer"
                               title="Duplicate this topic to tomorrow"
                             >
-                              <Copy size={10} />
+                              <Copy size={13} />
                               Clone (+1d)
                             </button>
 
                             {/* Postpone (+1 Day Shift) */}
                             <button
                               onClick={() => handlePostponeItem(ev)}
-                              className="px-2 py-1 rounded-md text-[10px] font-medium bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-1 transition-colors cursor-pointer"
+                              className="min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-medium bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-1.5 transition-colors cursor-pointer"
                               title="Move this event to tomorrow"
                             >
-                              <ArrowRight size={10} />
+                              <ArrowRight size={13} />
                               Postpone (+1d)
                             </button>
                           </div>
@@ -1756,14 +1780,14 @@ export default function ScheduleClient({
 
             {/* Modal Footer */}
             <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex items-center justify-between">
-              <div className="text-[10px] text-slate-400">
-                Tip: Press <kbd className="px-1 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-[9px]">←</kbd> <kbd className="px-1 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-[9px]">→</kbd> to switch days
+              <div className="text-xs text-slate-400">
+                Tip: Press <kbd className="px-1 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-[10px]">←</kbd> <kbd className="px-1 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-[10px]">→</kbd> to switch days
               </div>
               <div className="flex items-center gap-2">
                 <button 
                   type="button" 
                   onClick={() => setInspectingDate(null)}
-                  className="px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+                  className="min-h-[36px] px-3.5 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
                 >
                   Close
                 </button>
@@ -1781,9 +1805,9 @@ export default function ScheduleClient({
                     setInspectingDate(null);
                     setShowAddModal(true);
                   }}
-                  className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 text-xs font-medium rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer"
+                  className="min-h-[36px] px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 text-xs font-medium rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
-                  <Plus size={13} />
+                  <Plus size={14} />
                   Add to this Date
                 </button>
               </div>

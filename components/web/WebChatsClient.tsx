@@ -49,7 +49,7 @@ const STATUS_LABELS: Record<string, string> = {
 export default function WebChatsClient({ contacts: initialContacts, page, totalPages, totalCount }: Props) {
   const router = useRouter();
   const [contacts, setContacts] = useState<Contact[]>(initialContacts);
-  const [selectedId, setSelectedId] = useState<string | null>(initialContacts[0]?.id ?? null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [messages, setMessages] = useState<DBMessage[]>([]);
   const [inputText, setInputText] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -61,6 +61,14 @@ export default function WebChatsClient({ contacts: initialContacts, page, totalP
   const [followNote, setFollowNote] = useState("");
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto-select first contact on desktop; sync when initialContacts changes
+  useEffect(() => {
+    setContacts(initialContacts);
+    if (typeof window !== "undefined" && window.innerWidth >= 768 && initialContacts.length > 0) {
+      setSelectedId(prev => prev ?? initialContacts[0]?.id ?? null);
+    }
+  }, [initialContacts]);
 
   const selectedContact = contacts.find(c => c.id === selectedId) ?? null;
 
@@ -205,7 +213,9 @@ export default function WebChatsClient({ contacts: initialContacts, page, totalP
         body: JSON.stringify({ id: selectedContact.id, table: "contacts" }),
       });
       setContacts(prev => prev.filter(c => c.id !== selectedContact.id));
-      setSelectedId(contacts.find(c => c.id !== selectedContact.id)?.id ?? null);
+      const remaining = contacts.filter(c => c.id !== selectedContact.id);
+      const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+      setSelectedId(isMobile ? null : (remaining[0]?.id ?? null));
       router.refresh();
     } catch (e: any) {
       alert(e.message || "Delete failed");
@@ -215,10 +225,10 @@ export default function WebChatsClient({ contacts: initialContacts, page, totalP
   };
 
   return (
-    <div className="h-[calc(100vh-200px)] flex bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/60 rounded-2xl overflow-hidden shadow-sm">
+    <div className="h-[calc(100vh-160px)] md:h-[calc(100vh-200px)] min-h-[500px] flex bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/60 rounded-2xl overflow-hidden shadow-sm">
 
-      {/* ── SIDEBAR ── */}
-      <div className="w-72 lg:w-80 border-r border-slate-200/80 dark:border-slate-800/60 flex flex-col shrink-0 bg-slate-50/60 dark:bg-slate-950/30">
+      {/* ── SIDEBAR (Inquiries List) ── */}
+      <div className={`${selectedContact ? "hidden md:flex" : "flex"} w-full md:w-72 lg:w-80 md:border-r border-slate-200/80 dark:border-slate-800/60 flex-col shrink-0 bg-slate-50/60 dark:bg-slate-950/30`}>
 
         {/* Header */}
         <div className="p-3 border-b border-slate-200/80 dark:border-slate-800/60 space-y-2">
@@ -304,11 +314,22 @@ export default function WebChatsClient({ contacts: initialContacts, page, totalP
 
       {/* ── CHAT PANE ── */}
       {selectedContact ? (
-        <div className="flex-1 flex flex-col h-full min-w-0">
+        <div className="flex-1 flex flex-col h-full min-w-0 w-full">
 
           {/* Header */}
           <div className="p-3 border-b border-slate-200/80 dark:border-slate-800/60 bg-white dark:bg-slate-900 flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex items-center gap-2.5 min-w-0">
+            <div className="flex items-center gap-2 min-w-0">
+              {/* Mobile Back Button */}
+              <button
+                type="button"
+                onClick={() => setSelectedId(null)}
+                className="md:hidden flex items-center gap-1 px-2.5 py-1.5 -ml-1 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors shrink-0"
+                aria-label="Back to inquiries"
+              >
+                <ChevronLeft size={16} />
+                <span>Back</span>
+              </button>
+
               <div className={`w-9 h-9 flex items-center justify-center rounded-xl font-black text-sm text-white shrink-0 ${selectedContact.is_followed ? "bg-gradient-to-br from-amber-400 to-orange-500" : "bg-gradient-to-br from-rose-400 to-pink-500"}`}>
                 {selectedContact.name.charAt(0).toUpperCase()}
               </div>
@@ -467,7 +488,7 @@ export default function WebChatsClient({ contacts: initialContacts, page, totalP
           </form>
         </div>
       ) : (
-        <div className="flex-1 flex flex-col justify-center items-center text-center p-8">
+        <div className="hidden md:flex flex-1 flex-col justify-center items-center text-center p-8">
           <div className="w-14 h-14 bg-slate-100 dark:bg-slate-800/60 rounded-2xl flex items-center justify-center mb-3">
             <MessageSquare size={24} className="text-slate-300 dark:text-slate-600" />
           </div>

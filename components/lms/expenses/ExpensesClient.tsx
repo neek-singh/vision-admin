@@ -17,7 +17,8 @@ import {
   User, 
   FileText,
   CreditCard,
-  AlertCircle
+  AlertCircle,
+  ExternalLink
 } from "lucide-react";
 import { addExpense, updateExpense, deleteExpense } from "@/app/actions/lms/expenses";
 
@@ -280,25 +281,119 @@ export default function ExpensesClient({
         </div>
       </div>
 
-      {/* Expense List Table */}
+      {/* Expense List View (Mobile Cards & Desktop Table) */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800/80 shadow-md overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Mobile View: Responsive Cards (md:hidden) */}
+        <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800/80">
+          {filteredExpenses.length === 0 ? (
+            <div className="p-8 text-center text-slate-400 dark:text-slate-500 font-semibold text-sm">
+              <div className="flex flex-col items-center justify-center gap-2">
+                <AlertCircle className="opacity-25" size={32} />
+                No expenses found matching the criteria.
+              </div>
+            </div>
+          ) : (
+            filteredExpenses.map((exp) => (
+              <div key={exp.id} className="p-4 space-y-3 hover:bg-slate-50/50 dark:hover:bg-slate-950/20 transition-all">
+                {/* Header: Title & Amount */}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <h4 className="font-bold text-slate-900 dark:text-white text-sm leading-tight break-words">
+                      {exp.title}
+                    </h4>
+                    {exp.description && (
+                      <p className="text-slate-500 dark:text-slate-400 text-xs mt-1 line-clamp-2">
+                        {exp.description}
+                      </p>
+                    )}
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="font-black text-slate-900 dark:text-white text-base flex items-center justify-end">
+                      <IndianRupee size={14} className="stroke-[3.5]" />
+                      {exp.amount.toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Metadata & Badges */}
+                <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                  <span className={`px-2.5 py-1 rounded-lg border text-[10px] font-black uppercase tracking-wider ${getCategoryColor(exp.category)}`}>
+                    {exp.category}
+                  </span>
+
+                  {exp.expense_date && (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/60 px-2 py-0.5 rounded-md border border-slate-100 dark:border-slate-800">
+                      <Calendar size={11} className="text-slate-400" />
+                      {new Date(exp.expense_date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                    </span>
+                  )}
+
+                  {exp.paid_to && (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 px-2 py-0.5 rounded-md border border-slate-100 dark:border-slate-800">
+                      <User size={11} className="text-slate-400" />
+                      <span className="truncate max-w-[120px]">{exp.paid_to}</span>
+                    </span>
+                  )}
+
+                  <span className="px-2 py-0.5 text-[9px] font-black bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded uppercase tracking-wider">
+                    {exp.payment_mode}
+                  </span>
+
+                  {(exp.receipt_url || exp.receipt) && (
+                    <a
+                      href={exp.receipt_url || exp.receipt}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-600 dark:text-blue-400 hover:underline bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded-md border border-blue-100 dark:border-blue-900/40"
+                    >
+                      <ExternalLink size={11} />
+                      <span>Receipt</span>
+                    </a>
+                  )}
+                </div>
+
+                {/* Card Action Controls */}
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/60">
+                  <button
+                    type="button"
+                    onClick={() => handleEditClick(exp)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
+                  >
+                    <Edit size={13} />
+                    <span>Edit</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteClick(exp.id)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-lg transition-all cursor-pointer"
+                  >
+                    <Trash2 size={13} />
+                    <span>Delete</span>
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Desktop View: Table (hidden md:block) */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
-                <th className="px-8 py-5 text-[10px] font-black text-slate-400 dark:text-slate-555 uppercase tracking-widest">Title & Details</th>
-                <th className="px-6 py-5 text-[10px] font-black text-slate-400 dark:text-slate-555 uppercase tracking-widest">Category</th>
-                <th className="px-6 py-5 text-[10px] font-black text-slate-400 dark:text-slate-555 uppercase tracking-widest">Amount</th>
-                <th className="px-6 py-5 text-[10px] font-black text-slate-400 dark:text-slate-555 uppercase tracking-widest">Date</th>
-                <th className="px-6 py-5 text-[10px] font-black text-slate-400 dark:text-slate-555 uppercase tracking-widest">Paid To</th>
-                <th className="px-6 py-5 text-[10px] font-black text-slate-400 dark:text-slate-555 uppercase tracking-widest">Payment Mode</th>
-                <th className="px-8 py-5 text-[10px] font-black text-slate-400 dark:text-slate-555 uppercase tracking-widest text-right">Actions</th>
+                <th className="px-4 py-3.5 text-[10px] font-black text-slate-400 dark:text-slate-400 uppercase tracking-widest">Title & Details</th>
+                <th className="px-4 py-3.5 text-[10px] font-black text-slate-400 dark:text-slate-400 uppercase tracking-widest">Category</th>
+                <th className="px-4 py-3.5 text-[10px] font-black text-slate-400 dark:text-slate-400 uppercase tracking-widest">Amount</th>
+                <th className="px-4 py-3.5 text-[10px] font-black text-slate-400 dark:text-slate-400 uppercase tracking-widest">Date</th>
+                <th className="px-4 py-3.5 text-[10px] font-black text-slate-400 dark:text-slate-400 uppercase tracking-widest">Paid To</th>
+                <th className="px-4 py-3.5 text-[10px] font-black text-slate-400 dark:text-slate-400 uppercase tracking-widest">Payment Mode</th>
+                <th className="px-4 py-3.5 text-[10px] font-black text-slate-400 dark:text-slate-400 uppercase tracking-widest text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
               {filteredExpenses.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-8 py-16 text-center text-slate-450 dark:text-slate-500 font-semibold text-sm">
+                  <td colSpan={7} className="px-4 py-16 text-center text-slate-400 dark:text-slate-500 font-semibold text-sm">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <AlertCircle className="opacity-25" size={32} />
                       No expenses found matching the criteria.
@@ -308,37 +403,48 @@ export default function ExpensesClient({
               ) : (
                 filteredExpenses.map((exp) => (
                   <tr key={exp.id} className="hover:bg-slate-50/40 dark:hover:bg-slate-950/20 transition-all">
-                    <td className="px-8 py-5">
+                    <td className="px-4 py-3.5">
                       <div className="font-bold text-slate-900 dark:text-white text-sm">{exp.title}</div>
                       {exp.description && (
                         <div className="text-slate-400 text-xs mt-0.5 max-w-xs truncate">{exp.description}</div>
                       )}
+                      {(exp.receipt_url || exp.receipt) && (
+                        <a
+                          href={exp.receipt_url || exp.receipt}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-[11px] text-blue-600 dark:text-blue-400 hover:underline mt-1"
+                        >
+                          <ExternalLink size={10} /> View Receipt
+                        </a>
+                      )}
                     </td>
-                    <td className="px-6 py-5">
+                    <td className="px-4 py-3.5">
                       <span className={`px-3 py-1.5 rounded-lg border text-[10px] font-black uppercase tracking-wider ${getCategoryColor(exp.category)}`}>
                         {exp.category}
                       </span>
                     </td>
-                    <td className="px-6 py-5">
+                    <td className="px-4 py-3.5">
                       <div className="font-black text-slate-900 dark:text-white text-sm flex items-center">
                         <IndianRupee size={12} className="stroke-[3.5]" />
                         {exp.amount.toLocaleString()}
                       </div>
                     </td>
-                    <td className="px-6 py-5 text-slate-500 dark:text-slate-400 font-semibold text-xs">
+                    <td className="px-4 py-3.5 text-slate-500 dark:text-slate-400 font-semibold text-xs">
                       {exp.expense_date ? new Date(exp.expense_date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : ""}
                     </td>
-                    <td className="px-6 py-5 text-slate-600 dark:text-slate-350 font-bold text-xs">
+                    <td className="px-4 py-3.5 text-slate-600 dark:text-slate-300 font-bold text-xs">
                       {exp.paid_to || "-"}
                     </td>
-                    <td className="px-6 py-5">
+                    <td className="px-4 py-3.5">
                       <span className="px-2.5 py-1 text-[9px] font-black bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded uppercase tracking-widest">
                         {exp.payment_mode}
                       </span>
                     </td>
-                    <td className="px-8 py-5 text-right">
+                    <td className="px-4 py-3.5 text-right">
                       <div className="flex justify-end gap-1.5">
                         <button
+                          type="button"
                           onClick={() => handleEditClick(exp)}
                           className="p-2 text-slate-400 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
                           title="Edit Expense"
@@ -346,6 +452,7 @@ export default function ExpensesClient({
                           <Edit size={14} />
                         </button>
                         <button
+                          type="button"
                           onClick={() => handleDeleteClick(exp.id)}
                           className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-lg transition-all cursor-pointer"
                           title="Delete Expense"

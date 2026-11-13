@@ -161,7 +161,7 @@ async function DashboardContent({ supabase, todayStr }: { supabase: any; todaySt
 
       {/* ── Web Stats ── */}
       <Section label="Website">
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {webStats.map((s) => <StatCard key={s.label} {...s} />)}
         </div>
       </Section>
@@ -403,7 +403,7 @@ function DashboardSkeleton() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[1, 2, 3, 4].map((i) => <div key={i} className="h-16 bg-slate-100 dark:bg-slate-800/50 rounded-2xl" />)}
       </div>
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {[1, 2, 3].map((i) => <div key={i} className="h-16 bg-slate-100 dark:bg-slate-800/50 rounded-2xl" />)}
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">

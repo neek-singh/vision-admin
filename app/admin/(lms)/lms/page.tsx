@@ -261,8 +261,8 @@ async function RecentActivity() {
           View All <ArrowUpRight size={12} />
         </Link>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-xs">
+      <div className="overflow-x-auto -mx-4 sm:mx-0">
+        <table className="w-full min-w-[640px] text-left text-xs">
           <thead className="bg-slate-50/70 dark:bg-slate-800/40 text-slate-400 dark:text-slate-500 font-bold border-b border-slate-100 dark:border-slate-800/60">
             <tr>
               <th className="px-5 py-2.5 uppercase tracking-wider text-[10px]">Student</th>
