@@ -44,6 +44,7 @@ const SEARCHABLE_ITEMS: NavSearchItem[] = [
   { title: "Manage Students", path: "/admin/students", category: "LMS", icon: UsersIcon, keywords: ["students", "learners", "directory", "id cards", "profiles"] },
   { title: "Add New Student", path: "/admin/students/add", category: "LMS", icon: UsersIcon, keywords: ["add student", "register student", "new enrollment"] },
   { title: "Manage Courses", path: "/admin/courses", category: "LMS", icon: BookOpen, keywords: ["courses", "syllabus", "fees", "duration"] },
+  { title: "Add New Course", path: "/admin/courses/new", category: "LMS", icon: BookOpen, keywords: ["add course", "create course", "new course"] },
   { title: "Course Curriculum", path: "/admin/lms/content", category: "LMS", icon: FileText, keywords: ["curriculum", "modules", "chapters", "lessons", "content"] },
   { title: "Tests & Exams", path: "/admin/lms/tests", category: "LMS", icon: FileText, keywords: ["tests", "exams", "quizzes", "results", "marks"] },
   { title: "Notes & Materials", path: "/admin/lms/materials", category: "LMS", icon: FileText, keywords: ["notes", "materials", "pdf", "resources", "downloads"] },
@@ -59,8 +60,10 @@ const SEARCHABLE_ITEMS: NavSearchItem[] = [
 
   // Web
   { title: "Batches", path: "/admin/batches", category: "Web", icon: Calendar, keywords: ["batches", "cohorts", "groups", "admissions"] },
+  { title: "Add New Batch", path: "/admin/batches/new", category: "Web", icon: Calendar, keywords: ["add batch", "create batch", "new batch"] },
   { title: "General Inquiries", path: "/admin/contacts", category: "Web", icon: MessageSquare, keywords: ["contacts", "inquiries", "leads", "messages", "form"] },
   { title: "Blogs & Articles", path: "/admin/blogs", category: "Web", icon: FileText, keywords: ["blogs", "posts", "news", "articles", "stories"] },
+  { title: "Write Blog Post", path: "/admin/blogs/new", category: "Web", icon: FileText, keywords: ["write blog", "create blog", "new post", "new blog", "article"] },
   { title: "Gallery Manager", path: "/admin/gallery", category: "Web", keywords: ["gallery", "photos", "images", "pictures", "upload"] },
   { title: "Website Stats", path: "/admin/stats", category: "Web", keywords: ["stats", "about stats", "counters", "numbers"] },
   { title: "Web Inquiries Chat", path: "/admin/chats", category: "Web", icon: MessageSquare, keywords: ["web chats", "messages", "inquiry chat"] },
@@ -304,28 +307,47 @@ export default function AdminNavbar({
 
   // 5. Page title display based on current pathname
   const pageTitle = useMemo(() => {
-    const item = SEARCHABLE_ITEMS.find((s) => s.path === pathname);
+    const p = pathname.replace(/\/$/, "");
+
+    // Specific sub-routes and dynamic edit forms
+    if (p === "/admin/courses/new") return "Add New Course";
+    if (/^\/admin\/courses\/[^/]+\/edit$/.test(p)) return "Edit Course";
+    if (p === "/admin/batches/new") return "Add New Batch";
+    if (/^\/admin\/batches\/[^/]+\/edit$/.test(p)) return "Edit Batch";
+    if (p === "/admin/blogs/new") return "Write Blog Post";
+    if (/^\/admin\/blogs\/[^/]+\/edit$/.test(p)) return "Edit Blog Post";
+    if (p === "/admin/students/add") return "Add New Student";
+    if (p === "/admin/courses") return "Manage Courses";
+
+    // Matching registered items in search index
+    const item = SEARCHABLE_ITEMS.find((s) => s.path === p);
     if (item) return item.title;
-    if (pathname.startsWith("/admin/lms/content")) return "Course Curriculum";
-    if (pathname.startsWith("/admin/lms/tests")) return "Tests & Exams";
-    if (pathname.startsWith("/admin/lms/materials")) return "Notes & Materials";
-    if (pathname.startsWith("/admin/lms/projects")) return "Projects & Assignments";
-    if (pathname.startsWith("/admin/lms/attendance")) return "Daily Attendance";
-    if (pathname.startsWith("/admin/lms/chats")) return "Student Chats";
-    if (pathname.startsWith("/admin/lms/analytics")) return "LMS Analytics";
-    if (pathname.startsWith("/admin/lms")) return "LMS Portal";
-    if (pathname.startsWith("/admin/students")) return "Manage Students";
-    if (pathname.startsWith("/admin/batches")) return "Batches";
-    if (pathname.startsWith("/admin/blogs")) return "Blogs & Articles";
-    if (pathname.startsWith("/admin/courses")) return "Manage Courses";
-    if (pathname.startsWith("/admin/calendar")) return "Calendar & Events";
-    if (pathname.startsWith("/admin/schedule")) return "Academic Schedule";
-    if (pathname.startsWith("/admin/fees")) return "Fees Management";
-    if (pathname.startsWith("/admin/expenses")) return "Expenses Management";
-    if (pathname.startsWith("/admin/notifications")) return "Notification Center";
-    if (pathname.startsWith("/admin/users")) return "System Users";
-    if (pathname.startsWith("/admin/chats")) return "Inquiries Chat";
-    if (pathname.startsWith("/admin/analytics")) return "Analytics";
+
+    // Route category prefixes
+    if (p.startsWith("/admin/courses")) return "Manage Courses";
+    if (p.startsWith("/admin/batches")) return "Batches";
+    if (p.startsWith("/admin/blogs")) return "Blogs & Articles";
+    if (p.startsWith("/admin/students")) return "Manage Students";
+    if (p.startsWith("/admin/lms/content")) return "Course Curriculum";
+    if (p.startsWith("/admin/lms/tests")) return "Tests & Exams";
+    if (p.startsWith("/admin/lms/materials")) return "Notes & Materials";
+    if (p.startsWith("/admin/lms/projects")) return "Projects & Assignments";
+    if (p.startsWith("/admin/lms/attendance")) return "Daily Attendance";
+    if (p.startsWith("/admin/lms/chats")) return "Student Chats";
+    if (p.startsWith("/admin/lms/analytics")) return "LMS Analytics";
+    if (p.startsWith("/admin/lms")) return "LMS Portal";
+    if (p.startsWith("/admin/calendar")) return "Calendar & Events";
+    if (p.startsWith("/admin/schedule")) return "Academic Schedule";
+    if (p.startsWith("/admin/fees")) return "Fees Management";
+    if (p.startsWith("/admin/expenses")) return "Expenses Management";
+    if (p.startsWith("/admin/notifications")) return "Notification Center";
+    if (p.startsWith("/admin/users")) return "System Users";
+    if (p.startsWith("/admin/chats")) return "Inquiries Chat";
+    if (p.startsWith("/admin/analytics")) return "Analytics";
+    if (p.startsWith("/admin/admissions")) return "Enquiry Admissions";
+    if (p.startsWith("/admin/contacts")) return "General Enquiries";
+    if (p.startsWith("/admin/gallery")) return "Gallery Manager";
+    if (p.startsWith("/admin/stats")) return "Website Stats";
     return "Admin";
   }, [pathname]);
 

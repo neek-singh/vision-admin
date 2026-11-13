@@ -55,7 +55,6 @@ const navGroups = [
       { href: "/admin/lms/attendance", label: "Daily Attendance", icon: CheckCircle2 },
       { href: "/admin/calendar", label: "Calendar", icon: Calendar },
       { href: "/admin/schedule", label: "Academic Schedule", icon: CalendarDays },
-      { href: "/admin/lms/calendar", label: "Calendar & Events", icon: Calendar },
       { href: "/admin/notifications", label: "Notifications", icon: Bell },
       { href: "/admin/fees", label: "Fees Management", icon: Wallet },
       { href: "/admin/expenses", label: "Expenses Management", icon: TrendingDown },
@@ -265,7 +264,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 <div className="h-[1px] bg-slate-100 dark:bg-slate-800/80 my-2 mx-2"></div>
               )}
               {group.items.map((item) => {
-                const isActive = pathname === item.href;
+                const isActive = pathname === item.href || (item.href !== "/admin" && pathname.startsWith(item.href + "/"));
                 return (
                   <Link
                     key={item.href}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Search, X, Pencil, Clock, BookOpen, Loader2, Eye, EyeOff } from "lucide-react";
+import { Search, X, Pencil, Clock, BookOpen, Loader2, Eye, EyeOff, ExternalLink } from "lucide-react";
 import DeleteButton from "@/components/ui/DeleteButton";
 import { toggleCourseVisibility, setAllCoursesVisibility } from "@/app/actions/lms/courses";
 
@@ -125,6 +125,14 @@ export default function CoursesTableClient({ initialCourses }: { initialCourses:
     });
 
   const hasDiscount = (c: Course) => !!c.discount_fee && c.discount_fee > 0;
+
+  const getPublicCourseUrl = (course: Course) => {
+    const base = (process.env.NEXT_PUBLIC_WEBSITE_URL || "https://visionitinstitute.com").replace(/\/+$/, "");
+    if (course.course_code) {
+      return `${base}/courses/${encodeURIComponent(course.course_code.toLowerCase().trim())}`;
+    }
+    return `${base}/courses`;
+  };
 
   // Category badge color helper
   const getCategoryColor = (cat?: string) => {
@@ -265,7 +273,7 @@ export default function CoursesTableClient({ initialCourses }: { initialCourses:
                 <th className="px-3.5 py-2.5 w-24 text-center">Enrolled</th>
                 <th className="px-3.5 py-2.5 w-32 text-right">Fees</th>
                 <th className="px-3.5 py-2.5 w-24 text-center">Website</th>
-                <th className="px-3.5 py-2.5 text-right w-24">Actions</th>
+                <th className="px-3.5 py-2.5 text-right w-32">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
@@ -311,10 +319,26 @@ export default function CoursesTableClient({ initialCourses }: { initialCourses:
                     >
                       {/* 1. Course Name */}
                       <td className="px-3.5 py-3">
-                        <div className="min-w-0">
-                          <p className="text-xs font-semibold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <Link
+                            href={`/admin/courses/${course.id}/edit`}
+                            className="text-xs font-semibold text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors truncate cursor-pointer"
+                            title={`Edit ${course.title}`}
+                          >
                             {course.title}
-                          </p>
+                          </Link>
+                          {isLive && (
+                            <a
+                              href={getPublicCourseUrl(course)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors shrink-0 cursor-pointer p-0.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800"
+                              title="View on Public Website"
+                              aria-label="View on Public Website"
+                            >
+                              <ExternalLink size={12} />
+                            </a>
+                          )}
                         </div>
                       </td>
 
@@ -335,12 +359,13 @@ export default function CoursesTableClient({ initialCourses }: { initialCourses:
 
                       {/* 4. Enrolled (Only Number) */}
                       <td className="px-3.5 py-3 text-center">
-                        <span 
-                          className="inline-flex items-center justify-center min-w-[26px] h-[22px] px-2 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700 tabular-nums"
-                          title={`${enrolledCount} students enrolled`}
+                        <Link 
+                          href="/admin/students"
+                          className="inline-flex items-center justify-center min-w-[26px] h-[22px] px-2 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-blue-950/40 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-200 dark:hover:border-blue-800 border border-slate-200/60 dark:border-slate-700 tabular-nums transition-colors cursor-pointer"
+                          title={`View ${enrolledCount} enrolled students`}
                         >
                           {enrolledCount}
-                        </span>
+                        </Link>
                       </td>
 
                       {/* 5. Fees */}
@@ -393,10 +418,31 @@ export default function CoursesTableClient({ initialCourses }: { initialCourses:
                       {/* 7. Actions */}
                       <td className="px-3.5 py-3 text-right">
                         <div className="flex items-center justify-end gap-1">
+                          {isLive && (
+                            <a
+                              href={getPublicCourseUrl(course)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-1 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer"
+                              title="View on Public Website"
+                              aria-label="View on Public Website"
+                            >
+                              <ExternalLink size={13} />
+                            </a>
+                          )}
+                          <Link
+                            href="/admin/lms/content"
+                            className="p-1 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer"
+                            title="View & Edit Curriculum"
+                            aria-label="View & Edit Curriculum"
+                          >
+                            <BookOpen size={13} />
+                          </Link>
                           <Link
                             href={`/admin/courses/${course.id}/edit`}
                             className="p-1 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer"
                             title="Edit Course"
+                            aria-label="Edit Course"
                           >
                             <Pencil size={13} />
                           </Link>
@@ -432,10 +478,26 @@ export default function CoursesTableClient({ initialCourses }: { initialCourses:
               return (
                 <div key={course.id} className="p-3.5 space-y-2.5">
                   <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="font-bold text-xs text-slate-900 dark:text-white leading-tight">
+                    <div className="min-w-0 flex items-center gap-1.5">
+                      <Link
+                        href={`/admin/courses/${course.id}/edit`}
+                        className="font-bold text-xs text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors leading-tight cursor-pointer"
+                        title={`Edit ${course.title}`}
+                      >
                         {course.title}
-                      </p>
+                      </Link>
+                      {isLive && (
+                        <a
+                          href={getPublicCourseUrl(course)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors shrink-0 cursor-pointer p-0.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800"
+                          title="View on Public Website"
+                          aria-label="View on Public Website"
+                        >
+                          <ExternalLink size={11} />
+                        </a>
+                      )}
                     </div>
                     
                     <div className="text-right shrink-0">
@@ -492,18 +554,42 @@ export default function CoursesTableClient({ initialCourses }: { initialCourses:
                     </span>
 
                     {/* Enrolled (Only Number) */}
-                    <span 
-                      className="inline-flex items-center justify-center min-w-[20px] h-[18px] px-1.5 rounded-full font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700 tabular-nums"
-                      title={`${enrolledCount} enrolled`}
+                    <Link 
+                      href="/admin/students"
+                      className="inline-flex items-center justify-center min-w-[20px] h-[18px] px-1.5 rounded-full font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-blue-950/40 hover:text-blue-600 dark:hover:text-blue-400 border border-slate-200/60 dark:border-slate-700 tabular-nums transition-colors cursor-pointer"
+                      title={`View ${enrolledCount} enrolled students`}
                     >
                       {enrolledCount}
-                    </span>
+                    </Link>
                   </div>
 
-                  <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/80">
+                  <div className="flex items-center justify-end gap-1.5 pt-2 border-t border-slate-100 dark:border-slate-800/80">
+                    {isLive && (
+                      <a
+                        href={getPublicCourseUrl(course)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-750 rounded-lg transition-colors cursor-pointer"
+                        title="View on Public Website"
+                        aria-label="View on Public Website"
+                      >
+                        <ExternalLink size={11} />
+                        <span>Website</span>
+                      </a>
+                    )}
+                    <Link
+                      href="/admin/lms/content"
+                      className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 rounded-lg transition-colors cursor-pointer"
+                      title="View & Edit Curriculum"
+                      aria-label="View & Edit Curriculum"
+                    >
+                      <BookOpen size={11} />
+                      <span>Curriculum</span>
+                    </Link>
                     <Link
                       href={`/admin/courses/${course.id}/edit`}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 rounded-lg"
+                      className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/60 rounded-lg transition-colors cursor-pointer"
+                      title="Edit Course"
                     >
                       <Pencil size={11} />
                       <span>Edit</span>
@@ -513,7 +599,7 @@ export default function CoursesTableClient({ initialCourses }: { initialCourses:
                       table="courses"
                       title={course.title}
                       showText={false}
-                      className="p-1 text-slate-400 hover:text-rose-600 rounded-md"
+                      className="p-1 text-slate-400 hover:text-rose-600 rounded-md cursor-pointer"
                     />
                   </div>
                 </div>
