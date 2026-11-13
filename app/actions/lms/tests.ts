@@ -93,8 +93,8 @@ export async function saveTest(data: {
   lesson_id?: string | null;
   is_published?: boolean;
 }) {
-  const { supabase } = await requireAdmin();
-  const client = supabase || supabaseAdmin;
+  await requireAdmin();
+  const client = supabaseAdmin;
 
   try {
     const { id, batch, chapter_id, lesson_id, ...rest } = data;
@@ -141,8 +141,8 @@ export async function saveTest(data: {
  * Deletes a test and all its questions/results using privileged supabaseAdmin.
  */
 export async function deleteTest(id: string) {
-  const { supabase } = await requireAdmin();
-  const client = supabase || supabaseAdmin;
+  await requireAdmin();
+  const client = supabaseAdmin;
 
   try {
     const { error } = await client.from("tests").delete().eq("id", id);
@@ -158,8 +158,8 @@ export async function deleteTest(id: string) {
  * Toggles a test's published status using privileged supabaseAdmin.
  */
 export async function togglePublishTest(id: string, currentStatus: boolean) {
-  const { supabase } = await requireAdmin();
-  const client = supabase || supabaseAdmin;
+  await requireAdmin();
+  const client = supabaseAdmin;
 
   try {
     const nextStatus = !currentStatus;
@@ -193,8 +193,8 @@ export async function saveTestQuestion(data: {
   correct_option_index: number;
   order_index?: number;
 }) {
-  const { supabase } = await requireAdmin();
-  const client = supabase || supabaseAdmin;
+  await requireAdmin();
+  const client = supabaseAdmin;
 
   try {
     const { id, ...rest } = data;
@@ -221,8 +221,8 @@ export async function saveTestQuestion(data: {
  * Deletes a test question using privileged supabaseAdmin.
  */
 export async function deleteTestQuestion(id: string) {
-  const { supabase } = await requireAdmin();
-  const client = supabase || supabaseAdmin;
+  await requireAdmin();
+  const client = supabaseAdmin;
 
   try {
     const { error } = await client
