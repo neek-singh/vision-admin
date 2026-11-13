@@ -17,7 +17,7 @@ export default function Badge({ children, variant = "slate", className = "" }: B
   };
 
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest border ${variants[variant]} ${className}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium tracking-normal border ${variants[variant]} ${className}`}>
       {children}
     </span>
   );

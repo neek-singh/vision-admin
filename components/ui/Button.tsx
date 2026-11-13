@@ -14,7 +14,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = "primary", size = "md", href, ...props }, ref) => {
     // 1. Upgraded base styles for robustness and tactile feedback
     const baseStyles =
-      "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full font-semibold transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50";
+      "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50";
 
     // 2. Refined color palettes and shadows for depth
     const variants = {
@@ -31,8 +31,8 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     // 3. Adjusted sizing to standard modern UI heights
     const sizes = {
       sm: "h-9 px-4 text-xs",
-      md: "h-10 px-6 py-2 text-sm",
-      lg: "h-12 px-8 text-base",
+      md: "h-10 px-4 py-2 text-sm",
+      lg: "h-12 px-5 text-base",
     };
 
     const classes = cn(baseStyles, variants[variant], sizes[size], className);

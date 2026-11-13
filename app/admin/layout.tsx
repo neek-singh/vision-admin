@@ -140,13 +140,38 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       pathname.includes('/admissions') || 
       pathname.includes('/fees') || 
       pathname.includes('/schedule') ||
-      pathname.includes('/calendar')
+      pathname.includes('/calendar') ||
+      pathname.includes('/expenses') ||
+      pathname.includes('/notifications')
     ) {
       setAdminMode("lms");
     } else {
       setAdminMode("web");
     }
   }, [pathname]);
+
+  // Mobile drawer body scroll lock
+  useEffect(() => {
+    if (isMobileOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = originalOverflow || "";
+      };
+    }
+  }, [isMobileOpen]);
+
+  // Mobile drawer Escape key dismissal
+  useEffect(() => {
+    if (!isMobileOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsMobileOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isMobileOpen]);
 
   const isDashboard = pathname === "/admin" || pathname === "/admin/lms";
 
@@ -205,7 +230,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-screen bg-slate-50 dark:bg-[#090f1f] text-slate-900 dark:text-slate-100 transition-colors duration-300">
+    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300">
       {/* Mobile Drawer Overlay */}
       {isMobileOpen && (
         <div
@@ -216,7 +241,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 h-full z-50 bg-white dark:bg-[#060a13] text-slate-600 dark:text-slate-400 transition-all duration-300 ease-in-out border-r border-slate-200/80 dark:border-slate-800/80 shadow-[1px_0_8px_rgba(0,0,0,0.02)]
+        className={`fixed top-0 left-0 h-full z-50 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 transition-all duration-300 ease-in-out border-r border-slate-200/80 dark:border-slate-800/80 shadow-[1px_0_8px_rgba(0,0,0,0.02)]
         ${isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
         ${isCollapsed ? "lg:w-[76px]" : "lg:w-[260px]"} w-[260px] flex flex-col`}
       >
@@ -224,7 +249,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         <div className={`h-16 flex items-center border-b border-slate-100 dark:border-slate-800/80 justify-between px-4 ${isCollapsed ? "lg:justify-center lg:px-0" : ""}`}>
           <div className={`flex items-center gap-2.5 ${isCollapsed ? "lg:hidden" : ""}`}>
             <Link href="/admin" className="flex items-center gap-2.5 group">
-              <div className="w-9 h-9 bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl relative flex items-center justify-center p-1 shadow-2xs transition-transform group-hover:scale-105 duration-200">
+              <div className="w-9 h-9 bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl relative flex items-center justify-center p-1 shadow-2xs">
                 <Image 
                   src="https://res.cloudinary.com/ddiooxxks/image/upload/f_auto,q_auto/logo_unnut8.png" 
                   alt="Vision IT Logo" 
@@ -247,7 +272,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
               title="Expand Sidebar"
               aria-label="Expand Sidebar"
             >
-              <Menu size={19} className="transition-transform group-hover:scale-110" />
+              <Menu size={19} />
             </button>
           )}
           <div className="flex items-center">
@@ -263,8 +288,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             )}
             <button 
               onClick={() => setIsMobileOpen(false)}
-              className="lg:hidden p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all"
+              className="lg:hidden min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
               title="Close Menu"
+              aria-label="Close Navigation Menu"
             >
               <X size={20} />
             </button>
@@ -291,7 +317,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                     className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-all duration-150 group relative
                     ${isCollapsed ? "lg:justify-center lg:px-0 lg:w-10 lg:h-10 lg:mx-auto" : ""}
                     ${isActive 
-                      ? "bg-blue-600 text-white font-semibold shadow-xs shadow-blue-500/20" 
+                      ? "bg-blue-600 text-white font-semibold shadow-xs" 
                       : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100/80 dark:hover:bg-slate-800/60 font-medium"}`}
                   >
                     <item.icon size={19} className={`${isActive ? "text-white" : "text-slate-400 dark:text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-300"} transition-colors shrink-0`} />
@@ -372,16 +398,14 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           background: #475569;
         }
         
-        /* Glassmorphism utility */
+        /* Solid crisp card utility */
         .glass-card {
-          background: rgba(255, 255, 255, 0.7);
-          backdrop-filter: blur(12px);
-          border: 1px border rgba(255, 255, 255, 0.3);
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
         }
         .dark .glass-card {
-          background: rgba(15, 23, 42, 0.75);
-          backdrop-filter: blur(12px);
-          border: 1px border rgba(255, 255, 255, 0.05);
+          background: #0f172a;
+          border: 1px solid #1e293b;
         }
       `}</style>
     </div>

@@ -12,7 +12,7 @@
 }
 
 .dark {
-  --background: #090f1f;
+  --background: #020617;
   --foreground: #f8fafc;
 }
 
@@ -30,22 +30,6 @@ body {
 }
 .animate-shimmer {
   animation: shimmer 2s infinite;
-}
-
-@keyframes scan {
-  0% {
-    top: 0%;
-  }
-  50% {
-    top: 100%;
-  }
-  100% {
-    top: 0%;
-  }
-}
-
-.animate-scan {
-  animation: scan 2.5s linear infinite;
 }
 
 @keyframes flash-green {
@@ -361,7 +345,7 @@ body {
 }
 
 .rich-content pre {
-  background: #090e1a !important;
+  background: #020617 !important;
   color: #e2e8f0 !important;
   padding: 1rem 1.25rem !important;
   border-radius: 0.75rem !important;

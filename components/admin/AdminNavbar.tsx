@@ -97,6 +97,7 @@ export default function AdminNavbar({
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isMobileSearchExpanded, setIsMobileSearchExpanded] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   // Popover menus state
@@ -119,6 +120,7 @@ export default function AdminNavbar({
 
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const mobileSearchInputRef = useRef<HTMLInputElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
 
@@ -214,11 +216,17 @@ export default function AdminNavbar({
     function handleKeyDown(e: KeyboardEvent) {
       if ((e.ctrlKey || e.metaKey) && e.key === "k") {
         e.preventDefault();
-        searchInputRef.current?.focus();
+        if (window.innerWidth < 768) {
+          setIsMobileSearchExpanded(true);
+        }
         setIsSearchOpen(true);
+        setTimeout(() => {
+          (window.innerWidth < 768 ? mobileSearchInputRef : searchInputRef).current?.focus();
+        }, 50);
       }
       if (e.key === "Escape") {
         setIsSearchOpen(false);
+        setIsMobileSearchExpanded(false);
         setIsNotificationsOpen(false);
         setIsProfileOpen(false);
       }
@@ -227,6 +235,12 @@ export default function AdminNavbar({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
+
+  // Reset mobile search expansion on route change
+  useEffect(() => {
+    setIsMobileSearchExpanded(false);
+    setIsSearchOpen(false);
+  }, [pathname]);
 
   // 4. Search matching items
   const searchResults = useMemo(() => {
@@ -243,6 +257,7 @@ export default function AdminNavbar({
 
   const handleSelectResult = (item: NavSearchItem) => {
     setIsSearchOpen(false);
+    setIsMobileSearchExpanded(false);
     setSearchQuery("");
     router.push(item.path);
   };
@@ -275,7 +290,7 @@ export default function AdminNavbar({
   }, [pathname]);
 
   return (
-    <header className="h-16 bg-white/90 dark:bg-[#060a13]/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 sticky top-0 z-30 flex items-center justify-between px-4 lg:px-8 shadow-2xs transition-colors duration-200">
+    <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-800/80 sticky top-0 z-30 flex items-center justify-between px-4 lg:px-8 shadow-2xs transition-colors duration-200 relative">
       {/* Left: Hamburger + Mode Switcher + Breadcrumb */}
       <div className="flex items-center gap-3 md:gap-4 min-w-0">
         {/* Sidebar Toggle Button */}
@@ -289,7 +304,7 @@ export default function AdminNavbar({
         </button>
 
         {/* Minimal Mode Segmented Switcher (Web / Learn) */}
-        <div className="inline-flex p-0.5 bg-slate-100 dark:bg-slate-800/80 rounded-lg border border-slate-200/60 dark:border-slate-700/60 text-xs font-medium">
+        <div className="hidden sm:inline-flex p-0.5 bg-slate-100 dark:bg-slate-800/80 rounded-lg border border-slate-200/60 dark:border-slate-700/60 text-xs font-medium">
           <Link
             href="/admin"
             onClick={() => setAdminMode("web")}
@@ -325,8 +340,22 @@ export default function AdminNavbar({
 
       {/* Center & Right: Search, Notifications, Theme, Profile */}
       <div className="flex items-center gap-2 sm:gap-3">
+        {/* Mobile Search Trigger Icon (<md) */}
+        <button
+          type="button"
+          onClick={() => {
+            setIsMobileSearchExpanded(true);
+            setIsSearchOpen(true);
+          }}
+          className="md:hidden p-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80 rounded-lg transition-colors cursor-pointer"
+          title="Search or jump to..."
+          aria-label="Open search"
+        >
+          <Search size={18} />
+        </button>
+
         {/* Global Working Search Bar */}
-        <div ref={searchContainerRef} className="relative">
+        <div ref={searchContainerRef} className="relative hidden md:block">
           <div className="relative flex items-center">
             <Search
               size={14}
@@ -366,7 +395,7 @@ export default function AdminNavbar({
 
           {/* Search Results Dropdown */}
           {isSearchOpen && searchQuery.trim() && (
-            <div className="absolute right-0 sm:left-0 top-full mt-2 w-72 sm:w-80 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-150">
+            <div className="absolute right-0 sm:left-0 top-full mt-2 w-[calc(100vw-2rem)] max-w-sm sm:w-80 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-150">
               <div className="p-2 border-b border-slate-100 dark:border-slate-800/80 text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-3">
                 Quick Navigation ({searchResults.length})
               </div>
@@ -444,12 +473,12 @@ export default function AdminNavbar({
           >
             <Bell size={16} />
             {unreadCount > 0 && (
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white dark:ring-[#060a13]" />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white dark:ring-slate-900" />
             )}
           </button>
 
           {isNotificationsOpen && (
-            <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-150">
+            <div className="absolute right-0 top-full mt-2 w-[calc(100vw-2rem)] max-w-sm sm:w-80 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-150">
               <div className="p-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-semibold text-slate-900 dark:text-white">
@@ -505,7 +534,7 @@ export default function AdminNavbar({
         </div>
 
         {/* Vertical Divider */}
-        <div className="h-6 w-px bg-slate-200/80 dark:border-slate-800 hidden sm:block" />
+        <div className="h-6 w-px bg-slate-200/80 dark:bg-slate-800 hidden sm:block" />
 
         {/* User Profile Pill with Working Dropdown */}
         <div ref={profileRef} className="relative">
@@ -564,9 +593,10 @@ export default function AdminNavbar({
                   <span>Notification Center</span>
                 </Link>
 
-                <Link
-                  href="/"
+                <a
+                  href={process.env.NEXT_PUBLIC_WEBSITE_URL || "https://visionitinstitute.com"}
                   target="_blank"
+                  rel="noopener noreferrer"
                   onClick={() => setIsProfileOpen(false)}
                   className="flex items-center justify-between px-2.5 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
                 >
@@ -574,7 +604,7 @@ export default function AdminNavbar({
                     <ExternalLink size={14} className="text-slate-400" />
                     <span>View Public Website</span>
                   </div>
-                </Link>
+                </a>
               </div>
 
               <div className="p-1.5 border-t border-slate-100 dark:border-slate-800">
@@ -593,6 +623,98 @@ export default function AdminNavbar({
           )}
         </div>
       </div>
+
+      {/* Full-width Mobile Search Bar Overlay (<md) */}
+      {isMobileSearchExpanded && (
+        <div className="md:hidden absolute inset-0 z-50 bg-white dark:bg-slate-900 px-3 flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 animate-in fade-in duration-150">
+          <Search size={16} className="text-slate-400 dark:text-slate-500 shrink-0 ml-1" />
+          <input
+            ref={mobileSearchInputRef}
+            type="text"
+            placeholder="Search or jump to..."
+            value={searchQuery}
+            autoFocus
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setIsSearchOpen(true);
+              setSelectedIndex(0);
+            }}
+            onKeyDown={handleSearchKeyDown}
+            className="flex-1 py-1.5 text-xs sm:text-sm bg-transparent text-slate-900 dark:text-slate-100 placeholder:text-slate-400 outline-none"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+              aria-label="Clear search"
+            >
+              <X size={14} />
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => {
+              setIsMobileSearchExpanded(false);
+              setIsSearchOpen(false);
+              setSearchQuery("");
+            }}
+            className="px-2.5 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800 rounded-md cursor-pointer shrink-0"
+          >
+            Cancel
+          </button>
+
+          {/* Mobile Search Results Dropdown */}
+          {isSearchOpen && searchQuery.trim() && (
+            <div className="absolute left-2 right-2 top-full mt-2 w-[calc(100vw-1rem)] max-w-sm mx-auto sm:w-80 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-150">
+              <div className="p-2 border-b border-slate-100 dark:border-slate-800/80 text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-3">
+                Quick Navigation ({searchResults.length})
+              </div>
+              {searchResults.length === 0 ? (
+                <div className="p-4 text-center text-xs text-slate-400">
+                  No matching modules or pages found.
+                </div>
+              ) : (
+                <div className="max-h-72 overflow-y-auto py-1 divide-y divide-slate-50 dark:divide-slate-800/40">
+                  {searchResults.map((item, index) => {
+                    const isSelected = index === selectedIndex;
+                    return (
+                      <button
+                        key={item.path}
+                        onClick={() => handleSelectResult(item)}
+                        onMouseEnter={() => setSelectedIndex(index)}
+                        className={`w-full px-3 py-2 text-left flex items-center justify-between text-xs transition-colors ${
+                          isSelected
+                            ? "bg-slate-100/90 dark:bg-slate-800 text-slate-900 dark:text-white"
+                            : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              item.category === "LMS"
+                                ? "bg-blue-500"
+                                : item.category === "Web"
+                                ? "bg-amber-500"
+                                : item.category === "System"
+                                ? "bg-purple-500"
+                                : "bg-emerald-500"
+                            }`}
+                          />
+                          <span className="font-medium truncate">{item.title}</span>
+                        </div>
+                        <span className="text-[10px] font-mono text-slate-400 uppercase">
+                          {item.category}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </header>
   );
 }
