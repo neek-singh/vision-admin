@@ -34,7 +34,7 @@ export default function SearchAndFilter({ currentStatus: _currentStatus }: { cur
   };
 
   return (
-    <div className="relative w-full sm:w-72">
+    <div className="relative w-full">
       <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" size={14} />
       <input
         type="text"

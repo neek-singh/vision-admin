@@ -96,99 +96,100 @@ export default function AdmissionMobileCard({ item }: { item: Admission }) {
     : rawCode.toUpperCase();
 
   return (
-    <div className="p-4 space-y-3 hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
-      {/* Header row */}
-      <div className="flex justify-between items-start gap-2.5">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500/10 to-indigo-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 font-bold text-xs flex items-center justify-center shrink-0">
-            {getInitials(item.student_name)}
-          </div>
-          <div className="min-w-0">
-            <h4 className="font-semibold text-slate-900 dark:text-white text-xs truncate">
-              {item.student_name}
-            </h4>
-            <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
-              {new Date(item.created_at).toLocaleDateString("en-IN", {
-                day: "2-digit",
-                month: "short",
-                year: "numeric",
-              })}
-            </p>
-          </div>
+    <div className="p-3.5 space-y-2.5 hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
+      {/* ── Header row: avatar + name + course badge ── */}
+      <div className="flex items-center gap-3">
+        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-black text-sm flex items-center justify-center shrink-0 shadow-sm">
+          {getInitials(item.student_name)}
         </div>
-        <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-medium uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 shrink-0">
+        <div className="flex-1 min-w-0">
+          <h4 className="font-bold text-slate-900 dark:text-white text-sm truncate leading-tight">
+            {item.student_name}
+          </h4>
+          <p className="text-[10px] text-slate-400 mt-0.5">
+            {new Date(item.created_at).toLocaleDateString("en-IN", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            })}
+          </p>
+        </div>
+        <span className="px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wide bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/60 shrink-0">
           {displayBadgeCode}
         </span>
       </div>
 
-      {/* Details Box */}
-      <div className="bg-slate-50/60 dark:bg-slate-950/40 p-3 rounded-xl border border-slate-100 dark:border-slate-800/60 grid grid-cols-2 gap-3 text-xs">
-        <div>
-          <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">Contact</span>
-          <a href={`tel:${item.phone}`} className="text-slate-800 dark:text-slate-200 font-medium block hover:underline">{item.phone}</a>
-          <span className="text-[10px] text-slate-400 block truncate mt-0.5">{item.email}</span>
+      {/* ── Info row: phone + course ── */}
+      <div className="grid grid-cols-2 gap-2">
+        <div className="bg-slate-50 dark:bg-slate-950/40 rounded-xl p-2.5 border border-slate-100 dark:border-slate-800/60">
+          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Contact</p>
+          <a href={`tel:${item.phone}`} className="text-xs font-bold text-slate-800 dark:text-slate-200 block hover:text-blue-600 transition-colors truncate">
+            {item.phone}
+          </a>
+          {item.email && (
+            <p className="text-[10px] text-slate-400 truncate mt-0.5">{item.email}</p>
+          )}
         </div>
-        <div>
-          <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">Course</span>
-          <span className="text-slate-800 dark:text-slate-200 font-medium block line-clamp-1">{formattedCourse?.title}</span>
-          <span className="text-[10px] text-slate-400 block truncate mt-0.5 uppercase">{formattedCourse?.course_code}</span>
+        <div className="bg-slate-50 dark:bg-slate-950/40 rounded-xl p-2.5 border border-slate-100 dark:border-slate-800/60">
+          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Course</p>
+          <p className="text-xs font-bold text-slate-800 dark:text-slate-200 line-clamp-1 leading-tight">
+            {formattedCourse?.title || "—"}
+          </p>
+          {formattedCourse?.course_code && (
+            <p className="text-[10px] text-slate-400 uppercase mt-0.5 truncate">{formattedCourse.course_code}</p>
+          )}
         </div>
       </div>
 
-      {/* Toggle button */}
-      <div>
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="w-full py-1.5 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-medium text-xs rounded-xl border border-slate-200/80 dark:border-slate-800 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
-        >
-          <span>{isExpanded ? "Hide Details" : "View Details"}</span>
-          <ChevronDown size={13} className={`text-slate-400 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
-        </button>
-      </div>
+      {/* ── View Details toggle ── */}
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full py-2 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold text-xs rounded-xl border border-slate-200/80 dark:border-slate-800 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+      >
+        <span>{isExpanded ? "Hide Details" : "View Details"}</span>
+        <ChevronDown size={12} className={`text-slate-400 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+      </button>
 
-      {/* ── Expanded Drawer ── */}
+      {/* ── Expanded drawer ── */}
       {isExpanded && (
-        <div className="bg-slate-50/50 dark:bg-slate-950/40 border border-slate-200/70 dark:border-slate-800/80 rounded-xl p-3.5 space-y-3.5 text-xs text-slate-700 dark:text-slate-300">
+        <div className="bg-slate-50/50 dark:bg-slate-950/40 border border-slate-200/70 dark:border-slate-800/80 rounded-xl p-3 space-y-3 text-xs">
           <div>
-            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">Personal Info</span>
-            <div className="space-y-1.5 text-[11px]">
-              <div><span className="text-slate-400">DOB:</span> <span className="font-medium text-slate-800 dark:text-slate-200">{item.dob || "—"}</span></div>
-              <div><span className="text-slate-400">Qualification:</span> <span className="font-medium text-slate-800 dark:text-slate-200">{item.qualification || "—"}</span></div>
-              {item.father_name && <div><span className="text-slate-400">Father:</span> <span className="font-medium text-slate-800 dark:text-slate-200">{item.father_name}</span></div>}
-              {item.mother_name && <div><span className="text-slate-400">Mother:</span> <span className="font-medium text-slate-800 dark:text-slate-200">{item.mother_name}</span></div>}
-              {item.address && <div><span className="text-slate-400">Address:</span> <span className="font-medium text-slate-800 dark:text-slate-200">{formatAddress(item.address)}</span></div>}
+            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Personal Info</p>
+            <div className="space-y-1 text-[11px]">
+              {item.father_name && <div><span className="text-slate-400">Father: </span><span className="font-semibold text-slate-800 dark:text-slate-200">{item.father_name}</span></div>}
+              {item.mother_name && <div><span className="text-slate-400">Mother: </span><span className="font-semibold text-slate-800 dark:text-slate-200">{item.mother_name}</span></div>}
+              {item.dob && <div><span className="text-slate-400">DOB: </span><span className="font-semibold text-slate-800 dark:text-slate-200">{item.dob}</span></div>}
+              {item.qualification && <div><span className="text-slate-400">Qualification: </span><span className="font-semibold text-slate-800 dark:text-slate-200">{item.qualification}</span></div>}
+              {item.address && <div><span className="text-slate-400">Address: </span><span className="font-semibold text-slate-800 dark:text-slate-200">{formatAddress(item.address)}</span></div>}
             </div>
           </div>
 
           {item.message && (
             <div className="border-t border-slate-200/60 dark:border-slate-800/60 pt-2.5 space-y-1.5">
-              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Notes &amp; Motivation</span>
-              {parsedMsg.school && <p className="text-[11px]"><span className="text-slate-400">School/College:</span> {parsedMsg.school}</p>}
-              {parsedMsg.batch && <p className="text-[11px]"><span className="text-slate-400">Batch:</span> {parsedMsg.batch}</p>}
+              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Notes &amp; Motivation</p>
+              {parsedMsg.school && <p className="text-[11px]"><span className="text-slate-400">School/College: </span>{parsedMsg.school}</p>}
+              {parsedMsg.batch && <p className="text-[11px]"><span className="text-slate-400">Batch: </span>{parsedMsg.batch}</p>}
               {parsedMsg.motivation && <p className="text-[11px] text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-900 p-2 rounded-lg border border-slate-200/60 dark:border-slate-800">{parsedMsg.motivation}</p>}
             </div>
           )}
 
           {(item.photo_url || item.signature_url || item.identity_proof_url) && (
-            <div className="border-t border-slate-200/60 dark:border-slate-800/60 pt-2.5 space-y-1.5">
-              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Documents</span>
+            <div className="border-t border-slate-200/60 dark:border-slate-800/60 pt-2.5">
+              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Documents</p>
               <div className="flex flex-wrap gap-2">
                 {item.photo_url && (
-                  <a href={item.photo_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[11px] text-blue-600 dark:text-blue-400 font-medium hover:underline bg-white dark:bg-slate-900 px-2 py-1 rounded-md border border-slate-200/60 dark:border-slate-800">
-                    <span>Photo</span>
-                    <ExternalLink size={10} />
+                  <a href={item.photo_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[11px] text-blue-600 dark:text-blue-400 font-semibold hover:underline bg-white dark:bg-slate-900 px-2 py-1 rounded-md border border-slate-200/60 dark:border-slate-800">
+                    Photo <ExternalLink size={9} />
                   </a>
                 )}
                 {item.signature_url && (
-                  <a href={item.signature_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[11px] text-blue-600 dark:text-blue-400 font-medium hover:underline bg-white dark:bg-slate-900 px-2 py-1 rounded-md border border-slate-200/60 dark:border-slate-800">
-                    <span>Signature</span>
-                    <ExternalLink size={10} />
+                  <a href={item.signature_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[11px] text-blue-600 dark:text-blue-400 font-semibold hover:underline bg-white dark:bg-slate-900 px-2 py-1 rounded-md border border-slate-200/60 dark:border-slate-800">
+                    Signature <ExternalLink size={9} />
                   </a>
                 )}
                 {item.identity_proof_url && (
-                  <a href={item.identity_proof_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[11px] text-blue-600 dark:text-blue-400 font-medium hover:underline bg-white dark:bg-slate-900 px-2 py-1 rounded-md border border-slate-200/60 dark:border-slate-800">
-                    <span>Identity Proof</span>
-                    <ExternalLink size={10} />
+                  <a href={item.identity_proof_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[11px] text-blue-600 dark:text-blue-400 font-semibold hover:underline bg-white dark:bg-slate-900 px-2 py-1 rounded-md border border-slate-200/60 dark:border-slate-800">
+                    ID Proof <ExternalLink size={9} />
                   </a>
                 )}
               </div>

@@ -51,104 +51,76 @@ export default async function AdminAdmissionsPage({
   const admissionsList = data || [];
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
+    <div className="p-3 sm:p-6 lg:p-8 space-y-4 max-w-7xl mx-auto">
       {/* ── Page Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
-              Enquiry Admissions
-            </h1>
-            <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-              {totalCount} Total
-            </span>
-          </div>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            All course inquiries and admission applications from Vision IT &amp; University programs
-          </p>
+      <div>
+        <div className="flex items-center gap-2 mb-0.5">
+          <h1 className="text-lg sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+            Enquiry Admissions
+          </h1>
+          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-300">
+            {totalCount}
+          </span>
         </div>
-        <SearchAndFilter currentStatus="" />
+        <p className="text-xs text-slate-400 dark:text-slate-500">
+          All course inquiries and admission applications
+        </p>
       </div>
 
-      {/* ── Stats Cards (Clean & Minimal) ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 sm:gap-4">
-        {/* Total Inquiries */}
-        <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-2xs hover:border-blue-500/30 transition-all group">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Total Inquiries
-            </span>
-            <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-500/20 group-hover:scale-105 transition-transform">
-              <ClipboardList size={16} />
+      {/* ── Search Bar (Full width on mobile) ── */}
+      <SearchAndFilter currentStatus="" />
+
+      {/* ── Stats Cards — compact 3-col grid on all sizes ── */}
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
+        {/* Total */}
+        <div className="bg-white dark:bg-slate-900 p-3 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[9px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider leading-tight">Total</span>
+            <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center shrink-0">
+              <ClipboardList size={12} className="sm:hidden" />
+              <ClipboardList size={16} className="hidden sm:block" />
             </div>
           </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-              {totalCount}
-            </span>
-            <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
-              All time
-            </span>
-          </div>
-          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 font-normal">
-            Cumulative applications received
-          </p>
+          <p className="text-xl sm:text-3xl font-black text-slate-900 dark:text-white leading-none">{totalCount}</p>
+          <p className="text-[9px] sm:text-[11px] text-blue-500 font-semibold mt-1">All time</p>
         </div>
 
         {/* This Week */}
-        <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-2xs hover:border-emerald-500/30 transition-all group">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Past 7 Days
-            </span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/20 group-hover:scale-105 transition-transform">
-              <TrendingUp size={16} />
+        <div className="bg-white dark:bg-slate-900 p-3 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[9px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider leading-tight">7 Days</span>
+            <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center shrink-0">
+              <TrendingUp size={12} className="sm:hidden" />
+              <TrendingUp size={16} className="hidden sm:block" />
             </div>
           </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-              {thisWeekCount}
-            </span>
-            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
-              Recent activity
-            </span>
-          </div>
-          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 font-normal">
-            Inquiries received this past week
-          </p>
+          <p className="text-xl sm:text-3xl font-black text-slate-900 dark:text-white leading-none">{thisWeekCount}</p>
+          <p className="text-[9px] sm:text-[11px] text-emerald-500 font-semibold mt-1">This week</p>
         </div>
 
         {/* Today */}
-        <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-2xs hover:border-violet-500/30 transition-all group">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Today
-            </span>
-            <div className="w-8 h-8 rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-400 flex items-center justify-center border border-violet-500/20 group-hover:scale-105 transition-transform">
-              <Calendar size={16} />
+        <div className="bg-white dark:bg-slate-900 p-3 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[9px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider leading-tight">Today</span>
+            <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-xl bg-violet-50 text-violet-500 flex items-center justify-center shrink-0">
+              <Calendar size={12} className="sm:hidden" />
+              <Calendar size={16} className="hidden sm:block" />
             </div>
           </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-              {todayCount}
-            </span>
-            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-violet-600 dark:text-violet-400">
-              <span className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse" />
-              Logged today
-            </span>
-          </div>
-          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 font-normal">
-            New inquiries recorded today
+          <p className="text-xl sm:text-3xl font-black text-slate-900 dark:text-white leading-none">{todayCount}</p>
+          <p className="text-[9px] sm:text-[11px] text-violet-500 font-semibold mt-1 flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse inline-block" />
+            Live
           </p>
         </div>
       </div>
 
-      {/* ── Table Container ── */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xs border border-slate-200/80 dark:border-slate-800/80 overflow-hidden transition-colors">
+      {/* ── Records Container ── */}
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200/80 dark:border-slate-800/80 overflow-hidden">
         {/* Header bar */}
-        <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-3">
+        <div className="px-4 py-3 sm:p-5 border-b border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <h2 className="font-semibold text-slate-900 dark:text-white text-sm sm:text-base">
+            <h2 className="font-bold text-slate-900 dark:text-white text-sm">
               Inquiry Records
             </h2>
             <span className="text-xs text-slate-400 font-normal">
@@ -157,18 +129,13 @@ export default async function AdminAdmissionsPage({
           </div>
 
           {query && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-400 hidden sm:inline">
-                Filtered by &quot;{query}&quot;
-              </span>
-              <Link
-                href="/admissions"
-                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-blue-600 bg-slate-100 dark:bg-slate-800 rounded-lg transition-colors"
-              >
-                <RotateCcw size={11} />
-                <span>Clear</span>
-              </Link>
-            </div>
+            <Link
+              href="/admissions"
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-blue-600 bg-slate-100 dark:bg-slate-800 rounded-lg transition-colors"
+            >
+              <RotateCcw size={11} />
+              <span>Clear</span>
+            </Link>
           )}
         </div>
 
