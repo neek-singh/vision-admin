@@ -28,6 +28,41 @@ const nextConfig: NextConfig = {
         destination: "/:path*",
         permanent: false,
       },
+      {
+        source: "/attendance",
+        destination: "/lms/attendance",
+        permanent: false,
+      },
+      {
+        source: "/materials",
+        destination: "/lms/materials",
+        permanent: false,
+      },
+      {
+        source: "/projects",
+        destination: "/lms/projects",
+        permanent: false,
+      },
+      {
+        source: "/tests",
+        destination: "/lms/tests",
+        permanent: false,
+      },
+      {
+        source: "/tests/:path*",
+        destination: "/lms/tests/:path*",
+        permanent: false,
+      },
+      {
+        source: "/content",
+        destination: "/lms/content",
+        permanent: false,
+      },
+      {
+        source: "/progress",
+        destination: "/lms/progress",
+        permanent: false,
+      },
     ];
   },
   async headers() {
