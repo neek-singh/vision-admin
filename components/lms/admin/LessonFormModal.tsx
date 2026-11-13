@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from "react";
 import { 
   X, Loader2, Plus, Trash2, GripVertical, Heading, FileText, Image, List, ArrowUp, ArrowDown, ChevronDown, FolderCode, Maximize2, Minimize2,
   Bold, Italic, Underline, Strikethrough, Heading1, Heading2, Heading3, ListOrdered, Quote, Code, Link2, Table, Sparkles, Eye, Columns, 
-  Lightbulb, AlertTriangle, Info, Clock, AlignLeft, AlignCenter, AlignRight, AlignJustify, Check, Upload, LayoutTemplate, HelpCircle, BookOpen, ExternalLink, RotateCcw, Redo2, RemoveFormatting, Search
+  Lightbulb, AlertTriangle, Info, Clock, AlignLeft, AlignCenter, AlignRight, AlignJustify, Check, Upload, LayoutTemplate, HelpCircle, BookOpen, ExternalLink, RotateCcw, Redo2, RemoveFormatting, Search, MoreHorizontal
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import MultiSelect from "@/components/ui/MultiSelect";
@@ -251,6 +251,7 @@ export default function LessonFormModal({
   const [tableForm, setTableForm] = useState({ rows: 3, cols: 3 });
   const [isTemplateMenuOpen, setIsTemplateMenuOpen] = useState(false);
   const [isCalloutMenuOpen, setIsCalloutMenuOpen] = useState(false);
+  const [isToolbarExpanded, setIsToolbarExpanded] = useState(false);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -564,15 +565,15 @@ export default function LessonFormModal({
 
   const insertCallout = (type: 'tip' | 'warning' | 'info') => {
     editorRef.current?.focus();
-    let badge = '💡 PRO TIP';
+    let badge = 'PRO TIP';
     let className = 'callout-tip';
     let placeholder = 'Highlight an essential practical tip or best practice for students.';
     if (type === 'warning') {
-      badge = '⚠️ CAUTION';
+      badge = 'CAUTION';
       className = 'callout-warning';
       placeholder = 'Important warning: Avoid common mistakes or deprecated methods.';
     } else if (type === 'info') {
-      badge = 'ℹ️ NOTE';
+      badge = 'NOTE';
       className = 'callout-info';
       placeholder = 'Helpful note or reference point regarding this lesson.';
     }
@@ -678,7 +679,7 @@ export default function LessonFormModal({
   const applyTemplate = (templateType: 'theory' | 'code' | 'cheatsheet' | 'assignment') => {
     const hasContent = editorRef.current && editorRef.current.innerText.trim().length > 0;
     if (hasContent) {
-      if (!confirm("Is template ko apply karne se current editor content replace ho jayega. Kya aap continue karna chahte hain?")) {
+      if (!confirm("Applying this template will replace the current editor content. Do you want to continue?")) {
         return;
       }
     }
@@ -687,7 +688,7 @@ export default function LessonFormModal({
     if (templateType === 'theory') {
       templateHtml = `<h2>1. Introduction & Overview</h2>
 <p>Provide a clear, engaging overview of this topic. Why is it important and where is it used in the real world?</p>
-<div class="callout-info"><p><strong>ℹ️ NOTE:</strong> Core lesson objective: Master foundational principles through step-by-step reasoning.</p></div>
+<div class="callout-info"><p><strong>NOTE:</strong> Core lesson objective: Master foundational principles through step-by-step reasoning.</p></div>
 <h2>2. Core Concepts Explained</h2>
 <p>Break down the primary concept into easy-to-digest parts.</p>
 <ul>
@@ -697,7 +698,7 @@ export default function LessonFormModal({
 </ul>
 <h2>3. Practical Demonstration</h2>
 <p>Walk through an illustrative example with step-by-step guidance.</p>
-<div class="callout-tip"><p><strong>💡 PRO TIP:</strong> Always test with edge case scenarios to ensure robustness.</p></div>
+<div class="callout-tip"><p><strong>PRO TIP:</strong> Always test with edge case scenarios to ensure robustness.</p></div>
 <hr>
 <h2>4. Summary & Review Questions</h2>
 <ol>
@@ -707,7 +708,7 @@ export default function LessonFormModal({
     } else if (templateType === 'code') {
       templateHtml = `<h2>1. Tutorial Overview</h2>
 <p>In this technical tutorial, we will build a complete solution from scratch.</p>
-<div class="callout-info"><p><strong>ℹ️ Prerequisites:</strong> Basic JavaScript knowledge and modern browser terminal access.</p></div>
+<div class="callout-info"><p><strong>Prerequisites:</strong> Basic JavaScript knowledge and modern browser terminal access.</p></div>
 <h2>2. Step-by-Step Code Walkthrough</h2>
 <h3>Step 1: Boilerplate Setup</h3>
 <pre><code>// Initialize environment configuration
@@ -722,7 +723,7 @@ console.log("Config loaded:", appConfig.appName);</code></pre>
   if (!total || total === 0) return 0;
   return Math.round((completed / total) * 100);
 }</code></pre>
-<div class="callout-warning"><p><strong>⚠️ CAUTION:</strong> Always guard against division by zero errors.</p></div>
+<div class="callout-warning"><p><strong>CAUTION:</strong> Always guard against division by zero errors.</p></div>
 <h2>3. Expected Output & Testing</h2>
 <p>Verify that your function returns <code>100</code> when total equals completed.</p>`;
     } else if (templateType === 'cheatsheet') {
@@ -756,18 +757,18 @@ console.log("Config loaded:", appConfig.appName);</code></pre>
   </tbody>
 </table>
 </div>
-<div class="callout-tip"><p><strong>💡 PRO TIP:</strong> Always run cleanup inside try...finally blocks.</p></div>`;
+<div class="callout-tip"><p><strong>PRO TIP:</strong> Always run cleanup inside try...finally blocks.</p></div>`;
     } else {
       templateHtml = `<h2>Project Specifications & Brief</h2>
 <p>Review the requirements below and complete the implementation before the deadline.</p>
-<div class="callout-info"><p><strong>ℹ️ Deliverable:</strong> Submit a public GitHub repository link and deployed live demo URL.</p></div>
+<div class="callout-info"><p><strong>Deliverable:</strong> Submit a public GitHub repository link and deployed live demo URL.</p></div>
 <h2>Core Deliverables Checklist</h2>
 <ul>
   <li>Clean code architecture adhering to modern standards.</li>
   <li>Proper responsive layout on mobile, tablet, and desktop screens.</li>
   <li>Error-handling for missing data or network latency.</li>
 </ul>
-<div class="callout-warning"><p><strong>⚠️ Submission Deadline:</strong> Please submit within 7 days of module completion.</p></div>`;
+<div class="callout-warning"><p><strong>Submission Deadline:</strong> Please submit within 7 days of module completion.</p></div>`;
     }
 
     if (editorRef.current) {
@@ -778,7 +779,7 @@ console.log("Config loaded:", appConfig.appName);</code></pre>
   };
 
   const clearEditorContent = () => {
-    if (confirm("Kya aap saara content clear karna chahte hain?")) {
+    if (confirm("Are you sure you want to clear all editor content?")) {
       if (editorRef.current) {
         editorRef.current.innerHTML = '<p><br></p>';
       }
@@ -2151,7 +2152,7 @@ console.log("Config loaded:", appConfig.appName);</code></pre>
                           className="w-full px-2.5 py-2 text-left rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-50 flex flex-col gap-0.5 transition-colors cursor-pointer"
                         >
                           <span className="font-semibold text-slate-900 flex items-center gap-1.5">
-                            📘 Standard Theory Lesson
+                            Standard Theory Lesson
                           </span>
                           <span className="text-[10px] text-slate-500">Intro, Concepts, Demonstration & Summary</span>
                         </button>
@@ -2164,7 +2165,7 @@ console.log("Config loaded:", appConfig.appName);</code></pre>
                           className="w-full px-2.5 py-2 text-left rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-50 flex flex-col gap-0.5 transition-colors cursor-pointer"
                         >
                           <span className="font-semibold text-slate-900 flex items-center gap-1.5">
-                            💻 Coding Tutorial
+                            Coding Tutorial
                           </span>
                           <span className="text-[10px] text-slate-500">Prerequisites, Steps, Code Blocks & Output</span>
                         </button>
@@ -2177,7 +2178,7 @@ console.log("Config loaded:", appConfig.appName);</code></pre>
                           className="w-full px-2.5 py-2 text-left rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-50 flex flex-col gap-0.5 transition-colors cursor-pointer"
                         >
                           <span className="font-semibold text-slate-900 flex items-center gap-1.5">
-                            📝 Quick Reference / Cheat Sheet
+                            Quick Reference / Cheat Sheet
                           </span>
                           <span className="text-[10px] text-slate-500">Table reference, syntax, and memory tips</span>
                         </button>
@@ -2190,7 +2191,7 @@ console.log("Config loaded:", appConfig.appName);</code></pre>
                           className="w-full px-2.5 py-2 text-left rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-50 flex flex-col gap-0.5 transition-colors cursor-pointer"
                         >
                           <span className="font-semibold text-slate-900 flex items-center gap-1.5">
-                            🎯 Project & Task Brief
+                            Project & Task Brief
                           </span>
                           <span className="text-[10px] text-slate-500">Objectives, requirements checklist & deadlines</span>
                         </button>
@@ -2344,303 +2345,336 @@ console.log("Config loaded:", appConfig.appName);</code></pre>
                 <div className="flex-1 flex flex-col min-h-0 animate-in fade-in duration-350">
                   <div className="flex-1 flex flex-col min-h-0 w-full bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
                     
-                    {/* Rich Formatting Toolbar (Active in edit & split modes) - Light Mode & Full Options */}
-                    <div className={`flex flex-wrap items-center gap-1 px-3 py-1.5 bg-slate-50/90 border-b border-slate-200 shrink-0 ${editorViewMode === 'preview' ? 'hidden' : ''}`}>
-                      {/* Undo / Redo */}
-                      <button 
-                        type="button" 
-                        onMouseDown={(e) => { e.preventDefault(); execCmd('undo'); }}
-                        className="p-1.5 hover:bg-slate-200/80 text-slate-600 hover:text-slate-900 rounded-lg transition-colors cursor-pointer" 
-                        title="Undo (Ctrl+Z)"
-                      >
-                        <RotateCcw size={13} />
-                      </button>
-                      <button 
-                        type="button" 
-                        onMouseDown={(e) => { e.preventDefault(); execCmd('redo'); }}
-                        className="p-1.5 hover:bg-slate-200/80 text-slate-600 hover:text-slate-900 rounded-lg transition-colors cursor-pointer" 
-                        title="Redo (Ctrl+Y)"
-                      >
-                        <Redo2 size={13} />
-                      </button>
+                    {/* Rich Formatting Toolbar (Active in edit & split modes) - Light Mode & Responsive Collapsible on Mobile */}
+                    <div className={`px-2 sm:px-3 py-1.5 bg-slate-50/90 border-b border-slate-200 shrink-0 ${editorViewMode === 'preview' ? 'hidden' : ''}`}>
+                      <div className="flex flex-wrap sm:flex-nowrap items-center justify-between sm:justify-start gap-1">
+                        {/* Essential Tools Bar */}
+                        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 shrink-0">
+                          {/* Undo / Redo */}
+                          <button 
+                            type="button" 
+                            onMouseDown={(e) => { e.preventDefault(); execCmd('undo'); }}
+                            className="p-1.5 hover:bg-slate-200/80 text-slate-600 hover:text-slate-900 rounded-lg transition-colors cursor-pointer shrink-0" 
+                            title="Undo (Ctrl+Z)"
+                          >
+                            <RotateCcw size={13} />
+                          </button>
+                          <button 
+                            type="button" 
+                            onMouseDown={(e) => { e.preventDefault(); execCmd('redo'); }}
+                            className="p-1.5 hover:bg-slate-200/80 text-slate-600 hover:text-slate-900 rounded-lg transition-colors cursor-pointer shrink-0" 
+                            title="Redo (Ctrl+Y)"
+                          >
+                            <Redo2 size={13} />
+                          </button>
 
-                      <div className="w-px h-4 bg-slate-200 mx-1" />
+                          <div className="w-px h-4 bg-slate-200 mx-0.5 sm:mx-1 shrink-0" />
 
-                      {/* Headings */}
-                      <button 
-                        type="button" 
-                        onMouseDown={(e) => { e.preventDefault(); formatHeading('h1'); }}
-                        className="px-2 py-1 hover:bg-slate-200/80 text-slate-700 hover:text-slate-900 rounded-lg text-xs font-black transition-colors cursor-pointer" 
-                        title="Heading 1 (Main Title)"
-                      >
-                        H1
-                      </button>
-                      <button 
-                        type="button" 
-                        onMouseDown={(e) => { e.preventDefault(); formatHeading('h2'); }}
-                        className="px-2 py-1 hover:bg-slate-200/80 text-slate-700 hover:text-slate-900 rounded-lg text-xs font-bold transition-colors cursor-pointer" 
-                        title="Heading 2 (Section Title)"
-                      >
-                        H2
-                      </button>
-                      <button 
-                        type="button" 
-                        onMouseDown={(e) => { e.preventDefault(); formatHeading('h3'); }}
-                        className="px-2 py-1 hover:bg-slate-200/80 text-slate-700 hover:text-slate-900 rounded-lg text-xs font-semibold transition-colors cursor-pointer" 
-                        title="Heading 3 (Sub-heading)"
-                      >
-                        H3
-                      </button>
-                      <button 
-                        type="button" 
-                        onMouseDown={(e) => { e.preventDefault(); formatHeading('p'); }}
-                        className="px-2 py-1 hover:bg-slate-200/80 text-slate-600 hover:text-slate-900 rounded-lg text-xs font-medium transition-colors cursor-pointer" 
-                        title="Normal Paragraph"
-                      >
-                        Para
-                      </button>
+                          {/* Primary Headings */}
+                          <button 
+                            type="button" 
+                            onMouseDown={(e) => { e.preventDefault(); formatHeading('h1'); }}
+                            className="px-2 py-1 hover:bg-slate-200/80 text-slate-700 hover:text-slate-900 rounded-lg text-xs font-black transition-colors cursor-pointer shrink-0" 
+                            title="Heading 1 (Main Title)"
+                          >
+                            H1
+                          </button>
+                          <button 
+                            type="button" 
+                            onMouseDown={(e) => { e.preventDefault(); formatHeading('h2'); }}
+                            className="px-2 py-1 hover:bg-slate-200/80 text-slate-700 hover:text-slate-900 rounded-lg text-xs font-bold transition-colors cursor-pointer shrink-0" 
+                            title="Heading 2 (Section Title)"
+                          >
+                            H2
+                          </button>
 
-                      <div className="w-px h-4 bg-slate-200 mx-1" />
+                          <div className="w-px h-4 bg-slate-200 mx-0.5 sm:mx-1 shrink-0" />
 
-                      {/* Text Style */}
-                      <button 
-                        type="button" 
-                        onMouseDown={(e) => { e.preventDefault(); execCmd('bold'); }}
-                        className="p-1.5 hover:bg-slate-200/80 text-slate-700 hover:text-slate-900 rounded-lg text-xs font-black transition-colors cursor-pointer" 
-                        title="Bold (Ctrl+B)"
-                      >
-                        <Bold size={13} />
-                      </button>
-                      <button 
-                        type="button" 
-                        onMouseDown={(e) => { e.preventDefault(); execCmd('italic'); }}
-                        className="p-1.5 hover:bg-slate-200/80 text-slate-700 hover:text-slate-900 rounded-lg text-xs italic transition-colors cursor-pointer" 
-                        title="Italic (Ctrl+I)"
-                      >
-                        <Italic size={13} />
-                      </button>
-                      <button 
-                        type="button" 
-                        onMouseDown={(e) => { e.preventDefault(); execCmd('underline'); }}
-                        className="p-1.5 hover:bg-slate-200/80 text-slate-700 hover:text-slate-900 rounded-lg text-xs underline transition-colors cursor-pointer" 
-                        title="Underline (Ctrl+U)"
-                      >
-                        <Underline size={13} />
-                      </button>
-                      <button 
-                        type="button" 
-                        onMouseDown={(e) => { e.preventDefault(); execCmd('strikeThrough'); }}
-                        className="p-1.5 hover:bg-slate-200/80 text-slate-500 hover:text-slate-900 rounded-lg text-xs transition-colors cursor-pointer" 
-                        title="Strikethrough"
-                      >
-                        <Strikethrough size={13} />
-                      </button>
-                      <button 
-                        type="button" 
-                        onMouseDown={(e) => { e.preventDefault(); insertInlineCode(); }}
-                        className="px-2 py-1 hover:bg-slate-200/80 text-blue-600 font-mono rounded-lg text-xs font-bold transition-colors cursor-pointer" 
-                        title="Inline Code (`code`)"
-                      >
-                        &lt;/&gt;
-                      </button>
-                      <button 
-                        type="button" 
-                        onMouseDown={(e) => { e.preventDefault(); insertHighlight(); }}
-                        className="px-2 py-1 hover:bg-amber-100 text-amber-700 bg-amber-50 border border-amber-200 rounded-lg text-xs font-bold transition-colors cursor-pointer" 
-                        title="Highlight Marker"
-                      >
-                        Mark
-                      </button>
-                      <button 
-                        type="button" 
-                        onMouseDown={(e) => { e.preventDefault(); clearFormatting(); }}
-                        className="p-1.5 hover:bg-slate-200/80 text-slate-500 hover:text-slate-900 rounded-lg text-xs transition-colors cursor-pointer" 
-                        title="Clear Formatting"
-                      >
-                        <RemoveFormatting size={13} />
-                      </button>
+                          {/* Text Style: Bold, Italic, Underline */}
+                          <button 
+                            type="button" 
+                            onMouseDown={(e) => { e.preventDefault(); execCmd('bold'); }}
+                            className="p-1.5 hover:bg-slate-200/80 text-slate-700 hover:text-slate-900 rounded-lg text-xs font-black transition-colors cursor-pointer shrink-0" 
+                            title="Bold (Ctrl+B)"
+                          >
+                            <Bold size={13} />
+                          </button>
+                          <button 
+                            type="button" 
+                            onMouseDown={(e) => { e.preventDefault(); execCmd('italic'); }}
+                            className="p-1.5 hover:bg-slate-200/80 text-slate-700 hover:text-slate-900 rounded-lg text-xs italic transition-colors cursor-pointer shrink-0" 
+                            title="Italic (Ctrl+I)"
+                          >
+                            <Italic size={13} />
+                          </button>
+                          <button 
+                            type="button" 
+                            onMouseDown={(e) => { e.preventDefault(); execCmd('underline'); }}
+                            className="p-1.5 hover:bg-slate-200/80 text-slate-700 hover:text-slate-900 rounded-lg text-xs underline transition-colors cursor-pointer shrink-0" 
+                            title="Underline (Ctrl+U)"
+                          >
+                            <Underline size={13} />
+                          </button>
 
-                      <div className="w-px h-4 bg-slate-200 mx-1" />
+                          <div className="w-px h-4 bg-slate-200 mx-0.5 sm:mx-1 shrink-0" />
 
-                      {/* Alignments */}
-                      <button 
-                        type="button" 
-                        onMouseDown={(e) => { e.preventDefault(); execCmd('justifyLeft'); }}
-                        className="p-1.5 hover:bg-slate-200/80 text-slate-600 hover:text-slate-900 rounded-lg transition-colors cursor-pointer" 
-                        title="Align Left"
-                      >
-                        <AlignLeft size={13} />
-                      </button>
-                      <button 
-                        type="button" 
-                        onMouseDown={(e) => { e.preventDefault(); execCmd('justifyCenter'); }}
-                        className="p-1.5 hover:bg-slate-200/80 text-slate-600 hover:text-slate-900 rounded-lg transition-colors cursor-pointer" 
-                        title="Align Center"
-                      >
-                        <AlignCenter size={13} />
-                      </button>
-                      <button 
-                        type="button" 
-                        onMouseDown={(e) => { e.preventDefault(); execCmd('justifyRight'); }}
-                        className="p-1.5 hover:bg-slate-200/80 text-slate-600 hover:text-slate-900 rounded-lg transition-colors cursor-pointer" 
-                        title="Align Right"
-                      >
-                        <AlignRight size={13} />
-                      </button>
-                      <button 
-                        type="button" 
-                        onMouseDown={(e) => { e.preventDefault(); execCmd('justifyFull'); }}
-                        className="p-1.5 hover:bg-slate-200/80 text-slate-600 hover:text-slate-900 rounded-lg transition-colors cursor-pointer" 
-                        title="Justify Text"
-                      >
-                        <AlignJustify size={13} />
-                      </button>
+                          {/* Bullet List */}
+                          <button 
+                            type="button" 
+                            onMouseDown={(e) => { e.preventDefault(); execCmd('insertUnorderedList'); }}
+                            className="px-2 py-1 hover:bg-slate-200/80 text-slate-700 hover:text-slate-900 rounded-lg text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer shrink-0" 
+                            title="Bullet List"
+                          >
+                            <List size={13} />
+                            <span className="hidden sm:inline">List</span>
+                          </button>
 
-                      <div className="w-px h-4 bg-slate-200 mx-1" />
+                          {/* Links & Image */}
+                          <button 
+                            type="button" 
+                            onClick={openLinkModal}
+                            className="px-2 py-1 hover:bg-blue-50 text-blue-600 border border-blue-200/70 rounded-lg text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer shrink-0" 
+                            title="Insert Link (Ctrl+K)"
+                          >
+                            <Link2 size={13} />
+                            <span className="hidden sm:inline">Link</span>
+                          </button>
 
-                      {/* Lists & Quotes */}
-                      <button 
-                        type="button" 
-                        onMouseDown={(e) => { e.preventDefault(); execCmd('insertUnorderedList'); }}
-                        className="px-2 py-1 hover:bg-slate-200/80 text-slate-700 hover:text-slate-900 rounded-lg text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer" 
-                        title="Bullet List"
-                      >
-                        <List size={13} />
-                        <span>List</span>
-                      </button>
-                      <button 
-                        type="button" 
-                        onMouseDown={(e) => { e.preventDefault(); execCmd('insertOrderedList'); }}
-                        className="px-2 py-1 hover:bg-slate-200/80 text-slate-700 hover:text-slate-900 rounded-lg text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer" 
-                        title="Numbered List"
-                      >
-                        <ListOrdered size={13} />
-                        <span>1. 2. 3.</span>
-                      </button>
-                      <button 
-                        type="button" 
-                        onMouseDown={(e) => { e.preventDefault(); insertBlockquote(); }}
-                        className="p-1.5 hover:bg-slate-200/80 text-slate-600 hover:text-slate-900 rounded-lg text-xs transition-colors cursor-pointer" 
-                        title="Blockquote Quote"
-                      >
-                        <Quote size={13} />
-                      </button>
+                          <button 
+                            type="button" 
+                            onClick={openImageModal}
+                            className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs shrink-0" 
+                            title="Insert / Upload Image"
+                          >
+                            <Image size={13} />
+                            <span className="hidden sm:inline">Image</span>
+                          </button>
+                        </div>
 
-                      <div className="w-px h-4 bg-slate-200 mx-1" />
-
-                      {/* Blocks: Code Block, Callout, Table, Divider */}
-                      <button 
-                        type="button" 
-                        onMouseDown={(e) => { e.preventDefault(); insertCodeBlock(); }}
-                        className="px-2 py-1 hover:bg-purple-50 text-purple-700 border border-purple-200/70 rounded-lg text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer" 
-                        title="Multi-line Code Snippet Block"
-                      >
-                        <Code size={13} className="text-purple-600" />
-                        <span>Code Block</span>
-                      </button>
-
-                      {/* Callout Dropdown */}
-                      <div className="relative">
+                        {/* Mobile Toggle Button for Secondary Formatting Tools */}
                         <button
                           type="button"
-                          onClick={() => setIsCalloutMenuOpen(!isCalloutMenuOpen)}
-                          className="px-2 py-1 hover:bg-emerald-50 text-emerald-700 border border-emerald-200/70 rounded-lg text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer"
-                          title="Insert Callout Alert Box"
+                          onClick={() => setIsToolbarExpanded(!isToolbarExpanded)}
+                          className={`sm:hidden shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+                            isToolbarExpanded 
+                              ? 'bg-blue-50 text-blue-600 border-blue-200 shadow-xs' 
+                              : 'bg-white hover:bg-slate-100 text-slate-600 border-slate-200'
+                          }`}
+                          title={isToolbarExpanded ? "Hide extra tools" : "Show more formatting tools"}
                         >
-                          <Lightbulb size={13} className="text-emerald-600" />
-                          <span>Callout</span>
-                          <ChevronDown size={10} className="text-emerald-600" />
+                          <MoreHorizontal size={13} />
+                          <span className="text-[11px]">{isToolbarExpanded ? 'Less' : 'More'}</span>
                         </button>
-                        {isCalloutMenuOpen && (
-                          <div className="absolute left-0 top-full mt-1.5 w-44 bg-white border border-slate-200 rounded-xl shadow-xl p-1 z-50 animate-in fade-in zoom-in-95 space-y-0.5">
+
+                        {/* Secondary Formatting Tools: Collapsible on mobile, inline on sm+ screens */}
+                        <div className={`${isToolbarExpanded ? 'flex' : 'hidden'} sm:flex flex-wrap items-center gap-1 w-full sm:w-auto mt-1 sm:mt-0 pt-1 sm:pt-0 border-t border-slate-200/70 sm:border-t-0`}>
+                          <div className="hidden sm:block w-px h-4 bg-slate-200 mx-1 shrink-0" />
+
+                          {/* Secondary Headings: H3, Para */}
+                          <button 
+                            type="button" 
+                            onMouseDown={(e) => { e.preventDefault(); formatHeading('h3'); }}
+                            className="px-2 py-1 hover:bg-slate-200/80 text-slate-700 hover:text-slate-900 rounded-lg text-xs font-semibold transition-colors cursor-pointer" 
+                            title="Heading 3 (Sub-heading)"
+                          >
+                            H3
+                          </button>
+                          <button 
+                            type="button" 
+                            onMouseDown={(e) => { e.preventDefault(); formatHeading('p'); }}
+                            className="px-2 py-1 hover:bg-slate-200/80 text-slate-600 hover:text-slate-900 rounded-lg text-xs font-medium transition-colors cursor-pointer" 
+                            title="Normal Paragraph"
+                          >
+                            Para
+                          </button>
+
+                          <div className="w-px h-4 bg-slate-200 mx-1 shrink-0" />
+
+                          {/* Secondary Styles: Strikethrough, Code, Mark, Clear */}
+                          <button 
+                            type="button" 
+                            onMouseDown={(e) => { e.preventDefault(); execCmd('strikeThrough'); }}
+                            className="p-1.5 hover:bg-slate-200/80 text-slate-500 hover:text-slate-900 rounded-lg text-xs transition-colors cursor-pointer" 
+                            title="Strikethrough"
+                          >
+                            <Strikethrough size={13} />
+                          </button>
+                          <button 
+                            type="button" 
+                            onMouseDown={(e) => { e.preventDefault(); insertInlineCode(); }}
+                            className="px-2 py-1 hover:bg-slate-200/80 text-blue-600 font-mono rounded-lg text-xs font-bold transition-colors cursor-pointer" 
+                            title="Inline Code (`code`)"
+                          >
+                            &lt;/&gt;
+                          </button>
+                          <button 
+                            type="button" 
+                            onMouseDown={(e) => { e.preventDefault(); insertHighlight(); }}
+                            className="px-2 py-1 hover:bg-amber-100 text-amber-700 bg-amber-50 border border-amber-200 rounded-lg text-xs font-bold transition-colors cursor-pointer" 
+                            title="Highlight Marker"
+                          >
+                            Mark
+                          </button>
+                          <button 
+                            type="button" 
+                            onMouseDown={(e) => { e.preventDefault(); clearFormatting(); }}
+                            className="p-1.5 hover:bg-slate-200/80 text-slate-500 hover:text-slate-900 rounded-lg text-xs transition-colors cursor-pointer" 
+                            title="Clear Formatting"
+                          >
+                            <RemoveFormatting size={13} />
+                          </button>
+
+                          <div className="w-px h-4 bg-slate-200 mx-1 shrink-0" />
+
+                          {/* Alignments */}
+                          <button 
+                            type="button" 
+                            onMouseDown={(e) => { e.preventDefault(); execCmd('justifyLeft'); }}
+                            className="p-1.5 hover:bg-slate-200/80 text-slate-600 hover:text-slate-900 rounded-lg transition-colors cursor-pointer" 
+                            title="Align Left"
+                          >
+                            <AlignLeft size={13} />
+                          </button>
+                          <button 
+                            type="button" 
+                            onMouseDown={(e) => { e.preventDefault(); execCmd('justifyCenter'); }}
+                            className="p-1.5 hover:bg-slate-200/80 text-slate-600 hover:text-slate-900 rounded-lg transition-colors cursor-pointer" 
+                            title="Align Center"
+                          >
+                            <AlignCenter size={13} />
+                          </button>
+                          <button 
+                            type="button" 
+                            onMouseDown={(e) => { e.preventDefault(); execCmd('justifyRight'); }}
+                            className="p-1.5 hover:bg-slate-200/80 text-slate-600 hover:text-slate-900 rounded-lg transition-colors cursor-pointer" 
+                            title="Align Right"
+                          >
+                            <AlignRight size={13} />
+                          </button>
+                          <button 
+                            type="button" 
+                            onMouseDown={(e) => { e.preventDefault(); execCmd('justifyFull'); }}
+                            className="p-1.5 hover:bg-slate-200/80 text-slate-600 hover:text-slate-900 rounded-lg transition-colors cursor-pointer" 
+                            title="Justify Text"
+                          >
+                            <AlignJustify size={13} />
+                          </button>
+
+                          <div className="w-px h-4 bg-slate-200 mx-1 shrink-0" />
+
+                          {/* Lists & Quotes */}
+                          <button 
+                            type="button" 
+                            onMouseDown={(e) => { e.preventDefault(); execCmd('insertOrderedList'); }}
+                            className="px-2 py-1 hover:bg-slate-200/80 text-slate-700 hover:text-slate-900 rounded-lg text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer" 
+                            title="Numbered List"
+                          >
+                            <ListOrdered size={13} />
+                            <span>1. 2. 3.</span>
+                          </button>
+                          <button 
+                            type="button" 
+                            onMouseDown={(e) => { e.preventDefault(); insertBlockquote(); }}
+                            className="p-1.5 hover:bg-slate-200/80 text-slate-600 hover:text-slate-900 rounded-lg text-xs transition-colors cursor-pointer" 
+                            title="Blockquote Quote"
+                          >
+                            <Quote size={13} />
+                          </button>
+
+                          <div className="w-px h-4 bg-slate-200 mx-1 shrink-0" />
+
+                          {/* Blocks: Code Block, Callout, Table, Divider */}
+                          <button 
+                            type="button" 
+                            onMouseDown={(e) => { e.preventDefault(); insertCodeBlock(); }}
+                            className="px-2 py-1 hover:bg-purple-50 text-purple-700 border border-purple-200/70 rounded-lg text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer" 
+                            title="Multi-line Code Snippet Block"
+                          >
+                            <Code size={13} className="text-purple-600" />
+                            <span>Code Block</span>
+                          </button>
+
+                          {/* Callout Dropdown */}
+                          <div className="relative">
                             <button
                               type="button"
-                              onClick={() => insertCallout('tip')}
-                              className="w-full px-2.5 py-1.5 text-left rounded-lg text-xs font-semibold text-emerald-700 hover:bg-emerald-50 flex items-center gap-2 transition-colors cursor-pointer"
+                              onClick={() => setIsCalloutMenuOpen(!isCalloutMenuOpen)}
+                              className="px-2 py-1 hover:bg-emerald-50 text-emerald-700 border border-emerald-200/70 rounded-lg text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer"
+                              title="Insert Callout Alert Box"
                             >
-                              <Lightbulb size={12} />
-                              <span>💡 Pro Tip Box</span>
+                              <Lightbulb size={13} className="text-emerald-600" />
+                              <span>Callout</span>
+                              <ChevronDown size={10} className="text-emerald-600" />
                             </button>
-                            <button
-                              type="button"
-                              onClick={() => insertCallout('info')}
-                              className="w-full px-2.5 py-1.5 text-left rounded-lg text-xs font-semibold text-blue-700 hover:bg-blue-50 flex items-center gap-2 transition-colors cursor-pointer"
-                            >
-                              <Info size={12} />
-                              <span>ℹ️ Note / Info Box</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => insertCallout('warning')}
-                              className="w-full px-2.5 py-1.5 text-left rounded-lg text-xs font-semibold text-amber-700 hover:bg-amber-50 flex items-center gap-2 transition-colors cursor-pointer"
-                            >
-                              <AlertTriangle size={12} />
-                              <span>⚠️ Caution Box</span>
-                            </button>
+                            {isCalloutMenuOpen && (
+                              <div className="absolute left-0 top-full mt-1.5 w-44 bg-white border border-slate-200 rounded-xl shadow-xl p-1 z-50 animate-in fade-in zoom-in-95 space-y-0.5">
+                                <button
+                                  type="button"
+                                  onClick={() => insertCallout('tip')}
+                                  className="w-full px-2.5 py-1.5 text-left rounded-lg text-xs font-semibold text-emerald-700 hover:bg-emerald-50 flex items-center gap-2 transition-colors cursor-pointer"
+                                >
+                                  <Lightbulb size={12} />
+                                  <span>Pro Tip Box</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => insertCallout('info')}
+                                  className="w-full px-2.5 py-1.5 text-left rounded-lg text-xs font-semibold text-blue-700 hover:bg-blue-50 flex items-center gap-2 transition-colors cursor-pointer"
+                                >
+                                  <Info size={12} />
+                                  <span>Note / Info Box</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => insertCallout('warning')}
+                                  className="w-full px-2.5 py-1.5 text-left rounded-lg text-xs font-semibold text-amber-700 hover:bg-amber-50 flex items-center gap-2 transition-colors cursor-pointer"
+                                >
+                                  <AlertTriangle size={12} />
+                                  <span>Caution Box</span>
+                                </button>
+                              </div>
+                            )}
                           </div>
-                        )}
+
+                          {/* Table Insert Button */}
+                          <button 
+                            type="button" 
+                            onClick={() => setIsTableModalOpen(true)}
+                            className="px-2 py-1 hover:bg-cyan-50 text-cyan-700 border border-cyan-200/70 rounded-lg text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer" 
+                            title="Insert Table"
+                          >
+                            <Table size={13} className="text-cyan-600" />
+                            <span>Table</span>
+                          </button>
+
+                          {/* Divider Button */}
+                          <button 
+                            type="button" 
+                            onMouseDown={(e) => { e.preventDefault(); insertDivider(); }}
+                            className="px-2 py-1 hover:bg-slate-200/80 text-slate-500 hover:text-slate-900 rounded-lg text-xs font-semibold transition-colors cursor-pointer" 
+                            title="Horizontal Divider (---)"
+                          >
+                            ―
+                          </button>
+
+                          <div className="w-px h-4 bg-slate-200 mx-1 shrink-0" />
+
+                          {/* Slash Commands Helper */}
+                          <button 
+                            type="button" 
+                            onClick={() => {
+                              editorRef.current?.focus();
+                              document.execCommand('insertText', false, '/');
+                              checkForSlashTrigger();
+                            }}
+                            className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs" 
+                            title="Type '/' in editor to open commands"
+                          >
+                            <span className="font-mono font-bold text-slate-800 bg-white px-1.5 py-0.5 rounded border border-slate-200 text-[10px]">/</span>
+                            <span>Commands</span>
+                          </button>
+                        </div>
                       </div>
-
-                      {/* Table Insert Button */}
-                      <button 
-                        type="button" 
-                        onClick={() => setIsTableModalOpen(true)}
-                        className="px-2 py-1 hover:bg-cyan-50 text-cyan-700 border border-cyan-200/70 rounded-lg text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer" 
-                        title="Insert Table"
-                      >
-                        <Table size={13} className="text-cyan-600" />
-                        <span>Table</span>
-                      </button>
-
-                      {/* Divider Button */}
-                      <button 
-                        type="button" 
-                        onMouseDown={(e) => { e.preventDefault(); insertDivider(); }}
-                        className="px-2 py-1 hover:bg-slate-200/80 text-slate-500 hover:text-slate-900 rounded-lg text-xs font-semibold transition-colors cursor-pointer" 
-                        title="Horizontal Divider (---)"
-                      >
-                        ―
-                      </button>
-
-                      <div className="w-px h-4 bg-slate-200 mx-1" />
-
-                      {/* Links & Image */}
-                      <button 
-                        type="button" 
-                        onClick={openLinkModal}
-                        className="px-2 py-1 hover:bg-blue-50 text-blue-600 border border-blue-200/70 rounded-lg text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer" 
-                        title="Insert Link (Ctrl+K)"
-                      >
-                        <Link2 size={13} />
-                        <span>Link</span>
-                      </button>
-
-                      <button 
-                        type="button" 
-                        onClick={openImageModal}
-                        className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs" 
-                        title="Insert / Upload Image"
-                      >
-                        <Image size={13} />
-                        <span>Image</span>
-                      </button>
-
-                      <div className="w-px h-4 bg-slate-200 mx-1" />
-
-                      {/* Slash Commands Helper */}
-                      <button 
-                        type="button" 
-                        onClick={() => {
-                          editorRef.current?.focus();
-                          document.execCommand('insertText', false, '/');
-                          checkForSlashTrigger();
-                        }}
-                        className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs" 
-                        title="Type '/' in editor to open commands"
-                      >
-                        <span className="font-mono font-bold text-slate-800 bg-white px-1.5 py-0.5 rounded border border-slate-200 text-[10px]">/</span>
-                        <span>Commands</span>
-                      </button>
                     </div>
 
                     {/* Workspace Area: Editor & Live Preview */}
@@ -2650,7 +2684,7 @@ console.log("Config loaded:", appConfig.appName);</code></pre>
                       <div className={`relative flex flex-col min-h-0 ${editorViewMode === 'preview' ? 'hidden' : 'flex-1'}`}>
                         {editorViewMode === 'split' && (
                           <div className="px-4 py-1.5 bg-slate-50 border-b border-slate-200 text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center justify-between shrink-0">
-                            <span>✏️ WYSIWYG Editor</span>
+                            <span>WYSIWYG Editor</span>
                             <span className="font-mono text-slate-400">Auto-syncing preview</span>
                           </div>
                         )}
@@ -3125,22 +3159,22 @@ console.log("Config loaded:", appConfig.appName);</code></pre>
             
             <div className="space-y-2">
               <p className="text-[11px] text-slate-600 font-semibold leading-relaxed">
-                Apne quiz questions ko niche diye gaye format mein paste karein. Har question ke sath 4 options (A, B, C, D) hone chahiye:
+                Paste your quiz questions in the format below. Each question must include 4 options (A, B, C, D):
               </p>
               <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-[10px] font-mono text-slate-700 space-y-1">
-                <p>Q1. Computer kya hai?</p>
-                <p>A. Ek electronic machine (Correct)</p>
-                <p>B. Ek mobile phone</p>
-                <p>C. Ek TV</p>
-                <p>D. Ek printer</p>
-                <p className="text-purple-600 font-bold mt-1">// Tip: Correct answer ke aage (Correct) likh sakte hain ya niche Answer: A likhein.</p>
+                <p>Q1. What is an algorithm?</p>
+                <p>A. A step-by-step problem-solving procedure (Correct)</p>
+                <p>B. A programming language</p>
+                <p>C. A hardware device</p>
+                <p>D. A network protocol</p>
+                <p className="text-purple-600 font-bold mt-1">// Tip: Mark correct options with (Correct) or specify Answer: A below the options.</p>
               </div>
             </div>
 
             <textarea
               value={importText}
               onChange={(e) => setImportText(e.target.value)}
-              placeholder={"Paste questions here...&#10;&#10;Q1. Computer kya hai?&#10;A. Ek electronic machine&#10;B. Ek mobile phone&#10;C. Ek TV&#10;D. Ek printer&#10;Answer: A"}
+              placeholder={"Paste questions here...&#10;&#10;Q1. What is an algorithm?&#10;A. A step-by-step problem-solving procedure (Correct)&#10;B. A programming language&#10;C. A hardware device&#10;D. A network protocol&#10;Answer: A"}
               className="w-full h-64 p-4 border border-slate-200 bg-slate-50 focus:bg-white rounded-xl outline-none focus:border-blue-500 text-xs font-semibold text-slate-800 resize-none placeholder:text-slate-400"
             />
 

@@ -24,6 +24,7 @@ import {
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import Link from "next/link";
 import { Boneyard } from "@/components/ui/Boneyard";
+import Badge from "@/components/ui/Badge";
 
 export const unstable_instant = false;
 
@@ -35,28 +36,28 @@ function StatsGrid({ stats }: { stats: any }) {
         icon={Users} 
         label="Total Students" 
         value={stats.totalStudents} 
-        colorClass="text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 border-blue-100 dark:border-blue-900/40" 
+        colorClass="text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 border-slate-200 dark:border-slate-800" 
         subText={stats.newThisWeek > 0 ? `+${stats.newThisWeek} new this week` : "No new students this week"} 
       />
       <StatCard 
         icon={BookOpen} 
         label="Active Courses" 
         value={stats.activeCourses} 
-        colorClass="text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 border-indigo-100 dark:border-indigo-900/40" 
+        colorClass="text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 border-slate-200 dark:border-slate-800" 
         subText="Across all departments" 
       />
       <StatCard 
         icon={CheckCircle2} 
         label="Avg. Completion" 
         value={`${stats.avgProgress}%`} 
-        colorClass="text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-100 dark:border-emerald-900/40" 
+        colorClass="text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border-slate-200 dark:border-slate-800" 
         progress={stats.avgProgress} 
       />
       <StatCard 
         icon={UserCheck} 
         label="Pending Admissions" 
         value={stats.pendingAdmissions} 
-        colorClass="text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/40 border-violet-100 dark:border-violet-900/40" 
+        colorClass="text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/40 border-slate-200 dark:border-slate-800" 
         subText="Awaiting admin approval" 
       />
     </div>
@@ -207,7 +208,7 @@ function LMSAnalytics({ enrollments }: { enrollments: any[] }) {
             )}
           </svg>
           <div className="absolute flex flex-col items-center justify-center text-center">
-            <span className="text-xl font-black text-slate-900 dark:text-white leading-none">{total}</span>
+            <span className="text-xl font-bold text-slate-900 dark:text-white leading-none">{total}</span>
             <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Students</span>
           </div>
         </div>
@@ -402,12 +403,10 @@ export default async function LMSDashboard() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-100 dark:border-slate-850">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
               LMS Control Hub
             </h1>
-            <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/40">
-              Live
-            </span>
+            <Badge variant="blue">Live</Badge>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
             Monitor learning activity, approve admissions, and manage course content.
@@ -473,18 +472,15 @@ export default async function LMSDashboard() {
             </div>
           </div>
 
-          <div className="bg-slate-950 p-4 rounded-2xl text-white border border-slate-800 shadow-xs space-y-2">
+          <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-2xs space-y-2">
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-xs text-slate-300 flex items-center gap-1.5">
-                <Server size={13} className="text-emerald-400" /> LMS Core Server
+              <h3 className="font-semibold text-xs text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                <Server size={13} className="text-slate-500" /> LMS Core Server
               </h3>
-              <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-bold">
-                <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-ping" />
-                Online (22ms)
-              </div>
+              <Badge variant="slate">Database Connected</Badge>
             </div>
-            <p className="text-[10px] text-slate-400 leading-relaxed">
-              Database pool connections and object storage layers are running optimally.
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed">
+              Active Supabase connection pool and object storage operational.
             </p>
           </div>
         </div>
@@ -527,16 +523,16 @@ function StatCard({ icon: Icon, label, value, colorClass, subText, progress }: a
   return (
     <div className="bg-white dark:bg-slate-900 p-4 sm:p-4.5 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-2xs hover:shadow-xs hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-200 flex justify-between items-start group">
       <div className="space-y-1 flex-1 pr-2 min-w-0">
-        <p className="text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-wider leading-none truncate">{label}</p>
-        <p className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">{value}</p>
-        {subText && <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium truncate">{subText}</p>}
+        <p className="text-slate-500 dark:text-slate-400 text-xs font-medium leading-none truncate">{label}</p>
+        <p className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight leading-tight">{value}</p>
+        {subText && <p className="text-[10px] text-slate-400 dark:text-slate-500 font-normal truncate">{subText}</p>}
         {progress !== undefined && (
           <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full mt-2 overflow-hidden">
-             <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
+             <div className="h-full bg-slate-700 dark:bg-slate-300 rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
           </div>
         )}
       </div>
-      <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl ${colorClass} border flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 duration-200`}>
+      <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl ${colorClass} border flex items-center justify-center shrink-0 transition-transform duration-200`}>
         <Icon size={18} />
       </div>
     </div>

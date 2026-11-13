@@ -188,40 +188,34 @@ export default function ExpensesClient({
   return (
     <div className="space-y-10">
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
         {[
           {
             title: "Total Expenditures",
             value: stats.totalExpenses,
-            gradient: "from-blue-600 to-indigo-700 shadow-blue-500/10",
             subtext: "Lifetime total expense outflow"
           },
           {
             title: "This Month Expenses",
             value: stats.thisMonthExpenses,
-            gradient: "from-purple-600 to-indigo-600 shadow-purple-500/10",
             subtext: `Expenses in ${new Date().toLocaleString("en-IN", { month: "long" })}`
           },
           {
             title: "Today's Expenses",
             value: stats.todayExpenses,
-            gradient: "from-rose-500 to-orange-600 shadow-rose-500/10",
             subtext: new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })
           }
         ].map((item, idx) => (
           <div 
             key={idx} 
-            className={`bg-gradient-to-br ${item.gradient} rounded-3xl p-8 text-white shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group`}
+            className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-5 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-xs"
           >
-            <div className="absolute -right-10 -bottom-10 opacity-10 group-hover:scale-110 transition-transform duration-500">
-              <TrendingDown size={180} className="stroke-[1.5]" />
-            </div>
-            <p className="text-white/80 text-xs font-bold uppercase tracking-widest">{item.title}</p>
-            <h3 className="text-3xl sm:text-4xl font-black mt-4 flex items-center gap-1">
-              <IndianRupee size={28} className="stroke-[3]" />
+            <p className="text-slate-500 dark:text-slate-400 text-xs font-medium">{item.title}</p>
+            <h3 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white mt-3 flex items-center gap-1">
+              <IndianRupee size={24} className="stroke-[2.5]" />
               {item.value.toLocaleString()}
             </h3>
-            <p className="text-white/60 text-xs font-semibold mt-4">{item.subtext}</p>
+            <p className="text-slate-400 dark:text-slate-500 text-xs mt-2">{item.subtext}</p>
           </div>
         ))}
       </div>
@@ -236,7 +230,7 @@ export default function ExpensesClient({
             placeholder="Search by title, payee, or details..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-white rounded-2xl border border-slate-100 dark:border-slate-850 outline-none focus:ring-2 focus:ring-blue-500 text-sm font-semibold transition-all"
+            className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-white rounded-2xl border border-slate-100 dark:border-slate-800 outline-none focus:ring-2 focus:ring-blue-500 text-sm font-semibold transition-all"
           />
         </div>
 
@@ -248,7 +242,7 @@ export default function ExpensesClient({
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="pl-9 pr-6 py-2.5 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-white rounded-xl border border-slate-100 dark:border-slate-850 outline-none focus:ring-2 focus:ring-blue-500 text-xs font-bold appearance-none cursor-pointer"
+              className="pl-9 pr-6 py-2.5 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-white rounded-xl border border-slate-100 dark:border-slate-800 outline-none focus:ring-2 focus:ring-blue-500 text-xs font-bold appearance-none cursor-pointer"
             >
               <option value="all">All Categories</option>
               {categories.map(c => <option key={c} value={c}>{c}</option>)}
@@ -261,7 +255,7 @@ export default function ExpensesClient({
             <select
               value={paymentModeFilter}
               onChange={(e) => setPaymentModeFilter(e.target.value)}
-              className="pl-9 pr-6 py-2.5 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-white rounded-xl border border-slate-100 dark:border-slate-850 outline-none focus:ring-2 focus:ring-blue-500 text-xs font-bold appearance-none cursor-pointer"
+              className="pl-9 pr-6 py-2.5 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-white rounded-xl border border-slate-100 dark:border-slate-800 outline-none focus:ring-2 focus:ring-blue-500 text-xs font-bold appearance-none cursor-pointer"
             >
               <option value="all">All Modes</option>
               {paymentModes.map(m => <option key={m} value={m}>{m.toUpperCase()}</option>)}

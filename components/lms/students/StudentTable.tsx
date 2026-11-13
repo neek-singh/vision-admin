@@ -713,93 +713,93 @@ export default function StudentTable({
       {/* ── Statistics Cards (Compact & Clean) ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
         {/* Card 1: Total Students */}
-        <div className="bg-white dark:bg-slate-900 p-3 sm:p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs hover:border-blue-500/30 transition-all group">
+        <div className="bg-slate-50 dark:bg-slate-800/50 p-3 sm:p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 transition-colors">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
               Total Students
             </span>
-            <div className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-500/20 group-hover:scale-105 transition-transform">
+            <div className="w-7 h-7 rounded-lg bg-slate-200/60 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300 flex items-center justify-center">
               <Users size={14} />
             </div>
           </div>
           <div className="mt-1 flex items-baseline gap-2">
-            <span className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
+            <span className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
               {totalStudents}
             </span>
           </div>
-          <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5 font-normal">
+          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 font-normal">
             All registered profiles
           </p>
         </div>
 
         {/* Card 2: Active Students */}
-        <div className="bg-white dark:bg-slate-900 p-3 sm:p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs hover:border-emerald-500/30 transition-all group">
+        <div className="bg-slate-50 dark:bg-slate-800/50 p-3 sm:p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 transition-colors">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
               Active Students
             </span>
-            <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/20 group-hover:scale-105 transition-transform">
+            <div className="w-7 h-7 rounded-lg bg-slate-200/60 dark:bg-slate-700/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
               <ShieldCheck size={14} />
             </div>
           </div>
           <div className="mt-1 flex items-baseline gap-2">
-            <span className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
+            <span className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
               {activeStudents}
             </span>
-            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
               {activeRate}% Active
             </span>
           </div>
-          <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5 font-normal">
+          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 font-normal">
             Currently enabled accounts
           </p>
         </div>
 
         {/* Card 3: Batch Assigned */}
-        <div className="bg-white dark:bg-slate-900 p-3 sm:p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs hover:border-amber-500/30 transition-all group">
+        <div className="bg-slate-50 dark:bg-slate-800/50 p-3 sm:p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 transition-colors">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
               Batch Assigned
             </span>
-            <div className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-500/20 group-hover:scale-105 transition-transform">
+            <div className="w-7 h-7 rounded-lg bg-slate-200/60 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300 flex items-center justify-center">
               <UserCheck size={14} />
             </div>
           </div>
           <div className="mt-1 flex items-baseline gap-2">
-            <span className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
+            <span className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
               {batchAssigned}
             </span>
             {unassignedCount > 0 && (
-              <span className="text-[11px] text-amber-600 dark:text-amber-400 font-semibold">
+              <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">
                 {unassignedCount} unassigned
               </span>
             )}
           </div>
-          <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5 font-normal">
+          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 font-normal">
             Assigned to learning batches
           </p>
         </div>
 
         {/* Card 4: Course Enrollments */}
-        <div className="bg-white dark:bg-slate-900 p-3 sm:p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs hover:border-violet-500/30 transition-all group">
+        <div className="bg-slate-50 dark:bg-slate-800/50 p-3 sm:p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 transition-colors">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
               Course Enrollments
             </span>
-            <div className="w-7 h-7 rounded-lg bg-violet-500/10 text-violet-600 dark:text-violet-400 flex items-center justify-center border border-violet-500/20 group-hover:scale-105 transition-transform">
+            <div className="w-7 h-7 rounded-lg bg-slate-200/60 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300 flex items-center justify-center">
               <BookOpen size={14} />
             </div>
           </div>
           <div className="mt-1 flex items-baseline gap-2">
-            <span className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
+            <span className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
               {totalEnrollments}
             </span>
-            <span className="text-[11px] text-violet-600 dark:text-violet-400 font-semibold">
+            <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
               {avgCourses} avg/student
             </span>
           </div>
-          <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5 font-normal">
+          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 font-normal">
             Active course allocations
           </p>
         </div>
@@ -834,11 +834,11 @@ export default function StudentTable({
           </div>
           
           {/* Status Segment Control */}
-          <div className="flex flex-wrap bg-slate-100 dark:bg-slate-950 p-0.5 rounded-lg border border-slate-200/70 dark:border-slate-800 text-xs w-full sm:w-auto">
+          <div className="flex flex-nowrap overflow-x-auto no-scrollbar gap-1.5 bg-slate-100 dark:bg-slate-950 p-0.5 rounded-lg border border-slate-200/70 dark:border-slate-800 text-xs w-full sm:w-auto max-w-full shrink-0">
             <button
               type="button"
               onClick={() => setSelectedStatus("all")}
-              className={`px-2.5 py-0.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
+              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                 selectedStatus === "all"
                   ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs font-semibold"
                   : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
@@ -849,7 +849,7 @@ export default function StudentTable({
             <button
               type="button"
               onClick={() => setSelectedStatus("active")}
-              className={`px-2.5 py-0.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
+              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                 selectedStatus === "active"
                   ? "bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-2xs font-semibold"
                   : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
@@ -860,7 +860,7 @@ export default function StudentTable({
             <button
               type="button"
               onClick={() => setSelectedStatus("dropped_out")}
-              className={`px-2.5 py-0.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
+              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                 selectedStatus === "dropped_out"
                   ? "bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-400 shadow-2xs font-semibold"
                   : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
@@ -871,7 +871,7 @@ export default function StudentTable({
             <button
               type="button"
               onClick={() => setSelectedStatus("on_hold")}
-              className={`px-2.5 py-0.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
+              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                 selectedStatus === "on_hold"
                   ? "bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 shadow-2xs font-semibold"
                   : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
@@ -882,7 +882,7 @@ export default function StudentTable({
             <button
               type="button"
               onClick={() => setSelectedStatus("completed")}
-              className={`px-2.5 py-0.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
+              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                 selectedStatus === "completed"
                   ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-2xs font-semibold"
                   : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
