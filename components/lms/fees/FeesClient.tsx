@@ -1212,119 +1212,101 @@ export default function FeesClient({
   return (
     <div className="space-y-4 animate-in fade-in duration-300 pb-12">
       
-      {/* Analytics KPI Row 1: Primary Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      {/* Analytics KPI Row 1: Primary Metrics - Compact 3-col on all screen sizes */}
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
         {/* Total Collection */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 p-3.5 flex items-center justify-between shadow-2xs hover:border-slate-300 dark:hover:border-slate-700 transition-all">
-          <div className="min-w-0">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">Total Collection</span>
-            <div className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white mt-0.5">
-              ₹{stats.totalCollection.toLocaleString()}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-2.5 sm:p-3.5 shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition-all flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block truncate">Total Collection</span>
+            <div className="w-6 h-6 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-100/50 dark:border-emerald-900/30 flex items-center justify-center shrink-0">
+              <Wallet size={12} className="sm:hidden" />
+              <Wallet size={16} className="hidden sm:block" />
             </div>
-            <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 block mt-0.5">Overall received fees</span>
           </div>
-          <div className="w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-100/50 dark:border-emerald-900/30 flex items-center justify-center shrink-0">
-            <Wallet size={19} />
+          <div className="text-sm sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white leading-tight truncate">
+            ₹{stats.totalCollection.toLocaleString()}
           </div>
+          <span className="text-[9px] sm:text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 block mt-0.5 truncate">Received fees</span>
         </div>
 
         {/* Total Outstanding */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 p-3.5 flex items-center justify-between shadow-2xs hover:border-slate-300 dark:hover:border-slate-700 transition-all">
-          <div className="min-w-0">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">Total Outstanding</span>
-            <div className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white mt-0.5">
-              ₹{stats.totalPending.toLocaleString()}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-2.5 sm:p-3.5 shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition-all flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block truncate">Outstanding</span>
+            <div className="w-6 h-6 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-100/50 dark:border-rose-900/30 flex items-center justify-center shrink-0">
+              <AlertCircle size={12} className="sm:hidden" />
+              <AlertCircle size={16} className="hidden sm:block" />
             </div>
-            <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 block mt-0.5">Remaining balance due</span>
           </div>
-          <div className="w-10 h-10 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-100/50 dark:border-rose-900/30 flex items-center justify-center shrink-0">
-            <AlertCircle size={19} />
+          <div className="text-sm sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white leading-tight truncate">
+            ₹{stats.totalPending.toLocaleString()}
           </div>
+          <span className="text-[9px] sm:text-[10px] font-semibold text-rose-500 block mt-0.5 truncate">Balance due</span>
         </div>
 
         {/* Collection Ratio with Integrated Compact Radial */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 p-3.5 flex items-center justify-between shadow-2xs hover:border-slate-300 dark:hover:border-slate-700 transition-all">
-          <div className="min-w-0 pr-2">
-            <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-              <Sparkles size={11} className="text-amber-500" /> Collection Ratio
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-2.5 sm:p-3.5 shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition-all flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block truncate">Ratio</span>
+            <div className="w-6 h-6 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-100/50 dark:border-blue-900/30 flex items-center justify-center shrink-0">
+              <Sparkles size={12} className="sm:hidden" />
+              <Sparkles size={16} className="hidden sm:block" />
             </div>
-            <div className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white mt-0.5">
-              {collectionPercentage}% <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Received</span>
-            </div>
-            <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 block mt-0.5 truncate">
-              ₹{stats.totalCollection.toLocaleString()} of ₹{totalOverall.toLocaleString()}
-            </span>
           </div>
-
-          <div className="relative flex items-center justify-center shrink-0">
-            <svg className="w-12 h-12 transform -rotate-90">
-              <circle
-                cx="24"
-                cy="24"
-                r="19"
-                className="stroke-slate-100 dark:stroke-slate-800"
-                strokeWidth="4.5"
-                fill="transparent"
-              />
-              <circle
-                cx="24"
-                cy="24"
-                r="19"
-                className="stroke-emerald-500 transition-all duration-700"
-                strokeWidth="4.5"
-                fill="transparent"
-                strokeDasharray={2 * Math.PI * 19}
-                strokeDashoffset={(2 * Math.PI * 19) - (collectionPercentage / 100) * (2 * Math.PI * 19)}
-                strokeLinecap="round"
-              />
-            </svg>
-            <span className="absolute text-[11px] font-black text-slate-900 dark:text-white">{collectionPercentage}%</span>
+          <div className="text-sm sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white leading-tight truncate">
+            {collectionPercentage}%
           </div>
+          <span className="text-[9px] sm:text-[10px] font-semibold text-blue-600 dark:text-blue-400 block mt-0.5 truncate">
+            {stats.totalCollection > 0 ? "Collected" : "0%"}
+          </span>
         </div>
       </div>
 
-      {/* Analytics KPI Row 2: Cash Flow Velocity (Today, This Week, This Month) */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      {/* Analytics KPI Row 2: Cash Flow Velocity (Today, This Week, This Month) - Compact 3-col on all sizes */}
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
         {/* Today Income */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 p-3 flex items-center justify-between shadow-2xs hover:border-slate-300 dark:hover:border-slate-700 transition-all">
-          <div className="min-w-0">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">Today Income</span>
-            <div className="text-lg font-black tracking-tight text-slate-900 dark:text-white mt-0.5">
-              ₹{stats.todayCollection.toLocaleString()}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-2.5 sm:p-3 shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition-all">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block truncate">Today</span>
+            <div className="w-5 h-5 sm:w-8 sm:h-8 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+              <TrendingUp size={11} className="sm:hidden" />
+              <TrendingUp size={15} className="hidden sm:block" />
             </div>
-            <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 block">Collected today</span>
           </div>
-          <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-100/50 dark:border-blue-900/30 flex items-center justify-center shrink-0">
-            <TrendingUp size={16} />
+          <div className="text-xs sm:text-lg font-black tracking-tight text-slate-900 dark:text-white truncate">
+            ₹{stats.todayCollection.toLocaleString()}
           </div>
+          <span className="text-[9px] sm:text-[10px] font-semibold text-blue-500 block mt-0.5 truncate">Logged today</span>
         </div>
 
         {/* This Week Income */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 p-3 flex items-center justify-between shadow-2xs hover:border-slate-300 dark:hover:border-slate-700 transition-all">
-          <div className="min-w-0">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">This Week Income</span>
-            <div className="text-lg font-black tracking-tight text-slate-900 dark:text-white mt-0.5">
-              ₹{(stats.weeklyCollection || 0).toLocaleString()}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-2.5 sm:p-3 shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition-all">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block truncate">7 Days</span>
+            <div className="w-5 h-5 sm:w-8 sm:h-8 rounded-lg bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+              <CalendarCheck size={11} className="sm:hidden" />
+              <CalendarCheck size={15} className="hidden sm:block" />
             </div>
-            <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 block">Collected this week</span>
           </div>
-          <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 border border-purple-100/50 dark:border-purple-900/30 flex items-center justify-center shrink-0">
-            <CalendarCheck size={16} />
+          <div className="text-xs sm:text-lg font-black tracking-tight text-slate-900 dark:text-white truncate">
+            ₹{(stats.weeklyCollection || 0).toLocaleString()}
           </div>
+          <span className="text-[9px] sm:text-[10px] font-semibold text-purple-500 block mt-0.5 truncate">This week</span>
         </div>
 
         {/* This Month Income */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 p-3 flex items-center justify-between shadow-2xs hover:border-slate-300 dark:hover:border-slate-700 transition-all">
-          <div className="min-w-0">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">{monthCardTitle}</span>
-            <div className="text-lg font-black tracking-tight text-slate-900 dark:text-white mt-0.5">
-              ₹{selectedMonthIncome.toLocaleString()}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-2.5 sm:p-3 shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition-all">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block truncate">Month</span>
+            <div className="w-5 h-5 sm:w-8 sm:h-8 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+              <Calendar size={11} className="sm:hidden" />
+              <Calendar size={15} className="hidden sm:block" />
             </div>
-            <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 block">{monthCardSub}</span>
           </div>
-          <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-100/50 dark:border-amber-900/30 flex items-center justify-center shrink-0">
-            <Calendar size={16} />
+          <div className="text-xs sm:text-lg font-black tracking-tight text-slate-900 dark:text-white truncate">
+            ₹{selectedMonthIncome.toLocaleString()}
           </div>
+          <span className="text-[9px] sm:text-[10px] font-semibold text-amber-500 block mt-0.5 truncate">This month</span>
         </div>
       </div>
 
@@ -1379,29 +1361,29 @@ export default function FeesClient({
       <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs overflow-hidden">
         
         {/* Table Header Section */}
-        <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+        <div className="p-3 sm:px-4 sm:py-3 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2.5">
           <div className="space-y-0.5">
             <div className="flex items-center gap-2">
-              <h2 className="text-sm font-bold text-slate-900 dark:text-white">Financial Records</h2>
+              <h2 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">Financial Records</h2>
               <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
                 {filteredFees.length} records
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 dark:text-slate-500">Student billings, installments, and payment ledger</p>
+            <p className="text-[10px] sm:text-[11px] text-slate-400 dark:text-slate-500">Student billings, installments, and payment ledger</p>
           </div>
           
-          <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:items-center">
             <button 
               type="button"
               onClick={handleExportCSV}
-              className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg font-semibold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer border border-slate-200 dark:border-slate-700"
+              className="px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer border border-slate-200 dark:border-slate-700"
               title="Export current filtered records to CSV for Excel / Audit"
             >
-              <FileSpreadsheet size={14} className="text-emerald-600 dark:text-emerald-400" /> Export CSV
+              <FileSpreadsheet size={13} className="text-emerald-600 dark:text-emerald-400" /> Export CSV
             </button>
             <button 
               onClick={() => setShowSetup(true)}
-              className="w-full sm:w-auto px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-xs transition-all flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer active:scale-95"
+              className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 shadow-sm shadow-blue-500/20 cursor-pointer active:scale-95"
             >
               <PlusCircle size={14} /> New Billing Setup
             </button>

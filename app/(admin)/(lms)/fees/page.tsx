@@ -75,14 +75,14 @@ export default async function AdminFeesPage() {
   }, { cash: 0, online: 0, bank: 0 });
 
   return (
-    <div className="w-full">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+    <div className="p-3 sm:p-6 lg:p-8 space-y-4 max-w-7xl mx-auto">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-2">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Financial Center</h1>
+            <h1 className="text-lg sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Financial Center</h1>
             <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400 border border-blue-200/60 dark:border-blue-900/40">Fee Desk</span>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Fee collections, installments, and ledger balance</p>
+          <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Fee collections, installments, and ledger balance</p>
         </div>
       </div>
 
