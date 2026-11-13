@@ -37,8 +37,7 @@ export interface NavSearchItem {
 
 const SEARCHABLE_ITEMS: NavSearchItem[] = [
   // Core
-  { title: "Admin Overview", path: "/admin", category: "Core", keywords: ["dashboard", "home", "stats", "overview"] },
-  { title: "LMS Dashboard", path: "/admin/lms", category: "LMS", keywords: ["learning", "students", "batches", "classes"] },
+  { title: "Admin Dashboard", path: "/admin", category: "Core", keywords: ["dashboard", "home", "stats", "overview", "lms", "learning", "students", "batches", "classes"] },
 
   // LMS
   { title: "Enquiry Admissions", path: "/admin/admissions", category: "LMS", icon: GraduationCap, keywords: ["admissions", "applications", "enquiries", "students", "leads"] },

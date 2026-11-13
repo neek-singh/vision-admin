@@ -43,7 +43,6 @@ const navGroups = [
   {
     label: "Vision Learn (LMS)",
     items: [
-      { href: "/admin/lms", label: "LMS Dashboard", icon: ClipboardList },
       { href: "/admin/lms/progress", label: "LMS Progress", icon: Clock },
       { href: "/admin/admissions", label: "Enquiry Admissions", icon: GraduationCap },
       { href: "/admin/students", label: "Manage Students", icon: Users },
