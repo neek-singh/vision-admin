@@ -19,6 +19,7 @@ import {
   Search,
   CheckCheck,
   Eye,
+  ChevronDown,
 } from "lucide-react";
 import { sendNotification, deleteNotification } from "@/app/actions/lms/notifications";
 
@@ -99,6 +100,7 @@ export default function NotificationsClient({
     message: string;
   } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isComposeOpen, setIsComposeOpen] = useState(true);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -183,23 +185,35 @@ export default function NotificationsClient({
   }, [notifications, searchQuery]);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-8 items-start">
       {/* Left Column: Compose Announcement Card */}
-      <div className="lg:col-span-5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs p-5 md:p-6 space-y-5 lg:sticky lg:top-8">
-        <div>
-          <h2 className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-            <Bell size={15} className="text-slate-500 dark:text-slate-400" />
-            Send New Announcement
-          </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Push instant alerts & in-app updates to enrolled students.
-          </p>
+      <div className="lg:col-span-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm p-4 sm:p-5 md:p-6 space-y-4 lg:sticky lg:top-8">
+        <div 
+          onClick={() => setIsComposeOpen(!isComposeOpen)}
+          className="flex items-center justify-between cursor-pointer select-none"
+        >
+          <div>
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <Bell size={15} className="text-slate-500 dark:text-slate-400" />
+              Send New Announcement
+            </h2>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+              Push instant alerts &amp; in-app updates to enrolled students.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700/60"
+            aria-label="Toggle announcement form"
+          >
+            <ChevronDown size={14} className={`transition-transform duration-200 ${isComposeOpen ? "rotate-180" : ""}`} />
+          </button>
         </div>
 
         {/* Feedback Alert Banner */}
         {feedback && (
           <div
-            className={`p-3 rounded-lg flex items-start gap-2.5 text-xs ${
+            className={`p-3 rounded-xl flex items-start gap-2.5 text-xs ${
               feedback.type === "success"
                 ? "bg-emerald-50 text-emerald-800 border border-emerald-200/80 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800/50"
                 : "bg-rose-50 text-rose-800 border border-rose-200/80 dark:bg-rose-950/30 dark:text-rose-300 dark:border-rose-800/50"
@@ -221,13 +235,13 @@ export default function NotificationsClient({
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className={`space-y-3.5 ${isComposeOpen ? "block" : "hidden lg:block"}`}>
           {/* Severity / Type Selector */}
           <div>
-            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+            <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
               Category
             </label>
-            <div className="grid grid-cols-4 gap-1.5 p-1 bg-slate-100 dark:bg-slate-800/70 rounded-lg border border-slate-200/50 dark:border-slate-700/50">
+            <div className="grid grid-cols-4 gap-1.5 p-1 bg-slate-100 dark:bg-slate-800/70 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
               {NOTIFICATION_TYPES.map((t) => {
                 const isSelected = formData.type === t.value;
                 const Icon = t.icon;
@@ -236,13 +250,13 @@ export default function NotificationsClient({
                     key={t.value}
                     type="button"
                     onClick={() => setFormData({ ...formData, type: t.value })}
-                    className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-md text-xs font-medium transition-all ${
+                    className={`flex items-center justify-center gap-1.5 py-1.5 px-1.5 sm:px-2 rounded-lg text-xs font-semibold transition-all ${
                       isSelected
-                        ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-2xs font-semibold"
+                        ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs font-bold"
                         : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
                     }`}
                   >
-                    <span className={`w-1.5 h-1.5 rounded-full ${t.dotColor}`} />
+                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${t.dotColor}`} />
                     <span className="truncate">{t.label}</span>
                   </button>
                 );
@@ -252,7 +266,7 @@ export default function NotificationsClient({
 
           {/* Title */}
           <div>
-            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+            <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
               Title <span className="text-rose-500">*</span>
             </label>
             <input
@@ -261,13 +275,13 @@ export default function NotificationsClient({
               placeholder="e.g., Practical Exam Schedule Released"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className="w-full px-3.5 py-2 text-sm bg-slate-50/60 focus:bg-white dark:bg-slate-800/40 dark:focus:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-white/10 transition-colors"
+              className="w-full px-3.5 py-2 text-xs sm:text-sm bg-slate-50/60 focus:bg-white dark:bg-slate-800/40 dark:focus:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-white/10 transition-colors font-medium"
             />
           </div>
 
           {/* Message */}
           <div>
-            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+            <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
               Message <span className="text-rose-500">*</span>
             </label>
             <textarea
@@ -276,16 +290,16 @@ export default function NotificationsClient({
               placeholder="Write the full announcement details here..."
               value={formData.message}
               onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-              className="w-full px-3.5 py-2 text-sm bg-slate-50/60 focus:bg-white dark:bg-slate-800/40 dark:focus:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-white/10 transition-colors resize-none"
+              className="w-full px-3.5 py-2 text-xs sm:text-sm bg-slate-50/60 focus:bg-white dark:bg-slate-800/40 dark:focus:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-white/10 transition-colors resize-none font-medium"
             />
           </div>
 
           {/* Target Audience Segmented Control */}
           <div className="space-y-2">
-            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+            <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Target Audience
             </label>
-            <div className="grid grid-cols-4 gap-1 p-1 bg-slate-100 dark:bg-slate-800/70 rounded-lg border border-slate-200/50 dark:border-slate-700/50">
+            <div className="grid grid-cols-4 gap-1 p-1 bg-slate-100 dark:bg-slate-800/70 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
               {[
                 { id: "all", label: "All" },
                 { id: "batch", label: "Batch" },
@@ -302,9 +316,9 @@ export default function NotificationsClient({
                       target_value: "",
                     })
                   }
-                  className={`py-1.5 text-xs font-medium rounded-md transition-all text-center ${
+                  className={`py-1.5 text-xs font-semibold rounded-lg transition-all text-center ${
                     formData.target_type === item.id
-                      ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-2xs font-semibold"
+                      ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs font-bold"
                       : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
                   }`}
                 >
@@ -319,7 +333,7 @@ export default function NotificationsClient({
                 required
                 value={formData.target_value}
                 onChange={(e) => setFormData({ ...formData, target_value: e.target.value })}
-                className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium"
               >
                 <option value="">Select Target Batch...</option>
                 {batches.map((b) => (
@@ -335,7 +349,7 @@ export default function NotificationsClient({
                 required
                 value={formData.target_value}
                 onChange={(e) => setFormData({ ...formData, target_value: e.target.value })}
-                className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium"
               >
                 <option value="">Select Target Course...</option>
                 {courses.map((c) => (
@@ -351,7 +365,7 @@ export default function NotificationsClient({
                 required
                 value={formData.target_value}
                 onChange={(e) => setFormData({ ...formData, target_value: e.target.value })}
-                className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium"
               >
                 <option value="">Select Specific Student...</option>
                 {students.map((s) => (
@@ -367,7 +381,7 @@ export default function NotificationsClient({
           <button
             type="submit"
             disabled={isPending}
-            className="w-full h-10 mt-2 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 rounded-lg text-xs font-semibold shadow-xs hover:shadow-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full h-10 mt-2 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 rounded-xl text-xs font-bold shadow-xs hover:shadow-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isPending ? (
               <>
@@ -385,15 +399,15 @@ export default function NotificationsClient({
       </div>
 
       {/* Right Column: Recent Notification History */}
-      <div className="lg:col-span-7 space-y-4">
+      <div className="lg:col-span-7 space-y-3 sm:space-y-4">
         {/* Header with Search */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1 border-b border-slate-200 dark:border-slate-800">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
+            <h2 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
               <History size={14} className="text-slate-400" />
               Notification History
             </h2>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-medium">
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold">
               {filteredNotifications.length}
             </span>
           </div>
@@ -409,7 +423,7 @@ export default function NotificationsClient({
                 placeholder="Search history..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800/60 focus:bg-white dark:focus:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 transition-colors"
+                className="w-full pl-8 pr-3 py-2 text-xs bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-2xs transition-colors"
               />
             </div>
           )}
@@ -417,11 +431,11 @@ export default function NotificationsClient({
 
         {/* History List */}
         {filteredNotifications.length === 0 ? (
-          <div className="text-center py-16 bg-white dark:bg-slate-900 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
+          <div className="text-center py-12 sm:py-16 bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
             <div className="w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-800/50 text-slate-400 mx-auto mb-3 flex items-center justify-center">
               <Bell size={18} />
             </div>
-            <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
+            <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
               {searchQuery ? "No matching announcements" : "No notifications dispatched yet"}
             </p>
             <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 max-w-xs mx-auto">
@@ -431,7 +445,7 @@ export default function NotificationsClient({
             </p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2.5 sm:space-y-3">
             {filteredNotifications.map((notif) => {
               const typeConfig =
                 NOTIFICATION_TYPES.find((t) => t.value === notif.type) ||
@@ -446,26 +460,26 @@ export default function NotificationsClient({
               return (
                 <div
                   key={notif.id}
-                  className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs hover:shadow-xs transition-all p-4 space-y-3"
+                  className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs hover:shadow-sm transition-all p-3.5 sm:p-4 space-y-2.5"
                 >
                   {/* Card Header Row */}
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <span
-                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium border ${typeConfig.activeBadge}`}
+                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold border ${typeConfig.activeBadge}`}
                       >
-                        <Icon size={11} />
+                        <Icon size={10} />
                         {typeConfig.label}
                       </span>
 
-                      <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
                         Target: {notif.target_type || "All"}
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <span className="text-[11px] text-slate-400 flex items-center gap-1">
-                        <Calendar size={11} />
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className="text-[10px] text-slate-400 flex items-center gap-1">
+                        <Calendar size={10} />
                         {formatDate(notif.created_at)}
                       </span>
 
@@ -473,7 +487,7 @@ export default function NotificationsClient({
                         onClick={() => handleDelete(notif.id)}
                         disabled={isPending || deletingId === notif.id}
                         title="Delete notification"
-                        className="p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded transition-colors disabled:opacity-50"
+                        className="p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition-colors disabled:opacity-50"
                       >
                         {deletingId === notif.id ? (
                           <Loader2 size={13} className="animate-spin text-rose-500" />
@@ -486,7 +500,7 @@ export default function NotificationsClient({
 
                   {/* Body Content */}
                   <div>
-                    <h3 className="text-sm font-semibold text-slate-900 dark:text-white leading-snug">
+                    <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-snug">
                       {notif.title}
                     </h3>
                     <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed mt-1">
@@ -495,15 +509,15 @@ export default function NotificationsClient({
                   </div>
 
                   {/* Footer Metrics */}
-                  <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-                    <div className="flex items-center gap-3">
-                      <span className="flex items-center gap-1 text-[11px]">
-                        <CheckCheck size={13} className="text-blue-500" />
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+                    <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                      <span className="flex items-center gap-1 font-semibold text-blue-600 dark:text-blue-400">
+                        <CheckCheck size={12} />
                         <span>{notif.total_delivered} delivered</span>
                       </span>
                       <span>·</span>
-                      <span className="flex items-center gap-1 text-[11px]">
-                        <Eye size={13} className="text-emerald-500" />
+                      <span className="flex items-center gap-1 font-semibold text-emerald-600 dark:text-emerald-400">
+                        <Eye size={12} />
                         <span>
                           {notif.read_count} read ({readRate}%)
                         </span>

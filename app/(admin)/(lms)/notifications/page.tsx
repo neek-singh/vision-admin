@@ -45,19 +45,19 @@ export default async function AdminNotificationsPage() {
     .order("name");
 
   return (
-    <div className="container mx-auto px-6 lg:px-8 py-8 max-w-6xl space-y-8">
+    <div className="p-3 sm:p-6 lg:p-8 space-y-4 max-w-6xl mx-auto">
       {/* Page Header */}
       <div>
-        <div className="flex items-center gap-2.5">
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-white">
+        <div className="flex items-center gap-2 mb-0.5">
+          <h1 className="text-lg sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
             Notification Center
           </h1>
-          <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200/60 dark:border-slate-700">
+          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200/60 dark:border-slate-700">
             {formattedNotifications.length}{" "}
             {formattedNotifications.length === 1 ? "announcement" : "announcements"}
           </span>
         </div>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+        <p className="text-xs text-slate-400 dark:text-slate-500">
           Broadcast institute announcements and targeted updates to students.
         </p>
       </div>
