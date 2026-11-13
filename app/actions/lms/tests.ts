@@ -89,29 +89,33 @@ export async function saveTest(data: {
   duration_minutes?: number;
   batches?: string[] | null;
   batch?: string | null;
+  chapter_id?: string | null;
   lesson_id?: string | null;
   is_published?: boolean;
 }) {
-  await requireAdmin();
+  const { supabase } = await requireAdmin();
+  const client = supabase || supabaseAdmin;
 
   try {
-    const { id, batch, lesson_id, ...rest } = data;
+    const { id, batch, chapter_id, lesson_id, ...rest } = data;
     const payload: any = {
       ...rest,
       batches: data.batches || (batch ? [batch] : null),
     };
-    if (lesson_id) payload.lesson_id = lesson_id;
+    if (chapter_id !== undefined) {
+      payload.chapter_id = chapter_id || null;
+    }
 
     let testId = id;
 
     if (id) {
-      const { error } = await supabaseAdmin
+      const { error } = await client
         .from("tests")
         .update(payload)
         .eq("id", id);
       if (error) throw error;
     } else {
-      const { data: inserted, error } = await supabaseAdmin
+      const { data: inserted, error } = await client
         .from("tests")
         .insert([payload])
         .select("id")
@@ -137,10 +141,11 @@ export async function saveTest(data: {
  * Deletes a test and all its questions/results using privileged supabaseAdmin.
  */
 export async function deleteTest(id: string) {
-  await requireAdmin();
+  const { supabase } = await requireAdmin();
+  const client = supabase || supabaseAdmin;
 
   try {
-    const { error } = await supabaseAdmin.from("tests").delete().eq("id", id);
+    const { error } = await client.from("tests").delete().eq("id", id);
     if (error) throw error;
     return { success: true };
   } catch (err: any) {
@@ -153,11 +158,12 @@ export async function deleteTest(id: string) {
  * Toggles a test's published status using privileged supabaseAdmin.
  */
 export async function togglePublishTest(id: string, currentStatus: boolean) {
-  await requireAdmin();
+  const { supabase } = await requireAdmin();
+  const client = supabase || supabaseAdmin;
 
   try {
     const nextStatus = !currentStatus;
-    const { error } = await supabaseAdmin
+    const { error } = await client
       .from("tests")
       .update({ is_published: nextStatus })
       .eq("id", id);
@@ -187,18 +193,19 @@ export async function saveTestQuestion(data: {
   correct_option_index: number;
   order_index?: number;
 }) {
-  await requireAdmin();
+  const { supabase } = await requireAdmin();
+  const client = supabase || supabaseAdmin;
 
   try {
     const { id, ...rest } = data;
     if (id) {
-      const { error } = await supabaseAdmin
+      const { error } = await client
         .from("test_questions")
         .update(rest)
         .eq("id", id);
       if (error) throw error;
     } else {
-      const { error } = await supabaseAdmin
+      const { error } = await client
         .from("test_questions")
         .insert([rest]);
       if (error) throw error;
@@ -214,10 +221,11 @@ export async function saveTestQuestion(data: {
  * Deletes a test question using privileged supabaseAdmin.
  */
 export async function deleteTestQuestion(id: string) {
-  await requireAdmin();
+  const { supabase } = await requireAdmin();
+  const client = supabase || supabaseAdmin;
 
   try {
-    const { error } = await supabaseAdmin
+    const { error } = await client
       .from("test_questions")
       .delete()
       .eq("id", id);

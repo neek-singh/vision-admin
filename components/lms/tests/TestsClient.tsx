@@ -23,8 +23,8 @@ export default function TestsClient({ courses, initialTests, availableBatches = 
   const router = useRouter();
   const [isAdding, setIsAdding] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [lessons, setLessons] = useState<any[]>([]);
-  const [isLoadingLessons, setIsLoadingLessons] = useState(false);
+  const [chapters, setChapters] = useState<any[]>([]);
+  const [isLoadingChapters, setIsLoadingChapters] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewingResults, setViewingResults] = useState<string | null>(null);
   const [results, setResults] = useState<any[]>([]);
@@ -35,7 +35,7 @@ export default function TestsClient({ courses, initialTests, availableBatches = 
     title: "",
     type: "daily",
     duration_minutes: 30,
-    lesson_id: "",
+    chapter_id: "",
     is_published: true
   });
 
@@ -60,25 +60,25 @@ export default function TestsClient({ courses, initialTests, availableBatches = 
     }
   };
 
-  const fetchLessons = async (courseId: string) => {
+  const fetchChapters = async (courseId: string) => {
     if (!courseId) {
-      setLessons([]);
+      setChapters([]);
       return;
     }
-    setIsLoadingLessons(true);
+    setIsLoadingChapters(true);
     try {
       const { data, error } = await supabase
-        .from("lessons")
-        .select("id, title")
+        .from("lms_chapters")
+        .select("id, title, order_index")
         .eq("course_id", courseId)
         .order("order_index", { ascending: true });
 
       if (error) throw error;
-      setLessons(data || []);
+      setChapters(data || []);
     } catch (err) {
-      console.error("Error fetching lessons:", err);
+      console.error("Error fetching chapters:", err);
     } finally {
-      setIsLoadingLessons(false);
+      setIsLoadingChapters(false);
     }
   };
 
@@ -89,15 +89,15 @@ export default function TestsClient({ courses, initialTests, availableBatches = 
 
   const handleEdit = (test: any) => {
     setFormData({
-      course_id: test.course_id,
-      batch: test.batch || "",
-      title: test.title,
+      course_id: test.course_id || "",
+      batch: test.batches?.[0] || test.batch || "",
+      title: test.title || "",
       type: test.type || "daily",
-      duration_minutes: test.duration_minutes,
-      lesson_id: test.lesson_id || "",
-      is_published: true
+      duration_minutes: test.duration_minutes || 30,
+      chapter_id: test.chapter_id || "",
+      is_published: test.is_published ?? true
     });
-    if (test.course_id) fetchLessons(test.course_id);
+    if (test.course_id) fetchChapters(test.course_id);
     setEditingId(test.id);
     setIsAdding(true);
   };
@@ -105,8 +105,8 @@ export default function TestsClient({ courses, initialTests, availableBatches = 
   const closeForm = () => {
     setIsAdding(false);
     setEditingId(null);
-    setFormData({ course_id: "", batch: "", title: "", type: "daily", duration_minutes: 30, lesson_id: "", is_published: true });
-    setLessons([]);
+    setFormData({ course_id: "", batch: "", title: "", type: "daily", duration_minutes: 30, chapter_id: "", is_published: true });
+    setChapters([]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -114,10 +114,10 @@ export default function TestsClient({ courses, initialTests, availableBatches = 
     setIsSubmitting(true);
 
     try {
-      const { lesson_id, batch, ...rest } = formData;
+      const { chapter_id, batch, ...rest } = formData;
       const res = await saveTest({
         id: editingId || undefined,
-        lesson_id: lesson_id || null,
+        chapter_id: chapter_id || null,
         batch: batch || null,
         batches: batch ? [batch] : null,
         ...rest,
@@ -188,8 +188,8 @@ export default function TestsClient({ courses, initialTests, availableBatches = 
                       value={formData.course_id}
                       onChange={(e) => {
                         const newCourseId = e.target.value;
-                        setFormData({...formData, course_id: newCourseId, lesson_id: ""});
-                        fetchLessons(newCourseId);
+                        setFormData({...formData, course_id: newCourseId, chapter_id: ""});
+                        fetchChapters(newCourseId);
                       }}
                       className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-rose-500 transition-all text-sm font-bold text-slate-900"
                     >
@@ -221,7 +221,16 @@ export default function TestsClient({ courses, initialTests, availableBatches = 
                     <select 
                       required
                       value={formData.type}
-                      onChange={(e) => setFormData({...formData, type: e.target.value})}
+                      onChange={(e) => {
+                        const newType = e.target.value;
+                        const typeLabel = newType === 'weekly' ? 'Weekly Test' : newType === 'monthly' ? 'Monthly Test' : 'Daily Test';
+                        const chapter = chapters.find(c => c.id === formData.chapter_id);
+                        setFormData({
+                          ...formData,
+                          type: newType,
+                          title: chapter ? `${chapter.title} - ${typeLabel}` : formData.title
+                        });
+                      }}
                       className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-rose-500 transition-all text-sm font-bold text-slate-900"
                     >
                       <option value="daily">Daily Test</option>
@@ -237,33 +246,32 @@ export default function TestsClient({ courses, initialTests, availableBatches = 
                   )}
                 </div>
 
-                {formData.type === 'daily' && formData.course_id && (
+                {formData.course_id && (
                   <div className="animate-in fade-in slide-in-from-top-2 duration-300">
                     <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5 flex items-center justify-between">
-                      Select Lesson
-                      {isLoadingLessons && <Loader2 className="animate-spin text-rose-500" size={10} />}
+                      Select Chapter
+                      {isLoadingChapters && <Loader2 className="animate-spin text-rose-500" size={10} />}
                     </label>
                     <select 
-                      value={formData.lesson_id}
+                      value={formData.chapter_id}
                       onChange={(e) => {
-                        const lessonId = e.target.value;
-                        const lesson = lessons.find(l => l.id === lessonId);
+                        const chapterId = e.target.value;
+                        const chapter = chapters.find(c => c.id === chapterId);
+                        const typeLabel = formData.type === 'weekly' ? 'Weekly Test' : formData.type === 'monthly' ? 'Monthly Test' : 'Daily Test';
                         setFormData({
                           ...formData, 
-                          lesson_id: lessonId,
-                          title: lesson ? `${lesson.title} - Daily Test` : formData.title
+                          chapter_id: chapterId,
+                          title: chapter ? `${chapter.title} - ${typeLabel}` : formData.title
                         });
                       }}
                       className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-rose-500 transition-all text-sm font-bold text-slate-900"
                     >
-                      <option value="">Select a lesson...</option>
-                      {lessons
-                        .filter(lesson => !initialTests.some(t => t.lesson_id === lesson.id && t.id !== editingId))
-                        .map(lesson => (
-                        <option key={lesson.id} value={lesson.id}>{lesson.title}</option>
+                      <option value="">Select a chapter...</option>
+                      {chapters.map(chapter => (
+                        <option key={chapter.id} value={chapter.id}>{chapter.title}</option>
                       ))}
                     </select>
-                    <p className="text-[9px] text-slate-400 mt-1 font-medium italic">Choosing a lesson will automatically set the test title.</p>
+                    <p className="text-[9px] text-slate-400 mt-1 font-medium italic">Choosing a chapter will automatically set the test title.</p>
                   </div>
                 )}
               </div>
@@ -313,8 +321,13 @@ export default function TestsClient({ courses, initialTests, availableBatches = 
               </div>
               <h3 className="text-lg font-black text-slate-900 leading-tight">{test.title}</h3>
               <div className="flex items-center justify-between mt-1">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{(test.courses as any)?.title}</p>
+                  {(test.lms_chapters as any)?.title && (
+                    <span className="px-1.5 py-0.5 bg-indigo-50 text-indigo-600 rounded text-[8px] font-black uppercase tracking-widest border border-indigo-100">
+                      {(test.lms_chapters as any)?.title}
+                    </span>
+                  )}
                   {(test.batches?.[0] || test.batch) && (
                     <span className="px-1.5 py-0.5 bg-rose-50 text-rose-600 rounded text-[8px] font-black uppercase tracking-widest border border-rose-100">
                       {test.batches?.[0] || test.batch}

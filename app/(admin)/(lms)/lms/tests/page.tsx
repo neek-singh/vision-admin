@@ -14,6 +14,7 @@ export default async function TestsAdminPage() {
     .select(`
       *,
       courses(title),
+      lms_chapters(title),
       test_questions(count)
     `)
     .order("created_at", { ascending: false });
