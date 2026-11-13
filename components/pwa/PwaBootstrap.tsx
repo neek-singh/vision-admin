@@ -13,6 +13,24 @@ export function PwaBootstrap() {
       return;
     }
 
+    // In development mode (localhost / Turbopack), unregister any active Service Workers
+    // and purge cache storage to prevent Fast Refresh / RSC stream chunk desynchronization.
+    if (process.env.NODE_ENV === 'development') {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        for (const registration of registrations) {
+          registration.unregister();
+        }
+      });
+      if ('caches' in window) {
+        caches.keys().then((keys) => {
+          for (const key of keys) {
+            caches.delete(key);
+          }
+        });
+      }
+      return;
+    }
+
     // Determine if this is the initial installation or a subsequent update
     const isFirstInstall = !navigator.serviceWorker.controller;
 

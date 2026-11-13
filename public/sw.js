@@ -9,7 +9,7 @@
  * - Web Push & Notification click deep linking
  */
 
-const SW_VERSION = 'vision-pwa-v1.0.0';
+const SW_VERSION = 'vision-pwa-v1.0.1';
 const PRECACHE_NAME = `precache-${SW_VERSION}`;
 const RUNTIME_NAME = `runtime-${SW_VERSION}`;
 const RSC_CACHE_NAME = `rsc-${SW_VERSION}`;
@@ -184,7 +184,23 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 4. Navigations (request.mode === 'navigate' or HTML accept header): Cache-First
+  // 4. Skip development endpoints, Turbopack, and HMR
+  if (
+    url.pathname.startsWith('/_next/webpack-hmr') ||
+    url.pathname.startsWith('/_next/static/development') ||
+    url.pathname.includes('turbopack') ||
+    url.pathname.includes('hot-update')
+  ) {
+    return;
+  }
+
+  // 5. In local development (localhost / 127.0.0.1), bypass all fetch interception
+  // to avoid Turbopack HMR and RSC Flight chunk collisions
+  if (self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1') {
+    return;
+  }
+
+  // 6. Navigations (request.mode === 'navigate' or HTML accept header): Cache-First
   if (request.mode === 'navigate' || request.headers.get('accept')?.includes('text/html')) {
     event.respondWith(
       (async () => {
@@ -224,41 +240,34 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 5. App Router RSC requests (has _rsc search param or RSC: 1 header): Stale-While-Revalidate
+  // 7. App Router RSC requests (has _rsc search param or RSC: 1 header): Network-First with Offline Fallback
   const isRscRequest = url.searchParams.has('_rsc') || request.headers.get('RSC') === '1';
   if (isRscRequest) {
     event.respondWith(
       (async () => {
         const normalizedKey = getNormalizedRscUrl(request.url);
-        const cache = await caches.open(RSC_CACHE_NAME);
-        const cachedRsc = await cache.match(normalizedKey);
-
-        if (cachedRsc) {
-          // Synchronously clone before stream is locked by respondWith
-          const cachedClone = cachedRsc.clone();
-          const cachedTextPromise = cachedClone.text();
-
-          event.waitUntil(
-            revalidateAndCompare(request, cachedTextPromise, RSC_CACHE_NAME, normalizedKey)
-          );
-          return cachedRsc;
-        }
-
         try {
           const networkResponse = await fetch(request);
           if (networkResponse && networkResponse.ok) {
+            const cache = await caches.open(RSC_CACHE_NAME);
             cache.put(normalizedKey, networkResponse.clone());
           }
           return networkResponse;
         } catch (err) {
           // If offline and un-cached:
-          // 1. Attempt to return cached /offline RSC stream if pre-warmed
+          const cache = await caches.open(RSC_CACHE_NAME);
+          const cachedRsc = await cache.match(normalizedKey);
+          if (cachedRsc) {
+            return cachedRsc;
+          }
+
+          // Fallback to offline RSC stream if pre-warmed
           const offlineRsc = await cache.match(getNormalizedRscUrl('/offline'));
           if (offlineRsc) {
             return offlineRsc;
           }
 
-          // 2. Return HTTP 503 so Next.js client router falls back to document navigation (/offline)
+          // Return HTTP 503 so Next.js client router falls back to document navigation (/offline)
           return new Response(null, {
             status: 503,
             statusText: 'Offline',
