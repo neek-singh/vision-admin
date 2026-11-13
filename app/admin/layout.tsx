@@ -20,18 +20,13 @@ import {
   Menu,
   X,
   ChevronLeft,
-  ChevronRight,
   Bell,
-  Search,
-  User,
   UserPlus,
   ClipboardList,
   UserCog,
   PenTool,
   CheckCircle2,
   Wallet,
-  Sun,
-  Moon,
   MessageSquare,
   TrendingUp,
   TrendingDown,
@@ -92,7 +87,6 @@ const navGroups = [
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [adminMode, setAdminMode] = useState<"web" | "lms">("web");
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
@@ -131,23 +125,6 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   // Close mobile menu on route change
   useEffect(() => {
     setIsMobileOpen(false);
-    
-    // Auto-set mode based on pathname
-    if (
-      pathname.includes('/lms') || 
-      pathname.includes('/courses') || 
-      pathname.includes('/students') || 
-      pathname.includes('/admissions') || 
-      pathname.includes('/fees') || 
-      pathname.includes('/schedule') ||
-      pathname.includes('/calendar') ||
-      pathname.includes('/expenses') ||
-      pathname.includes('/notifications')
-    ) {
-      setAdminMode("lms");
-    } else {
-      setAdminMode("web");
-    }
   }, [pathname]);
 
   // Mobile drawer body scroll lock
@@ -173,8 +150,6 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isMobileOpen]);
 
-  const isDashboard = pathname === "/admin" || pathname === "/admin/lms";
-
   const toggleTheme = () => {
     setTheme(prev => (prev === "light" ? "dark" : "light"));
   };
@@ -194,31 +169,8 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     }
   };
 
-  // Dynamically update Dashboard link target based on current mode
-  const computedNavGroups = navGroups.map(group => {
-    if (group.label === "Core") {
-      return {
-        ...group,
-        items: group.items.map(item => {
-          if (item.label === "Dashboard") {
-            return {
-              ...item,
-              href: adminMode === "lms" ? "/admin/lms" : "/admin"
-            };
-          }
-          return item;
-        })
-      };
-    }
-    return group;
-  });
-
-  const filteredGroups = computedNavGroups.filter(group => {
-    if (group.label === "Core" || group.label === "System") return true;
-    if (adminMode === "lms") return group.label.includes("Learn");
-    if (adminMode === "web") return group.label.includes("Web");
-    return true;
-  });
+  // Show ALL navigation groups (Core, Vision Learn (LMS), Vision Web (Website), System)
+  const filteredGroups = navGroups;
 
   // Render a minimal loader during hydration to prevent mismatch
   if (!mounted) {
@@ -236,11 +188,13 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         <div
           className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-40 lg:hidden transition-all duration-300"
           onClick={() => setIsMobileOpen(false)}
+          aria-label="Close Navigation Overlay"
         />
       )}
 
       {/* Sidebar */}
       <aside
+        aria-label="Sidebar Navigation"
         className={`fixed top-0 left-0 h-full z-50 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 transition-all duration-300 ease-in-out border-r border-slate-200/80 dark:border-slate-800/80 shadow-[1px_0_8px_rgba(0,0,0,0.02)]
         ${isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
         ${isCollapsed ? "lg:w-[76px]" : "lg:w-[260px]"} w-[260px] flex flex-col`}
@@ -248,7 +202,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         {/* Sidebar Header */}
         <div className={`h-16 flex items-center border-b border-slate-100 dark:border-slate-800/80 justify-between px-4 ${isCollapsed ? "lg:justify-center lg:px-0" : ""}`}>
           <div className={`flex items-center gap-2.5 ${isCollapsed ? "lg:hidden" : ""}`}>
-            <Link href="/admin" className="flex items-center gap-2.5 group">
+            <Link href="/admin" onClick={() => setIsMobileOpen(false)} className="flex items-center gap-2.5 group">
               <div className="w-9 h-9 bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl relative flex items-center justify-center p-1 shadow-2xs">
                 <Image 
                   src="https://res.cloudinary.com/ddiooxxks/image/upload/f_auto,q_auto/logo_unnut8.png" 
@@ -298,7 +252,10 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         </div>
 
         {/* Sidebar Nav */}
-        <nav className="flex-1 overflow-y-auto py-4 px-2.5 space-y-5 custom-scrollbar">
+        <nav
+          aria-label="Admin Navigation"
+          className="flex-1 overflow-y-auto py-4 px-2.5 space-y-5 custom-scrollbar"
+        >
           {filteredGroups.map((group) => (
             <div key={group.label} className="space-y-1">
               {!isCollapsed ? (
@@ -314,6 +271,11 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                   <Link
                     key={item.href}
                     href={item.href}
+                    onClick={() => {
+                      if (window.innerWidth < 1024) {
+                        setIsMobileOpen(false);
+                      }
+                    }}
                     className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-all duration-150 group relative
                     ${isCollapsed ? "lg:justify-center lg:px-0 lg:w-10 lg:h-10 lg:mx-auto" : ""}
                     ${isActive 
@@ -340,7 +302,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         <div className="p-3 border-t border-slate-100 dark:border-slate-800/80">
           <button
             onClick={handleLogout}
-            className={`w-full flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl text-sm font-medium transition-all group relative
+            className={`w-full flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl text-sm font-medium transition-all group relative cursor-pointer
             ${isCollapsed ? "lg:justify-center lg:px-0 lg:w-10 lg:h-10 lg:mx-auto" : ""}`}
           >
             <LogOut size={19} className="group-hover:text-red-600 dark:group-hover:text-red-400 shrink-0" />
@@ -362,8 +324,6 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         {/* Global Upgraded Top Navbar */}
         <AdminNavbar
           toggleSidebar={toggleSidebar}
-          adminMode={adminMode}
-          setAdminMode={setAdminMode}
           theme={theme}
           toggleTheme={toggleTheme}
           handleLogout={handleLogout}
@@ -378,6 +338,13 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       </div>
 
       <style jsx global>{`
+        .custom-scrollbar {
+          scrollbar-width: thin;
+          scrollbar-color: #cbd5e1 transparent;
+        }
+        .dark .custom-scrollbar {
+          scrollbar-color: #334155 transparent;
+        }
         .custom-scrollbar::-webkit-scrollbar {
           width: 4px;
         }

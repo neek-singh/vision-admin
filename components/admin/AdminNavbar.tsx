@@ -12,12 +12,9 @@ import {
   User,
   LogOut,
   ChevronDown,
-  Check,
   ExternalLink,
   Shield,
-  Layers,
   ArrowRight,
-  Command,
   X,
   Calendar,
   BookOpen,
@@ -74,19 +71,47 @@ const SEARCHABLE_ITEMS: NavSearchItem[] = [
   { title: "System Users & Admins", path: "/admin/users", category: "System", keywords: ["users", "admins", "staff", "permissions", "roles"] },
 ];
 
+function formatDisplayName(rawName: string): string {
+  if (!rawName) return "Admin User";
+
+  // If email was passed as name, strip the domain
+  let clean = rawName.includes("@") ? rawName.split("@")[0] : rawName;
+
+  // Handle specific handles or patterns like "ishwarsingh04080" -> "Ishwar Singh"
+  if (/^ishwar\s*singh/i.test(clean)) {
+    return "Ishwar Singh";
+  }
+
+  // Remove trailing and embedded numbers e.g. "user1234" -> "user"
+  clean = clean.replace(/\d+/g, " ");
+
+  // Replace common delimiters (dots, underscores, hyphens) with space
+  clean = clean.replace(/[._-]+/g, " ");
+
+  // Separate camelCase words: "johnDoe" -> "john Doe"
+  clean = clean.replace(/([a-z])([A-Z])/g, "$1 $2");
+
+  // Title-case each word
+  const words = clean
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
+
+  return words.length > 0 ? words.join(" ") : "Admin User";
+}
+
 interface AdminNavbarProps {
   toggleSidebar: () => void;
-  adminMode: "web" | "lms";
-  setAdminMode: (mode: "web" | "lms") => void;
   theme: "light" | "dark";
   toggleTheme: () => void;
   handleLogout: () => Promise<void>;
+  adminMode?: "web" | "lms";
+  setAdminMode?: (mode: "web" | "lms") => void;
 }
 
 export default function AdminNavbar({
   toggleSidebar,
-  adminMode,
-  setAdminMode,
   theme,
   toggleTheme,
   handleLogout,
@@ -211,17 +236,17 @@ export default function AdminNavbar({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // 3. Global keyboard shortcut (Ctrl+K / Cmd+K / /)
+  // 3. Global keyboard shortcut (Ctrl+K / Cmd+K)
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if ((e.ctrlKey || e.metaKey) && e.key === "k") {
         e.preventDefault();
-        if (window.innerWidth < 768) {
+        if (window.innerWidth < 640) {
           setIsMobileSearchExpanded(true);
         }
         setIsSearchOpen(true);
         setTimeout(() => {
-          (window.innerWidth < 768 ? mobileSearchInputRef : searchInputRef).current?.focus();
+          (window.innerWidth < 640 ? mobileSearchInputRef : searchInputRef).current?.focus();
         }, 50);
       }
       if (e.key === "Escape") {
@@ -278,84 +303,73 @@ export default function AdminNavbar({
     }
   };
 
-  // 5. Breadcrumb display based on current pathname
+  // 5. Page title display based on current pathname
   const pageTitle = useMemo(() => {
     const item = SEARCHABLE_ITEMS.find((s) => s.path === pathname);
     if (item) return item.title;
-    if (pathname.startsWith("/admin/lms")) return "LMS Module";
-    if (pathname.startsWith("/admin/students")) return "Student Details";
-    if (pathname.startsWith("/admin/batches")) return "Batch Details";
-    if (pathname.startsWith("/admin/blogs")) return "Blog Editor";
+    if (pathname.startsWith("/admin/lms/content")) return "Course Curriculum";
+    if (pathname.startsWith("/admin/lms/tests")) return "Tests & Exams";
+    if (pathname.startsWith("/admin/lms/materials")) return "Notes & Materials";
+    if (pathname.startsWith("/admin/lms/projects")) return "Projects & Assignments";
+    if (pathname.startsWith("/admin/lms/attendance")) return "Daily Attendance";
+    if (pathname.startsWith("/admin/lms/chats")) return "Student Chats";
+    if (pathname.startsWith("/admin/lms/analytics")) return "LMS Analytics";
+    if (pathname.startsWith("/admin/lms")) return "LMS Portal";
+    if (pathname.startsWith("/admin/students")) return "Manage Students";
+    if (pathname.startsWith("/admin/batches")) return "Batches";
+    if (pathname.startsWith("/admin/blogs")) return "Blogs & Articles";
+    if (pathname.startsWith("/admin/courses")) return "Manage Courses";
+    if (pathname.startsWith("/admin/calendar")) return "Calendar & Events";
+    if (pathname.startsWith("/admin/schedule")) return "Academic Schedule";
+    if (pathname.startsWith("/admin/fees")) return "Fees Management";
+    if (pathname.startsWith("/admin/expenses")) return "Expenses Management";
+    if (pathname.startsWith("/admin/notifications")) return "Notification Center";
+    if (pathname.startsWith("/admin/users")) return "System Users";
+    if (pathname.startsWith("/admin/chats")) return "Inquiries Chat";
+    if (pathname.startsWith("/admin/analytics")) return "Analytics";
     return "Admin";
   }, [pathname]);
 
+  const formattedProfileName = useMemo(() => {
+    return formatDisplayName(profileData.name);
+  }, [profileData.name]);
+
   return (
-    <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-800/80 sticky top-0 z-30 flex items-center justify-between px-4 lg:px-8 shadow-2xs transition-colors duration-200 relative">
-      {/* Left: Hamburger + Mode Switcher + Breadcrumb */}
-      <div className="flex items-center gap-3 md:gap-4 min-w-0">
-        {/* Sidebar Toggle Button */}
+    <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-800/80 sticky top-0 z-30 flex items-center justify-between px-4 lg:px-8 transition-colors duration-200 relative">
+      {/* Left side: Hamburger button + Clean prominent page title */}
+      <div className="flex items-center gap-3 min-w-0">
         <button
           onClick={toggleSidebar}
-          className="p-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80 rounded-lg transition-colors cursor-pointer"
+          className="p-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80 rounded-lg transition-colors cursor-pointer shrink-0"
           title="Toggle Navigation Menu"
           aria-label="Toggle Navigation Menu"
         >
           <Menu size={18} />
         </button>
 
-        {/* Minimal Mode Segmented Switcher (Web / Learn) */}
-        <div className="hidden sm:inline-flex p-0.5 bg-slate-100 dark:bg-slate-800/80 rounded-lg border border-slate-200/60 dark:border-slate-700/60 text-xs font-medium">
-          <Link
-            href="/admin"
-            onClick={() => setAdminMode("web")}
-            className={`px-3 py-1 rounded-md transition-all text-xs ${
-              adminMode === "web"
-                ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-2xs font-semibold"
-                : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
-            }`}
-          >
-            Web
-          </Link>
-          <Link
-            href="/admin/lms"
-            onClick={() => setAdminMode("lms")}
-            className={`px-3 py-1 rounded-md transition-all text-xs ${
-              adminMode === "lms"
-                ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-2xs font-semibold"
-                : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
-            }`}
-          >
-            Learn
-          </Link>
-        </div>
-
-        {/* Subtle Page Breadcrumb indicator (Hidden on tiny screens) */}
-        <div className="hidden xl:flex items-center gap-1.5 text-xs text-slate-400 dark:text-slate-500 pl-2">
-          <span>/</span>
-          <span className="font-medium text-slate-700 dark:text-slate-300 truncate max-w-48">
-            {pageTitle}
-          </span>
-        </div>
+        <h1 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white truncate">
+          {pageTitle}
+        </h1>
       </div>
 
-      {/* Center & Right: Search, Notifications, Theme, Profile */}
+      {/* Right side: Search, Theme Toggle, Notification Popover, Profile Popover */}
       <div className="flex items-center gap-2 sm:gap-3">
-        {/* Mobile Search Trigger Icon (<md) */}
+        {/* Mobile Search Trigger Icon (<sm) */}
         <button
           type="button"
           onClick={() => {
             setIsMobileSearchExpanded(true);
             setIsSearchOpen(true);
           }}
-          className="md:hidden p-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80 rounded-lg transition-colors cursor-pointer"
-          title="Search or jump to..."
+          className="sm:hidden p-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80 rounded-lg transition-colors cursor-pointer"
+          title="Search..."
           aria-label="Open search"
         >
           <Search size={18} />
         </button>
 
         {/* Global Working Search Bar */}
-        <div ref={searchContainerRef} className="relative hidden md:block">
+        <div ref={searchContainerRef} className="relative hidden sm:block">
           <div className="relative flex items-center">
             <Search
               size={14}
@@ -364,7 +378,7 @@ export default function AdminNavbar({
             <input
               ref={searchInputRef}
               type="text"
-              placeholder="Search or jump to... (Ctrl+K)"
+              placeholder="Search... (Ctrl+K)"
               value={searchQuery}
               onFocus={() => setIsSearchOpen(true)}
               onChange={(e) => {
@@ -373,23 +387,20 @@ export default function AdminNavbar({
                 setSelectedIndex(0);
               }}
               onKeyDown={handleSearchKeyDown}
-              className="pl-8.5 pr-8 py-1.5 text-xs bg-slate-100/80 hover:bg-slate-100 focus:bg-white dark:bg-slate-800/60 dark:hover:bg-slate-800 dark:focus:bg-slate-900 border border-transparent focus:border-slate-300 dark:focus:border-slate-700 rounded-lg w-40 sm:w-56 md:w-64 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 outline-none transition-all"
+              className="pl-8.5 pr-8 py-1.5 text-xs bg-slate-100/80 hover:bg-slate-100 focus:bg-white dark:bg-slate-800/60 dark:hover:bg-slate-800 dark:focus:bg-slate-900 border border-slate-200/60 dark:border-slate-700/60 focus:border-blue-500 dark:focus:border-blue-500 rounded-lg w-44 sm:w-56 md:w-64 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none transition-all"
             />
-            {searchQuery ? (
+            {searchQuery && (
               <button
                 type="button"
                 onClick={() => {
                   setSearchQuery("");
                   setIsSearchOpen(false);
                 }}
-                className="absolute right-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                className="absolute right-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                aria-label="Clear search"
               >
                 <X size={12} />
               </button>
-            ) : (
-              <span className="hidden md:inline-block absolute right-2 px-1.5 py-0.5 rounded text-[10px] font-mono text-slate-400 bg-slate-200/60 dark:bg-slate-700/60">
-                ⌘K
-              </span>
             )}
           </div>
 
@@ -441,7 +452,6 @@ export default function AdminNavbar({
                   })}
                 </div>
               )}
-
             </div>
           )}
         </div>
@@ -533,10 +543,7 @@ export default function AdminNavbar({
           )}
         </div>
 
-        {/* Vertical Divider */}
-        <div className="h-6 w-px bg-slate-200/80 dark:bg-slate-800 hidden sm:block" />
-
-        {/* User Profile Pill with Working Dropdown */}
+        {/* User Profile Pill with Working Dropdown (No vertical divider between notifications and profile) */}
         <div ref={profileRef} className="relative">
           <button
             onClick={() => {
@@ -548,7 +555,7 @@ export default function AdminNavbar({
           >
             <div className="hidden md:flex flex-col text-right">
               <span className="text-xs font-semibold text-slate-900 dark:text-white leading-tight">
-                {profileData.name}
+                {formattedProfileName}
               </span>
               <span className="text-[10px] text-slate-400 font-medium leading-tight">
                 {profileData.role}
@@ -564,7 +571,7 @@ export default function AdminNavbar({
             <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-150">
               <div className="p-3 border-b border-slate-100 dark:border-slate-800">
                 <p className="text-xs font-semibold text-slate-900 dark:text-white truncate">
-                  {profileData.name}
+                  {formattedProfileName}
                 </p>
                 <p className="text-[11px] text-slate-400 truncate mt-0.5">
                   {profileData.email}
@@ -589,7 +596,7 @@ export default function AdminNavbar({
                   onClick={() => setIsProfileOpen(false)}
                   className="flex items-center gap-2 px-2.5 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
                 >
-                  <Bell size={14} className="text-slate-400" />
+                  <Bell size={14} />
                   <span>Notification Center</span>
                 </Link>
 
@@ -613,7 +620,7 @@ export default function AdminNavbar({
                     setIsProfileOpen(false);
                     handleLogout();
                   }}
-                  className="w-full flex items-center gap-2 px-2.5 py-2 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg text-xs font-medium transition-colors"
+                  className="w-full flex items-center gap-2 px-2.5 py-2 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg text-xs font-medium transition-colors cursor-pointer"
                 >
                   <LogOut size={14} />
                   <span>Sign Out</span>
@@ -624,14 +631,14 @@ export default function AdminNavbar({
         </div>
       </div>
 
-      {/* Full-width Mobile Search Bar Overlay (<md) */}
+      {/* Full-width Mobile Search Bar Overlay (<sm) */}
       {isMobileSearchExpanded && (
-        <div className="md:hidden absolute inset-0 z-50 bg-white dark:bg-slate-900 px-3 flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 animate-in fade-in duration-150">
+        <div className="sm:hidden absolute inset-0 z-50 bg-white dark:bg-slate-900 px-3 flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 animate-in fade-in duration-150">
           <Search size={16} className="text-slate-400 dark:text-slate-500 shrink-0 ml-1" />
           <input
             ref={mobileSearchInputRef}
             type="text"
-            placeholder="Search or jump to..."
+            placeholder="Search... (Ctrl+K)"
             value={searchQuery}
             autoFocus
             onChange={(e) => {
@@ -666,7 +673,7 @@ export default function AdminNavbar({
 
           {/* Mobile Search Results Dropdown */}
           {isSearchOpen && searchQuery.trim() && (
-            <div className="absolute left-2 right-2 top-full mt-2 w-[calc(100vw-1rem)] max-w-sm mx-auto sm:w-80 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-150">
+            <div className="absolute left-2 right-2 top-full mt-2 w-[calc(100vw-1rem)] max-w-sm mx-auto bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-150">
               <div className="p-2 border-b border-slate-100 dark:border-slate-800/80 text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-3">
                 Quick Navigation ({searchResults.length})
               </div>
