@@ -341,7 +341,8 @@ export default function StudentTable({
   };
 
   // Split into active and trashed lists (reactive from local students state)
-  const activeStudentsList = students.filter(s => !s.is_deleted);
+  // Ensure unadmitted/pending pre-admission users are kept separate from regular enrolled students
+  const activeStudentsList = students.filter(s => !s.is_deleted && s.status !== "unadmitted" && s.status !== "pending");
   const trashedStudentsList = students.filter(s => Boolean(s.is_deleted));
 
   // Client-Side Dynamic Filtering (active students only)
