@@ -2,13 +2,14 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { randomBytes } from "crypto";
 import { requireAdmin } from "@/lib/require-admin";
-import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export async function POST(request: Request) {
   try {
     // 1. Verify caller is an authenticated admin
+    let supabase;
     try {
-      await requireAdmin();
+      const auth = await requireAdmin();
+      supabase = auth.supabase;
     } catch (authErr: any) {
       return NextResponse.json({ error: authErr.message || "Unauthorized" }, { status: 401 });
     }
@@ -29,8 +30,8 @@ export async function POST(request: Request) {
       }
     }
 
-    // 2. Fetch student details with privileged client
-    const { data: student, error: fetchError } = await supabaseAdmin
+    // 2. Fetch student details with authenticated client
+    const { data: student, error: fetchError } = await supabase
       .from("students")
       .select("id, student_id, name, phone")
       .eq("id", studentDbId)
@@ -48,13 +49,13 @@ export async function POST(request: Request) {
 
     // 4. Update student: set password_hash (T3.2)
     // We try password_hash first, and fall back to password if table column not yet renamed
-    let { error: updateError } = await supabaseAdmin
+    let { error: updateError } = await supabase
       .from("students")
       .update({ password_hash: passwordHash })
       .eq("id", studentDbId);
 
     if (updateError && updateError.message?.includes("password_hash")) {
-      const fallback = await supabaseAdmin
+      const fallback = await supabase
         .from("students")
         .update({ password: passwordHash })
         .eq("id", studentDbId);
@@ -64,7 +65,7 @@ export async function POST(request: Request) {
     if (updateError) {
       console.error("Credentials update error:", updateError);
       return NextResponse.json(
-        { error: "Failed to update student credentials." },
+        { error: updateError.message || "Failed to update student credentials." },
         { status: 500 }
       );
     }

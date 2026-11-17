@@ -2,13 +2,14 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { randomBytes } from "crypto";
 import { requireAdmin } from "@/lib/require-admin";
-import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export async function POST(request: Request) {
   try {
     // 1. Auth & Admin Role Check
+    let supabase;
     try {
-      await requireAdmin();
+      const auth = await requireAdmin();
+      supabase = auth.supabase;
     } catch (authErr: any) {
       return NextResponse.json({ error: authErr.message || "Unauthorized" }, { status: 401 });
     }
@@ -26,7 +27,7 @@ export async function POST(request: Request) {
     if (course && typeof course === "string") {
       const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(course);
       if (isUuid) {
-        const { data } = await supabaseAdmin
+        const { data } = await supabase
           .from("courses")
           .select("id, course_code, title, fee, discount_fee")
           .eq("id", course)
@@ -38,7 +39,7 @@ export async function POST(request: Request) {
         const cleanCourse = course.replace(/[,()\\%*]/g, "").trim();
         
         // Exact matches first
-        const { data: exactCode } = await supabaseAdmin
+        const { data: exactCode } = await supabase
           .from("courses")
           .select("id, course_code, title, fee, discount_fee")
           .ilike("course_code", cleanCourse)
@@ -48,7 +49,7 @@ export async function POST(request: Request) {
         if (exactCode) {
           courseData = exactCode;
         } else {
-          const { data: exactTitle } = await supabaseAdmin
+          const { data: exactTitle } = await supabase
             .from("courses")
             .select("id, course_code, title, fee, discount_fee")
             .ilike("title", cleanCourse)
@@ -59,7 +60,7 @@ export async function POST(request: Request) {
             courseData = exactTitle;
           } else if (cleanCourse) {
             // Fuzzy search on title
-            const { data: fuzzyTitle } = await supabaseAdmin
+            const { data: fuzzyTitle } = await supabase
               .from("courses")
               .select("id, course_code, title, fee, discount_fee")
               .ilike("title", `%${cleanCourse}%`)
@@ -88,7 +89,7 @@ export async function POST(request: Request) {
     const passwordHash = await bcrypt.hash(rawPassword, salt);
 
     for (let attempt = 0; attempt < 5; attempt++) {
-      const { data: lastStudent } = await supabaseAdmin
+      const { data: lastStudent } = await supabase
         .from("students")
         .select("student_id")
         .ilike("student_id", `${idPrefix}%`)
@@ -116,7 +117,7 @@ export async function POST(request: Request) {
         status: "active",
       };
 
-      let insertRes = await supabaseAdmin
+      let insertRes = await supabase
         .from("students")
         .insert([studentRecord])
         .select();
@@ -125,7 +126,7 @@ export async function POST(request: Request) {
       if (insertRes.error && insertRes.error.message?.includes("password_hash")) {
         delete studentRecord.password_hash;
         studentRecord.password = passwordHash;
-        insertRes = await supabaseAdmin
+        insertRes = await supabase
           .from("students")
           .insert([studentRecord])
           .select();
@@ -139,9 +140,20 @@ export async function POST(request: Request) {
       // If duplicate student_id, loop will try next sequential ID
       if (insertRes.error && !insertRes.error.message.includes("student_id")) {
         console.error("Student insert error:", insertRes.error);
+        const errMsg = insertRes.error.message || "";
+        let friendlyMsg = "Failed to insert student record.";
+        if (errMsg.includes("students_email_key") || (errMsg.includes("duplicate") && errMsg.includes("email"))) {
+          friendlyMsg = "A student with this email address already exists.";
+        } else if (errMsg.includes("students_phone_key") || (errMsg.includes("duplicate") && errMsg.includes("phone"))) {
+          friendlyMsg = "A student with this phone number already exists.";
+        } else if (errMsg.includes("students_username_key") || (errMsg.includes("duplicate") && errMsg.includes("username"))) {
+          friendlyMsg = "A student with this username already exists.";
+        } else if (errMsg) {
+          friendlyMsg = errMsg;
+        }
         return NextResponse.json(
-          { error: "Failed to insert student record." },
-          { status: 500 }
+          { error: friendlyMsg },
+          { status: 400 }
         );
       }
     }
@@ -155,7 +167,7 @@ export async function POST(request: Request) {
 
     // Create enrollment only if a valid course was found
     if (courseData) {
-      await supabaseAdmin
+      await supabase
         .from("enrollments")
         .insert([
           {
@@ -170,7 +182,7 @@ export async function POST(request: Request) {
       const discountFee = courseData.discount_fee ? Number(courseData.discount_fee) : totalFee;
       const discount = Math.max(0, totalFee - discountFee);
 
-      await supabaseAdmin
+      await supabase
         .from("fees")
         .insert([
           {

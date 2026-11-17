@@ -141,7 +141,7 @@ export default function ScheduleClient({
   const toggleChapterExpand = (chapId: string) => {
     setExpandedChapters(prev => ({
       ...prev,
-      [chapId]: prev[chapId] === false ? true : false
+      [chapId]: !prev[chapId]
     }));
   };
 
@@ -184,14 +184,10 @@ export default function ScheduleClient({
   });
 
   const toggleModuleExpand = (modId: string) => {
-    setExpandedModules(prev => {
-      const isDefaultExpanded = modId !== 'tests-group' && modId !== 'materials-group';
-      const isCurrentExpanded = prev[modId] !== undefined ? prev[modId] : isDefaultExpanded;
-      return {
-        ...prev,
-        [modId]: !isCurrentExpanded
-      };
-    });
+    setExpandedModules(prev => ({
+      ...prev,
+      [modId]: !prev[modId]
+    }));
   };
 
   // Compute calendar days for the month
@@ -666,7 +662,15 @@ export default function ScheduleClient({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const res = await createSchedule(formData);
+    const isHoliday = formData.type === 'holiday';
+    const payload = {
+      ...formData,
+      batch: isHoliday || formData.batch === "All Batches" ? undefined : formData.batch,
+      course_id: isHoliday ? undefined : formData.course_id,
+      start_time: isHoliday ? undefined : formData.start_time,
+      end_time: isHoliday ? undefined : formData.end_time,
+    };
+    const res = await createSchedule(payload);
     if (res.success) {
       setShowAddModal(false);
       router.refresh();
@@ -845,7 +849,7 @@ export default function ScheduleClient({
                   <h3 className="text-[9px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider pl-1">Modules</h3>
 
                   {filteredModules.map((mod) => {
-                    const isExpanded = expandedModules[mod.id] !== false;
+                    const isExpanded = !!expandedModules[mod.id] || searchQuery.trim().length > 0;
                     return (
                       <div key={mod.id} className="border border-slate-200/60 dark:border-slate-800/80 rounded-lg overflow-hidden bg-white dark:bg-slate-900 transition-all mb-2">
                         {/* Module Header */}
@@ -869,7 +873,7 @@ export default function ScheduleClient({
                             {(mod.lms_chapters || []).length > 0 && (
                               <div className="space-y-1">
                                 {(mod.lms_chapters || []).map((chap: any) => {
-                                  const isChapExpanded = expandedChapters[chap.id] !== false;
+                                  const isChapExpanded = !!expandedChapters[chap.id] || searchQuery.trim().length > 0;
                                   return (
                                     <div key={chap.id} className="rounded-md overflow-hidden bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
                                       {/* Chapter Header */}
@@ -1498,64 +1502,96 @@ export default function ScheduleClient({
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Activity Title</label>
+                <label className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                  {formData.type === 'holiday' ? 'Holiday Name *' : 'Activity Title *'}
+                </label>
                 <input
                   required
                   type="text"
-                  placeholder="Enter title..."
+                  placeholder={
+                    formData.type === 'holiday'
+                      ? 'e.g. Diwali Holiday, Holi, Republic Day...'
+                      : 'Enter title...'
+                  }
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   className="w-full px-3 py-2 bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 outline-none focus:border-slate-400 dark:focus:border-slate-500 transition-all text-sm placeholder:text-slate-400"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Date</label>
-                  <input
-                    required
-                    type="date"
-                    value={formData.date}
-                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                    className="w-full px-3 py-2 bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 outline-none focus:border-slate-400 transition-all text-sm cursor-pointer"
-                  />
+              {formData.type === 'holiday' ? (
+                <div className="space-y-2">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                        Holiday Date *
+                      </label>
+                      <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200/60 dark:border-emerald-800/50">
+                        Full Day Off (No batch needed)
+                      </span>
+                    </div>
+                    <input
+                      required
+                      type="date"
+                      value={formData.date}
+                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                      className="w-full px-3 py-2 bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 outline-none focus:border-slate-400 transition-all text-sm cursor-pointer"
+                    />
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 flex items-center gap-2 text-xs text-emerald-800 dark:text-emerald-300">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                    <span>Applies institute-wide across all courses and batches.</span>
+                  </div>
                 </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Date</label>
+                    <input
+                      required
+                      type="date"
+                      value={formData.date}
+                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                      className="w-full px-3 py-2 bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 outline-none focus:border-slate-400 transition-all text-sm cursor-pointer"
+                    />
+                  </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Batch</label>
-                  <select
-                    value={formData.batch}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      const batchInfo = batchesList.find(b => b.title === val);
-                      if (batchInfo?.timing) {
-                        try {
-                          const [start, end] = batchInfo.timing.split(' - ');
-                          const to24 = (t: string) => {
-                            const [time, mod] = t.trim().split(' ');
-                            let [h, m] = time.split(':');
-                            if (h === '12') h = '00';
-                            if (mod === 'PM' && h !== '12') h = String(parseInt(h) + 12);
-                            if (mod === 'AM' && h === '12') h = '00';
-                            return `${h.padStart(2, '0')}:${m}`;
-                          };
-                          setFormData({ ...formData, batch: val, start_time: to24(start), end_time: to24(end) });
-                        } catch (e) {
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Batch</label>
+                    <select
+                      value={formData.batch}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        const batchInfo = batchesList.find(b => b.title === val);
+                        if (batchInfo?.timing) {
+                          try {
+                            const [start, end] = batchInfo.timing.split(' - ');
+                            const to24 = (t: string) => {
+                              const [time, mod] = t.trim().split(' ');
+                              let [h, m] = time.split(':');
+                              if (h === '12') h = '00';
+                              if (mod === 'PM' && h !== '12') h = String(parseInt(h) + 12);
+                              if (mod === 'AM' && h === '12') h = '00';
+                              return `${h.padStart(2, '0')}:${m}`;
+                            };
+                            setFormData({ ...formData, batch: val, start_time: to24(start), end_time: to24(end) });
+                          } catch (e) {
+                            setFormData({ ...formData, batch: val });
+                          }
+                        } else {
                           setFormData({ ...formData, batch: val });
                         }
-                      } else {
-                        setFormData({ ...formData, batch: val });
-                      }
-                    }}
-                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:border-slate-400 transition-all text-sm cursor-pointer"
-                  >
-                    <option value="All Batches" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">All Batches</option>
-                    {batchesList.map((b, i) => (
-                      <option key={i} value={b.title} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{b.title}</option>
-                    ))}
-                  </select>
+                      }}
+                      className="w-full px-3 py-2 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:border-slate-400 transition-all text-sm cursor-pointer"
+                    >
+                      <option value="All Batches" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">All Batches</option>
+                      {batchesList.map((b, i) => (
+                        <option key={i} value={b.title} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{b.title}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="pt-1 flex gap-2.5">
                 <button
@@ -1567,10 +1603,18 @@ export default function ScheduleClient({
                 </button>
                 <button
                   disabled={loading}
-                  className="flex-[2] min-h-[40px] py-2 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 rounded-lg font-medium text-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  className={`flex-[2] min-h-[40px] py-2 rounded-lg font-medium text-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 ${
+                    formData.type === 'holiday'
+                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                      : 'bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900'
+                  }`}
                 >
-                  {loading ? <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white dark:border-slate-900/30 dark:border-t-slate-900 rounded-full animate-spin" /> : <ArrowRight size={13} />}
-                  Confirm Schedule
+                  {loading ? (
+                    <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white dark:border-slate-900/30 dark:border-t-slate-900 rounded-full animate-spin" />
+                  ) : (
+                    <ArrowRight size={13} />
+                  )}
+                  {formData.type === 'holiday' ? 'Confirm Holiday' : 'Confirm Schedule'}
                 </button>
               </div>
             </form>

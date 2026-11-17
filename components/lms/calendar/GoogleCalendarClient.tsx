@@ -1125,18 +1125,20 @@ export default function GoogleCalendarClient({
     if (!createFormData.title.trim()) return;
     setIsSubmitting(true);
 
+    const isHoliday = createFormData.type === "holiday";
+
     const res = await createSchedule({
-      course_id: createFormData.course_id,
+      course_id: isHoliday ? undefined : createFormData.course_id,
       batch:
-        createFormData.batch === "All Batches"
+        isHoliday || createFormData.batch === "All Batches"
           ? undefined
           : createFormData.batch,
       type: createFormData.type,
       title: createFormData.title,
       description: createFormData.description,
       date: createFormData.date,
-      start_time: createFormData.start_time,
-      end_time: createFormData.end_time
+      start_time: isHoliday ? undefined : createFormData.start_time,
+      end_time: isHoliday ? undefined : createFormData.end_time
     });
 
     setIsSubmitting(false);
@@ -1368,7 +1370,9 @@ export default function GoogleCalendarClient({
                           <div className="min-w-0">
                             <div className="flex items-center justify-between text-[10px] opacity-90 leading-tight">
                               <span className="font-semibold">
-                                {item.start_time} - {item.end_time}
+                                {item.type === "holiday"
+                                  ? "Full Day Holiday"
+                                  : `${item.start_time || ""} - ${item.end_time || ""}`}
                               </span>
                               <span className="capitalize hidden sm:inline">
                                 {item.type}
@@ -1986,13 +1990,21 @@ export default function GoogleCalendarClient({
                                 e.stopPropagation();
                                 setInspectingDate(cell.dateStr);
                               }}
-                              title={`${item.title} (${item.start_time || ""} - ${
-                                item.end_time || ""
-                              })`}
+                              title={
+                                item.type === "holiday"
+                                  ? `${item.title} (All Day Holiday)`
+                                  : `${item.title} (${item.start_time || ""} - ${
+                                      item.end_time || ""
+                                    })`
+                              }
                               className={`px-2 py-0.5 rounded text-[11px] font-medium truncate flex items-center gap-1.5 shadow-2xs transition hover:brightness-95 cursor-grab active:cursor-grabbing ${cfg.bg}`}
                             >
                               <span className="text-[9px] opacity-80 shrink-0 font-normal">
-                                {item.start_time ? item.start_time.slice(0, 5) : ""}
+                                {item.type === "holiday"
+                                  ? "All Day"
+                                  : item.start_time
+                                  ? item.start_time.slice(0, 5)
+                                  : ""}
                               </span>
                               <span className="truncate">{item.title}</span>
                             </div>
@@ -2167,7 +2179,15 @@ export default function GoogleCalendarClient({
                                 </div>
                                 <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400 mt-1">
                                   <span className="flex items-center gap-1 font-medium text-slate-600 dark:text-slate-300">
-                                    <Clock size={12} /> {item.start_time} - {item.end_time}
+                                    {item.type === "holiday" ? (
+                                      <>
+                                        <Flag size={12} className="text-emerald-500" /> Full Day Holiday (Institute-Wide)
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Clock size={12} /> {item.start_time} - {item.end_time}
+                                      </>
+                                    )}
                                   </span>
                                   {item.courses?.title && (
                                     <span className="flex items-center gap-1">
@@ -2432,7 +2452,15 @@ export default function GoogleCalendarClient({
                             </div>
                             <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400 mt-1">
                               <span className="flex items-center gap-1 font-medium text-slate-600 dark:text-slate-300">
-                                <Clock size={12} /> {item.start_time} - {item.end_time}
+                                {item.type === "holiday" ? (
+                                  <>
+                                    <Flag size={12} className="text-emerald-500" /> Full Day Holiday (All Batches Off)
+                                  </>
+                                ) : (
+                                  <>
+                                    <Clock size={12} /> {item.start_time} - {item.end_time}
+                                  </>
+                                )}
                               </span>
                               {item.courses?.title && (
                                 <span className="flex items-center gap-1">
@@ -2552,12 +2580,16 @@ export default function GoogleCalendarClient({
               {/* Title */}
               <div>
                 <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">
-                  Title *
+                  {createFormData.type === "holiday" ? "Holiday Name *" : "Title *"}
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Chapter 4: React State Management"
+                  placeholder={
+                    createFormData.type === "holiday"
+                      ? "e.g. Diwali Holiday, Holi, Republic Day, Summer Vacation"
+                      : "e.g. Chapter 4: React State Management"
+                  }
                   value={createFormData.title}
                   onChange={(e) =>
                     setCreateFormData((prev) => ({ ...prev, title: e.target.value }))
@@ -2566,114 +2598,153 @@ export default function GoogleCalendarClient({
                 />
               </div>
 
-              {/* Course & Batch */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">
-                    Course
-                  </label>
-                  <select
-                    value={createFormData.course_id}
-                    onChange={(e) =>
-                      setCreateFormData((prev) => ({
-                        ...prev,
-                        course_id: e.target.value
-                      }))
-                    }
-                    className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-slate-100 outline-none"
-                  >
-                    {courses.map((c) => (
-                      <option
-                        key={c.id}
-                        value={c.id}
-                        className="bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
-                      >
-                        {c.title}
-                      </option>
-                    ))}
-                  </select>
+              {/* Course & Batch (Hidden for Holiday - Institute-Wide) */}
+              {createFormData.type === "holiday" ? (
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600 dark:text-emerald-300 flex items-center justify-center shrink-0">
+                    <Users size={16} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-emerald-900 dark:text-emerald-200">
+                      Poore Din Chhutti (All Day Holiday)
+                    </p>
+                    <p className="text-[11px] text-emerald-700/90 dark:text-emerald-400 mt-0.5">
+                      No batch needed — Sabhi batches, courses aur institute ke liye chhutti rahegi.
+                    </p>
+                  </div>
                 </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">
+                      Course
+                    </label>
+                    <select
+                      value={createFormData.course_id}
+                      onChange={(e) =>
+                        setCreateFormData((prev) => ({
+                          ...prev,
+                          course_id: e.target.value
+                        }))
+                      }
+                      className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-slate-100 outline-none"
+                    >
+                      {courses.map((c) => (
+                        <option
+                          key={c.id}
+                          value={c.id}
+                          className="bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                        >
+                          {c.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-                <div>
-                  <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">
-                    Batch
-                  </label>
-                  <select
-                    value={createFormData.batch}
-                    onChange={(e) =>
-                      setCreateFormData((prev) => ({
-                        ...prev,
-                        batch: e.target.value
-                      }))
-                    }
-                    className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-slate-100 outline-none"
-                  >
-                    {batches.map((b) => (
-                      <option
-                        key={b}
-                        value={b}
-                        className="bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
-                      >
-                        {b}
-                      </option>
-                    ))}
-                  </select>
+                  <div>
+                    <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">
+                      Batch
+                    </label>
+                    <select
+                      value={createFormData.batch}
+                      onChange={(e) =>
+                        setCreateFormData((prev) => ({
+                          ...prev,
+                          batch: e.target.value
+                        }))
+                      }
+                      className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-slate-100 outline-none"
+                    >
+                      {batches.map((b) => (
+                        <option
+                          key={b}
+                          value={b}
+                          className="bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                        >
+                          {b}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {/* Date & Times */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">
-                    Date
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={createFormData.date}
-                    onChange={(e) =>
-                      setCreateFormData((prev) => ({ ...prev, date: e.target.value }))
-                    }
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-slate-100 outline-none"
-                  />
+              {/* Date & Times (No time fields for Holiday - Full Day Off) */}
+              {createFormData.type === "holiday" ? (
+                <div className="space-y-2">
+                  <div>
+                    <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">
+                      Holiday Date *
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      value={createFormData.date}
+                      onChange={(e) =>
+                        setCreateFormData((prev) => ({ ...prev, date: e.target.value }))
+                      }
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-slate-100 outline-none"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-emerald-50/70 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800/40 text-emerald-800 dark:text-emerald-300 text-xs font-medium">
+                    <Flag size={14} className="text-emerald-600 shrink-0" />
+                    <span>No timing needed (Poore din institute band rahega)</span>
+                  </div>
                 </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">
+                      Date
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      value={createFormData.date}
+                      onChange={(e) =>
+                        setCreateFormData((prev) => ({ ...prev, date: e.target.value }))
+                      }
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-slate-100 outline-none"
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">
-                    Start Time
-                  </label>
-                  <input
-                    type="time"
-                    required
-                    value={createFormData.start_time}
-                    onChange={(e) =>
-                      setCreateFormData((prev) => ({
-                        ...prev,
-                        start_time: e.target.value
-                      }))
-                    }
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-slate-100 outline-none"
-                  />
-                </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">
+                      Start Time
+                    </label>
+                    <input
+                      type="time"
+                      required
+                      value={createFormData.start_time}
+                      onChange={(e) =>
+                        setCreateFormData((prev) => ({
+                          ...prev,
+                          start_time: e.target.value
+                        }))
+                      }
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-slate-100 outline-none"
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">
-                    End Time
-                  </label>
-                  <input
-                    type="time"
-                    required
-                    value={createFormData.end_time}
-                    onChange={(e) =>
-                      setCreateFormData((prev) => ({
-                        ...prev,
-                        end_time: e.target.value
-                      }))
-                    }
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-slate-100 outline-none"
-                  />
+                  <div>
+                    <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">
+                      End Time
+                    </label>
+                    <input
+                      type="time"
+                      required
+                      value={createFormData.end_time}
+                      onChange={(e) =>
+                        setCreateFormData((prev) => ({
+                          ...prev,
+                          end_time: e.target.value
+                        }))
+                      }
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-slate-100 outline-none"
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Description */}
               <div>
@@ -2682,7 +2753,11 @@ export default function GoogleCalendarClient({
                 </label>
                 <textarea
                   rows={3}
-                  placeholder="Details, meeting links, or student instructions..."
+                  placeholder={
+                    createFormData.type === "holiday"
+                      ? "Optional holiday message for students (e.g. Regular classes resume tomorrow)..."
+                      : "Details, meeting links, or student instructions..."
+                  }
                   value={createFormData.description}
                   onChange={(e) =>
                     setCreateFormData((prev) => ({
@@ -2706,9 +2781,17 @@ export default function GoogleCalendarClient({
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-5 py-2 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition disabled:opacity-50 cursor-pointer"
+                  className={`px-5 py-2 rounded-lg text-xs font-semibold text-white shadow-sm transition disabled:opacity-50 cursor-pointer ${
+                    createFormData.type === "holiday"
+                      ? "bg-emerald-600 hover:bg-emerald-700"
+                      : "bg-blue-600 hover:bg-blue-700"
+                  }`}
                 >
-                  {isSubmitting ? "Creating..." : "Schedule Item"}
+                  {isSubmitting
+                    ? "Saving..."
+                    : createFormData.type === "holiday"
+                    ? "Schedule Holiday"
+                    : "Schedule Item"}
                 </button>
               </div>
             </form>

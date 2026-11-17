@@ -21,14 +21,14 @@ async function getStudentIdsForBatch(batch?: string, courseId?: string): Promise
 }
 
 export async function createSchedule(data: {
-  course_id: string;
+  course_id?: string;
   batch?: string;
   type: 'class' | 'test' | 'assignment' | 'project' | 'quiz' | 'holiday' | 'event';
   title: string;
   description?: string;
   date: string;
-  start_time: string;
-  end_time: string;
+  start_time?: string;
+  end_time?: string;
 }) {
   try {
     const { supabase } = await requireAdmin();
@@ -38,11 +38,11 @@ export async function createSchedule(data: {
         course_id: data.course_id || null,
         type: data.type,
         title: data.title,
-        description: data.description,
+        description: data.description || null,
         event_date: data.date,
-        start_time: data.start_time,
-        end_time: data.end_time,
-        location: 'Online'
+        start_time: data.start_time || null,
+        end_time: data.end_time || null,
+        location: data.type === 'holiday' ? 'Institute-Wide' : 'Online'
       });
 
       if (error) return { error: "Failed to create event" };
@@ -59,8 +59,8 @@ export async function createSchedule(data: {
       title: data.title,
       description: data.description,
       date: data.date,
-      start_time: data.start_time,
-      end_time: data.end_time
+      start_time: data.start_time || null,
+      end_time: data.end_time || null
     });
 
     if (error) return { error: "Failed to create schedule" };
