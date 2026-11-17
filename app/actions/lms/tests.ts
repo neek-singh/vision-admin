@@ -183,6 +183,26 @@ export async function togglePublishTest(id: string, currentStatus: boolean) {
 }
 
 /**
+ * Automatically syncs a test's duration_minutes to match question count (1 question = 1 minute).
+ */
+async function syncTestDuration(testId: string) {
+  try {
+    const { count } = await supabaseAdmin
+      .from("test_questions")
+      .select("*", { count: "exact", head: true })
+      .eq("test_id", testId);
+
+    const questionCount = count || 0;
+    await supabaseAdmin
+      .from("tests")
+      .update({ duration_minutes: questionCount })
+      .eq("id", testId);
+  } catch (err) {
+    console.error("[syncTestDuration] Failed to sync duration:", err);
+  }
+}
+
+/**
  * Adds or saves a test question using privileged supabaseAdmin.
  */
 export async function saveTestQuestion(data: {
@@ -210,6 +230,8 @@ export async function saveTestQuestion(data: {
         .insert([rest]);
       if (error) throw error;
     }
+
+    await syncTestDuration(data.test_id);
     return { success: true };
   } catch (err: any) {
     console.error("[saveTestQuestion] Error:", err);
@@ -225,14 +247,100 @@ export async function deleteTestQuestion(id: string) {
   const client = supabaseAdmin;
 
   try {
+    const { data: qData } = await client
+      .from("test_questions")
+      .select("test_id")
+      .eq("id", id)
+      .single();
+
     const { error } = await client
       .from("test_questions")
       .delete()
       .eq("id", id);
     if (error) throw error;
+
+    if (qData?.test_id) {
+      await syncTestDuration(qData.test_id);
+    }
     return { success: true };
   } catch (err: any) {
     console.error("[deleteTestQuestion] Error:", err);
     return { success: false, error: err.message || "Failed to delete question" };
   }
 }
+
+/**
+ * Bulk saves test questions using privileged supabaseAdmin.
+ */
+export async function saveTestQuestionsBulk(
+  testId: string,
+  questions: Array<{
+    question_text: string;
+    options: string[];
+    correct_option_index: number;
+    order_index?: number;
+  }>
+) {
+  await requireAdmin();
+  const client = supabaseAdmin;
+
+  try {
+    if (!testId) throw new Error("Test ID is required");
+    if (!questions || questions.length === 0) {
+      throw new Error("No questions provided");
+    }
+
+    // Get current question count to set correct starting order_index
+    const { count } = await client
+      .from("test_questions")
+      .select("*", { count: "exact", head: true })
+      .eq("test_id", testId);
+
+    const startIndex = count || 0;
+
+    const rows = questions.map((q, idx) => ({
+      test_id: testId,
+      question_text: q.question_text.trim(),
+      options: q.options.map((opt) => (typeof opt === "string" ? opt.trim() : String(opt))),
+      correct_option_index: Number(q.correct_option_index) || 0,
+      order_index: q.order_index !== undefined ? q.order_index : startIndex + idx,
+    }));
+
+    // Insert rows in batches of 100 to prevent payload limits
+    const batchSize = 100;
+    for (let i = 0; i < rows.length; i += batchSize) {
+      const batch = rows.slice(i, i + batchSize);
+      const { error } = await client.from("test_questions").insert(batch);
+      if (error) throw error;
+    }
+
+    await syncTestDuration(testId);
+    return { success: true, count: rows.length };
+  } catch (err: any) {
+    console.error("[saveTestQuestionsBulk] Error:", err);
+    return { success: false, error: err.message || "Failed to bulk save questions" };
+  }
+}
+
+/**
+ * Clears all questions from a test.
+ */
+export async function deleteAllTestQuestions(testId: string) {
+  await requireAdmin();
+  const client = supabaseAdmin;
+
+  try {
+    const { error } = await client
+      .from("test_questions")
+      .delete()
+      .eq("test_id", testId);
+    if (error) throw error;
+
+    await syncTestDuration(testId);
+    return { success: true };
+  } catch (err: any) {
+    console.error("[deleteAllTestQuestions] Error:", err);
+    return { success: false, error: err.message || "Failed to clear questions" };
+  }
+}
+

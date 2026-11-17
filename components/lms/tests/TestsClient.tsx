@@ -4,10 +4,10 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { notifyTestPublished, saveTest, deleteTest, togglePublishTest } from "@/app/actions/lms/tests";
-import { 
-  FileText, 
-  Plus, 
-  Trash2, 
+import {
+  FileText,
+  Plus,
+  Trash2,
   Loader2,
   X,
   Clock,
@@ -16,13 +16,16 @@ import {
   PlayCircle,
   Pencil,
   Trophy,
-  Users
+  Users,
+  UploadCloud
 } from "lucide-react";
+import BulkQuestionModal from "./BulkQuestionModal";
 
 export default function TestsClient({ courses, initialTests, availableBatches = [] }: { courses: any[], initialTests: any[], availableBatches?: string[] }) {
   const router = useRouter();
   const [isAdding, setIsAdding] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [bulkImportTestId, setBulkImportTestId] = useState<string | null>(null);
   const [chapters, setChapters] = useState<any[]>([]);
   const [isLoadingChapters, setIsLoadingChapters] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -163,7 +166,7 @@ export default function TestsClient({ courses, initialTests, availableBatches = 
 
   return (
     <div className="space-y-6">
-      <button 
+      <button
         onClick={() => setIsAdding(true)}
         className="flex items-center gap-2 px-4 py-2 bg-rose-600 text-white rounded-xl font-bold hover:bg-rose-700 transition-all shadow-lg shadow-rose-600/20"
       >
@@ -183,12 +186,12 @@ export default function TestsClient({ courses, initialTests, availableBatches = 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Link to Course</label>
-                    <select 
+                    <select
                       required
                       value={formData.course_id}
                       onChange={(e) => {
                         const newCourseId = e.target.value;
-                        setFormData({...formData, course_id: newCourseId, chapter_id: ""});
+                        setFormData({ ...formData, course_id: newCourseId, chapter_id: "" });
                         fetchChapters(newCourseId);
                       }}
                       className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-rose-500 transition-all text-sm font-bold text-slate-900"
@@ -199,9 +202,9 @@ export default function TestsClient({ courses, initialTests, availableBatches = 
                   </div>
                   <div>
                     <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Target Batch</label>
-                    <select 
+                    <select
                       value={formData.batch}
-                      onChange={(e) => setFormData({...formData, batch: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, batch: e.target.value })}
                       className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-rose-500 transition-all text-sm font-bold text-slate-900"
                     >
                       <option value="">All Batches</option>
@@ -213,12 +216,12 @@ export default function TestsClient({ courses, initialTests, availableBatches = 
                 </div>
                 <div>
                   <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Test Title</label>
-                  <input required type="text" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-rose-500 transition-all text-sm font-bold text-slate-900" />
+                  <input required type="text" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-rose-500 transition-all text-sm font-bold text-slate-900" />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Test Category</label>
-                    <select 
+                    <select
                       required
                       value={formData.type}
                       onChange={(e) => {
@@ -241,7 +244,7 @@ export default function TestsClient({ courses, initialTests, availableBatches = 
                   {formData.type !== 'daily' && (
                     <div>
                       <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Duration (Mins)</label>
-                      <input required type="number" value={formData.duration_minutes} onChange={(e) => setFormData({...formData, duration_minutes: parseInt(e.target.value) || 0})} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-rose-500 transition-all text-sm font-bold text-slate-900" />
+                      <input required type="number" value={formData.duration_minutes} onChange={(e) => setFormData({ ...formData, duration_minutes: parseInt(e.target.value) || 0 })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-rose-500 transition-all text-sm font-bold text-slate-900" />
                     </div>
                   )}
                 </div>
@@ -252,14 +255,14 @@ export default function TestsClient({ courses, initialTests, availableBatches = 
                       Select Chapter
                       {isLoadingChapters && <Loader2 className="animate-spin text-rose-500" size={10} />}
                     </label>
-                    <select 
+                    <select
                       value={formData.chapter_id}
                       onChange={(e) => {
                         const chapterId = e.target.value;
                         const chapter = chapters.find(c => c.id === chapterId);
                         const typeLabel = formData.type === 'weekly' ? 'Weekly Test' : formData.type === 'monthly' ? 'Monthly Test' : 'Daily Test';
                         setFormData({
-                          ...formData, 
+                          ...formData,
                           chapter_id: chapterId,
                           title: chapter ? `${chapter.title} - ${typeLabel}` : formData.title
                         });
@@ -291,16 +294,15 @@ export default function TestsClient({ courses, initialTests, availableBatches = 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {initialTests.map((test) => (
           <div key={test.id} className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm hover:shadow-lg transition-all group relative overflow-hidden">
-             <div className="flex justify-between items-start mb-4">
+            <div className="flex justify-between items-start mb-4">
               <div className="w-10 h-10 bg-rose-50 rounded-xl flex items-center justify-center text-rose-600">
                 <FileText size={20} />
               </div>
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => handleTogglePublish(test.id, !!test.is_published)}
-                  className={`p-2 rounded-lg transition-all ${
-                    test.is_published ? "text-emerald-500 hover:text-emerald-600" : "text-slate-300 hover:text-slate-600"
-                  }`}
+                  className={`p-2 rounded-lg transition-all ${test.is_published ? "text-emerald-500 hover:text-emerald-600" : "text-slate-300 hover:text-slate-600"
+                    }`}
                   title={test.is_published ? "Published (click to unpublish)" : "Draft (click to publish)"}
                 >
                   <CheckCircle2 size={18} />
@@ -311,13 +313,12 @@ export default function TestsClient({ courses, initialTests, availableBatches = 
             </div>
             <div className="space-y-1 mb-6">
               <div className="flex items-center gap-2 mb-1">
-                 <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${
-                   test.type === 'monthly' ? 'bg-purple-100 text-purple-700' : 
-                   test.type === 'weekly' ? 'bg-blue-100 text-blue-700' : 
-                   'bg-emerald-100 text-emerald-700'
-                 }`}>
-                   {test.type || 'daily'}
-                 </span>
+                <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${test.type === 'monthly' ? 'bg-purple-100 text-purple-700' :
+                    test.type === 'weekly' ? 'bg-blue-100 text-blue-700' :
+                      'bg-emerald-100 text-emerald-700'
+                  }`}>
+                  {test.type || 'daily'}
+                </span>
               </div>
               <h3 className="text-lg font-black text-slate-900 leading-tight">{test.title}</h3>
               <div className="flex items-center justify-between mt-1">
@@ -337,28 +338,38 @@ export default function TestsClient({ courses, initialTests, availableBatches = 
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4 py-4 border-t border-slate-50 text-slate-500">
-               <div className="flex items-center gap-2 text-[10px] font-bold">
+              <div className="flex items-center gap-2 text-[10px] font-bold">
                 <Clock size={14} className="text-amber-500" />
-                {test.duration_minutes} mins
+                {test.test_questions?.[0]?.count ?? (test.duration_minutes || 0)} mins
               </div>
               <div className="flex items-center gap-2 text-[10px] font-bold">
                 <HelpCircle size={14} className="text-indigo-500" />
                 {test.test_questions?.[0]?.count || 0} Questions
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3 mt-auto">
-              <button 
+            <div className="grid grid-cols-3 gap-2 mt-auto">
+              <button
                 onClick={() => handleViewResults(test.id)}
-                className="py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-black rounded-xl transition-all flex items-center justify-center gap-2"
+                className="py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-black rounded-xl transition-all flex items-center justify-center gap-1.5"
+                title="View Student Results"
               >
-                <Users size={14} />
+                <Users size={13} />
                 Results
               </button>
-              <button 
-                onClick={() => router.push(`/lms/tests/${test.id}`)}
-                className="py-3 bg-slate-900 hover:bg-rose-600 text-white text-[10px] font-black rounded-xl transition-all flex items-center justify-center gap-2"
+              <button
+                onClick={() => setBulkImportTestId(test.id)}
+                className="py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-black rounded-xl transition-all flex items-center justify-center gap-1.5"
+                title="Bulk Add Questions"
               >
-                <PlayCircle size={14} />
+                <UploadCloud size={13} />
+                Bulk Qs
+              </button>
+              <button
+                onClick={() => router.push(`/lms/tests/${test.id}`)}
+                className="py-2.5 bg-slate-900 hover:bg-black text-white text-[10px] font-black rounded-xl transition-all flex items-center justify-center gap-1.5"
+                title="Manage Questions"
+              >
+                <PlayCircle size={13} />
                 Manage
               </button>
             </div>
@@ -372,15 +383,15 @@ export default function TestsClient({ courses, initialTests, availableBatches = 
           <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-4xl overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-300">
             <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <div className="flex items-center gap-4">
-                 <div className="w-12 h-12 bg-rose-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-rose-200">
-                    <Trophy size={24} />
-                 </div>
-                 <div>
-                    <h3 className="text-xl font-black text-slate-900 leading-none mb-1">Test Results</h3>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                      {initialTests.find(t => t.id === viewingResults)?.title}
-                    </p>
-                 </div>
+                <div className="w-12 h-12 bg-rose-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-rose-200">
+                  <Trophy size={24} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-900 leading-none mb-1">Test Results</h3>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    {initialTests.find(t => t.id === viewingResults)?.title}
+                  </p>
+                </div>
               </div>
               <button onClick={() => setViewingResults(null)} className="p-2 hover:bg-slate-100 rounded-xl transition-all"><X size={24} /></button>
             </div>
@@ -425,13 +436,13 @@ export default function TestsClient({ courses, initialTests, availableBatches = 
                           </td>
                           <td className="px-6 py-4 text-center">
                             <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden max-w-[100px] mx-auto">
-                               <div 
-                                 className="h-full bg-emerald-500 rounded-full transition-all duration-1000" 
-                                 style={{ width: `${(res.score / res.total_questions) * 100}%` }}
-                               />
+                              <div
+                                className="h-full bg-emerald-500 rounded-full transition-all duration-1000"
+                                style={{ width: `${(res.score / res.total_questions) * 100}%` }}
+                              />
                             </div>
                             <span className="text-[10px] font-black text-slate-500 mt-1 block">
-                               {Math.round((res.score / res.total_questions) * 100)}%
+                              {Math.round((res.score / res.total_questions) * 100)}%
                             </span>
                           </td>
                           <td className="px-6 py-4 text-right text-[10px] font-bold text-slate-500">
@@ -447,6 +458,14 @@ export default function TestsClient({ courses, initialTests, availableBatches = 
           </div>
         </div>
       )}
+
+      {/* Bulk Question Modal */}
+      <BulkQuestionModal
+        testId={bulkImportTestId || ""}
+        isOpen={!!bulkImportTestId}
+        onClose={() => setBulkImportTestId(null)}
+        onSuccess={() => router.refresh()}
+      />
     </div>
   );
 }
