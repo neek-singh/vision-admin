@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { X, Video, ExternalLink, FileText, CheckCircle2, XCircle, HelpCircle, FolderCode } from "lucide-react";
 import DOMPurify from "isomorphic-dompurify";
+import { enhanceCodeBlocks } from "@/lib/codeHighlighter";
 
 interface LessonPreviewModalProps {
   lesson: any;
@@ -23,33 +24,14 @@ export default function LessonPreviewModal({
 }: LessonPreviewModalProps) {
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, number>>({});
 
-  // Add Copy buttons to code blocks
+  // Syntax highlighting and Copy buttons for code blocks
   useEffect(() => {
-    const timer = setTimeout(() => {
-      const preBlocks = document.querySelectorAll('.rich-content pre');
-      preBlocks.forEach((el) => {
-        const pre = el as HTMLElement;
-        if (pre.querySelector('.copy-button')) return;
-        
-        pre.style.position = 'relative';
-        const button = document.createElement('button');
-        button.innerHTML = 'Copy';
-        button.className = 'copy-button absolute top-3 right-3 px-3 py-1 bg-slate-800 text-slate-400 hover:text-white rounded text-[10px] font-black uppercase tracking-widest transition-all opacity-0 group-hover:opacity-100';
-        
-        pre.classList.add('group');
-        
-        button.onclick = () => {
-          const codeElement = pre.querySelector('code') as HTMLElement;
-          const code = codeElement?.innerText || pre.innerText;
-          navigator.clipboard.writeText(code);
-          button.innerHTML = 'Copied!';
-          setTimeout(() => button.innerHTML = 'Copy', 2000);
-        };
-        
-        pre.appendChild(button);
-      });
-    }, 500);
-    return () => clearTimeout(timer);
+    const t1 = setTimeout(() => enhanceCodeBlocks(), 50);
+    const t2 = setTimeout(() => enhanceCodeBlocks(), 300);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
   }, [lesson.notes_content]);
 
   // Extract MCQ questions

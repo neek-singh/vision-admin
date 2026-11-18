@@ -134,12 +134,12 @@ body {
   border: 1px solid #e2e8f0 !important;
 }
 .light-modal .rich-content pre {
-  background: #0f172a !important;
+  background: #0d1117 !important;
   color: #f8fafc !important;
-  border: 1px solid #334155 !important;
+  border: 1px solid #21262d !important;
 }
-.light-modal .rich-content pre * {
-  color: #f8fafc !important;
+.light-modal .rich-content pre code {
+  color: inherit !important;
 }
 .light-modal .rich-content .callout-tip {
   background: #f0fdf4 !important;

@@ -1286,7 +1286,11 @@ export default function CourseContentManagement({
     }
   }, [currentCourseId, currentBatchName, currentMode]);
 
-  async function fetchModulesAndLessons(courseId: string, batchName: string | null) {
+  async function fetchModulesAndLessons(courseId: string, batchName: string | null, retryCount = 0) {
+    if (!courseId) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     let query = supabase
       .from("lms_modules")
@@ -1310,7 +1314,11 @@ export default function CourseContentManagement({
 
     try {
       const { data: modulesData, error } = await query.order("order_index");
-      if (error) throw error;
+      if (error) {
+        console.warn("Curriculum fetch error:", error.message || error);
+        setModules([]);
+        return;
+      }
 
       // Clean up the data: module.lessons currently contains ALL lessons for that module
       // due to the Supabase query. We only want it to contain lessons NOT in any chapter (uncategorized).
@@ -1320,9 +1328,16 @@ export default function CourseContentManagement({
       }));
 
       setModules(cleanedModules);
-    } catch (err) {
-      console.error("Error fetching curriculum:", err);
-      setModules([]);
+    } catch (err: any) {
+      // If network temporarily dropped (e.g. server restart or network glitch), retry once
+      if (retryCount === 0 && (err?.message?.includes("fetch") || err?.name === "TypeError")) {
+        console.warn("Network glitch during curriculum fetch, retrying in 1s...");
+        setTimeout(() => {
+          fetchModulesAndLessons(courseId, batchName, 1);
+        }, 1000);
+        return;
+      }
+      console.warn("Failed to fetch curriculum:", err?.message || err);
     } finally {
       setLoading(false);
     }
@@ -1814,7 +1829,7 @@ export default function CourseContentManagement({
   };
 
   return (
-    <div className={`space-y-5 transition-all duration-500 ${isFullScreen ? 'fixed inset-0 z-[100] bg-[#f8fafc] dark:bg-slate-950 p-8 overflow-y-auto' : ''}`}>
+    <div className={`space-y-3 transition-all duration-500 ${isFullScreen ? 'fixed inset-0 z-[100] bg-[#f8fafc] dark:bg-slate-950 p-8 overflow-y-auto' : ''}`}>
 
       {/* Lazy Modals */}
       {moduleModal.show && (
@@ -2617,162 +2632,160 @@ Rules:
         />
       )}
 
-      {/* Header Area */}
-      <div className="flex flex-col gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold text-slate-900 dark:text-white tracking-tight">{currentMode === "global" ? "Course Curriculum" : "Batch Content Manager"}</h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{currentMode === "global" ? "Design global course templates for all students." : "Manage specific content overrides for individual batches."}</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={() => setLibraryModal({ show: true })}
-              className="px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 text-slate-700 dark:text-slate-200 text-sm font-medium rounded-lg transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
-              title="Shared Lesson Library (Reusable classes across all courses)"
-            >
-              <Library size={14} className="text-emerald-500" />
-              <span>Library</span>
-            </button>
-            <button
-              onClick={() => setExportImportModal({ show: true, tab: 'export' })}
-              className="px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 text-slate-700 dark:text-slate-200 text-sm font-medium rounded-lg transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
-              title="Export to CSV/Excel or JSON, or Import from file"
-            >
-              <Download size={14} className="text-blue-500" />
-              <span>Export/Import</span>
-            </button>
-            <button
-              onClick={() => setSnapshotModal(true)}
-              className="px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 text-slate-700 dark:text-slate-200 text-sm font-medium rounded-lg transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
-              title="Curriculum Version Backups & Restore points"
-            >
-              <History size={14} className="text-purple-500" />
-              <span>Snapshots</span>
-            </button>
-            <button
-              onClick={() => setTemplateModal({ show: true, mode: 'use' })}
-              className="px-3.5 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 text-slate-700 dark:text-slate-200 text-sm font-medium rounded-lg transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
-              title="Curriculum Templates (Pre-built syllabus & saved blueprints)"
-            >
-              <LayoutTemplate size={14} className="text-indigo-500" />
-              <span>Templates</span>
-            </button>
-            <button
-              onClick={() => setAiPromptModal(true)}
-              className="px-3.5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-sm font-medium rounded-lg transition-all flex items-center gap-1.5 shadow-sm shadow-blue-500/20 cursor-pointer"
-              title="Generate syllabus outline with AI (ChatGPT / Gemini)"
-            >
-              <Sparkles size={14} className="text-amber-300" />
-              <span>AI Syllabus Helper</span>
-            </button>
-            <button
-              onClick={() => setModuleModal({ show: true, isEditing: false })}
-              className="px-4 py-2 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-200 text-white dark:text-slate-900 text-sm font-medium rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
-            >
-              <Plus size={14} /> Add module
-            </button>
-            <button
-              onClick={() => setIsFullScreen(!isFullScreen)}
-              className="p-2 border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-lg transition-colors cursor-pointer"
-              title={isFullScreen ? "Exit Fullscreen" : "Fullscreen Mode"}
-            >
-              {isFullScreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
-            </button>
-          </div>
-        </div>
+      {/* Compact Header Area */}
+      <div className="flex flex-col gap-2.5 pb-2.5 border-b border-slate-100 dark:border-slate-800">
+        <div className="flex flex-wrap items-center justify-between gap-2.5">
+          {/* Left: Title + Course Dropdown + Mode Toggle inline */}
+          <div className="flex flex-wrap items-center gap-2.5 min-w-0">
+            <h1 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight shrink-0">
+              {currentMode === "global" ? "Course Curriculum" : "Batch Content Manager"}
+            </h1>
 
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
-          {/* Select Course Dropdown */}
-          <label className="flex items-center gap-2">
-            <span className="text-xs text-slate-400 dark:text-slate-500">Course</span>
+            {/* Select Course Dropdown */}
             <select
               value={selectedCourseId}
               onChange={(e) => setSelectedCourseId(e.target.value)}
-              className="bg-transparent text-sm font-medium text-slate-800 dark:text-slate-200 outline-none cursor-pointer border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 focus:border-slate-400 dark:focus:border-slate-600"
+              className="bg-white dark:bg-slate-900 text-xs font-semibold text-slate-800 dark:text-slate-200 outline-none cursor-pointer border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 rounded-lg px-2.5 py-1 focus:border-blue-500 transition-colors max-w-[260px] truncate shadow-2xs"
             >
               {initialCourses.map(course => (
                 <option key={course.id} value={course.id} className="dark:bg-slate-900 dark:text-slate-200">{course.title}</option>
               ))}
             </select>
-          </label>
 
-          {/* Mode Selector */}
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => setCurrentMode("global")}
-              className={`pb-0.5 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
-                currentMode === "global"
-                  ? "border-slate-900 dark:border-white text-slate-900 dark:text-white"
-                  : "border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-white"
-              }`}
-            >
-              Global template
-            </button>
-            <button
-              disabled={courseBatches.length === 0}
-              onClick={() => {
-                setCurrentMode("batch");
-                if (courseBatches.length > 0 && !courseBatches.some(b => b.id === selectedBatchId)) {
-                  setSelectedBatchId(courseBatches[0].id);
-                }
-              }}
-              className={`pb-0.5 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
-                courseBatches.length === 0 ? "opacity-40 cursor-not-allowed" : ""
-              } ${
-                currentMode === "batch"
-                  ? "border-slate-900 dark:border-white text-slate-900 dark:text-white"
-                  : "border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-white"
-              }`}
-              title={courseBatches.length === 0 ? "No batches active for this course" : "View batch specific overrides"}
-            >
-              Batch curriculum
-            </button>
-          </div>
+            {/* Mode Selector Pill */}
+            <div className="inline-flex items-center p-0.5 bg-slate-100 dark:bg-slate-800/80 rounded-lg text-xs font-medium border border-slate-200/60 dark:border-slate-700/60">
+              <button
+                onClick={() => setCurrentMode("global")}
+                className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                  currentMode === "global"
+                    ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs font-semibold"
+                    : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                }`}
+              >
+                Global
+              </button>
+              <button
+                disabled={courseBatches.length === 0}
+                onClick={() => {
+                  setCurrentMode("batch");
+                  if (courseBatches.length > 0 && !courseBatches.some(b => b.id === selectedBatchId)) {
+                    setSelectedBatchId(courseBatches[0].id);
+                  }
+                }}
+                className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                  courseBatches.length === 0 ? "opacity-40 cursor-not-allowed" : ""
+                } ${
+                  currentMode === "batch"
+                    ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs font-semibold"
+                    : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                }`}
+                title={courseBatches.length === 0 ? "No batches active for this course" : "View batch specific overrides"}
+              >
+                Batch
+              </button>
+            </div>
 
-          {/* Batch Selector Dropdown (if in Batch mode) */}
-          {currentMode === "batch" && courseBatches.length > 0 && (
-            <label className="flex items-center gap-2">
-              <span className="text-xs text-slate-400 dark:text-slate-500">Batch</span>
+            {/* Batch Selector Dropdown (if in Batch mode) */}
+            {currentMode === "batch" && courseBatches.length > 0 && (
               <select
                 value={selectedBatchId}
                 onChange={(e) => setSelectedBatchId(e.target.value)}
-                className="bg-transparent text-sm font-medium text-slate-800 dark:text-slate-200 outline-none cursor-pointer border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 focus:border-slate-400 dark:focus:border-slate-600"
+                className="bg-white dark:bg-slate-900 text-xs font-medium text-slate-800 dark:text-slate-200 outline-none cursor-pointer border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-1 focus:border-blue-500 shadow-2xs"
               >
                 {courseBatches.map(batch => (
                   <option key={batch.id} value={batch.id} className="dark:bg-slate-900 dark:text-slate-200">{batch.type}</option>
                 ))}
               </select>
-            </label>
-          )}
+            )}
 
-          {/* Linked Batches (if in Global mode) */}
-          {currentMode === "global" && (
-            <p className="text-xs text-slate-500 dark:text-slate-400 min-w-0 truncate">
-              <span className="text-slate-400 dark:text-slate-500">Linked batches: </span>
-              {courseBatches.length > 0
-                ? courseBatches.map(b => b.type).join(", ")
-                : <span className="text-amber-600 dark:text-amber-400">none active</span>}
-            </p>
-          )}
+            {/* Linked Batches (if in Global mode) */}
+            {currentMode === "global" && (
+              <span className="text-[11px] text-slate-400 dark:text-slate-500 hidden xl:inline truncate max-w-xs" title={courseBatches.map(b => b.type).join(", ")}>
+                Batches: {courseBatches.length > 0
+                  ? courseBatches.map(b => b.type).join(", ")
+                  : <span className="text-amber-500">none</span>}
+              </span>
+            )}
+          </div>
+
+          {/* Right: Actions in one single compact row */}
+          <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+            <button
+              onClick={() => setLibraryModal({ show: true })}
+              className="px-2.5 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-medium rounded-lg transition-all flex items-center gap-1 shadow-2xs cursor-pointer"
+              title="Shared Lesson Library (Reusable classes across all courses)"
+            >
+              <Library size={13} className="text-emerald-500" />
+              <span>Library</span>
+            </button>
+            <button
+              onClick={() => setExportImportModal({ show: true, tab: 'export' })}
+              className="px-2.5 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-medium rounded-lg transition-all flex items-center gap-1 shadow-2xs cursor-pointer"
+              title="Export to CSV/Excel or JSON, or Import from file"
+            >
+              <Download size={13} className="text-blue-500" />
+              <span>Export/Import</span>
+            </button>
+            <button
+              onClick={() => setSnapshotModal(true)}
+              className="px-2.5 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-medium rounded-lg transition-all flex items-center gap-1 shadow-2xs cursor-pointer"
+              title="Curriculum Version Backups & Restore points"
+            >
+              <History size={13} className="text-purple-500" />
+              <span>Snapshots</span>
+            </button>
+            <button
+              onClick={() => setTemplateModal({ show: true, mode: 'use' })}
+              className="px-2.5 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-medium rounded-lg transition-all flex items-center gap-1 shadow-2xs cursor-pointer"
+              title="Curriculum Templates (Pre-built syllabus & saved blueprints)"
+            >
+              <LayoutTemplate size={13} className="text-indigo-500" />
+              <span>Templates</span>
+            </button>
+            <button
+              onClick={() => setAiPromptModal(true)}
+              className="px-2.5 py-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-medium rounded-lg transition-all flex items-center gap-1 shadow-2xs shadow-blue-500/20 cursor-pointer"
+              title="Generate syllabus outline with AI (ChatGPT / Gemini)"
+            >
+              <Sparkles size={13} className="text-amber-300" />
+              <span>AI Helper</span>
+            </button>
+            <button
+              onClick={() => setModuleModal({ show: true, isEditing: false })}
+              className="px-3 py-1 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-200 text-white dark:text-slate-900 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1 cursor-pointer shadow-2xs"
+            >
+              <Plus size={13} /> Add module
+            </button>
+            <button
+              onClick={() => setIsFullScreen(!isFullScreen)}
+              className="p-1 border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-lg transition-colors cursor-pointer"
+              title={isFullScreen ? "Exit Fullscreen" : "Fullscreen Mode"}
+            >
+              {isFullScreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Curriculum Summary */}
-      <div className="space-y-3">
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-slate-500 dark:text-slate-400">
+      {/* Compact Curriculum Summary & Filters */}
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 text-xs">
+        {/* Left: Stats & Expand/Collapse shortcuts */}
+        <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium shrink-0">
           <button onClick={collapseAll} title="Click to collapse all modules" className="hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer">
-            <span className="font-semibold text-slate-900 dark:text-white">{stats.totalModules}</span> modules
+            <span className="font-bold text-slate-900 dark:text-white">{stats.totalModules}</span> modules
           </button>
+          <span>&bull;</span>
           <button onClick={expandAll} title="Click to expand all modules" className="hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer">
-            <span className="font-semibold text-slate-900 dark:text-white">{stats.totalChapters}</span> chapters
+            <span className="font-bold text-slate-900 dark:text-white">{stats.totalChapters}</span> chapters
           </button>
+          <span>&bull;</span>
           <button onClick={() => setContentTypeFilter('all')} title="Show all content types" className="hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer">
-            <span className="font-semibold text-slate-900 dark:text-white">{stats.totalClasses}</span> classes
+            <span className="font-bold text-slate-900 dark:text-white">{stats.totalClasses}</span> classes
           </button>
         </div>
 
-        {/* Filter by Type */}
-        <div className="flex flex-wrap gap-1.5">
+        {/* Right: Compact Filter Pills */}
+        <div className="flex flex-wrap items-center gap-1">
           {([
             ['video', 'Video', stats.videosCount],
             ['notes', 'Theory', stats.notesCount],
@@ -2785,41 +2798,41 @@ Rules:
             <button
               key={key}
               onClick={() => setContentTypeFilter((contentTypeFilter === key ? 'all' : key) as any)}
-              className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors cursor-pointer ${
+              className={`px-2 py-0.5 rounded-md text-[11px] font-medium border transition-colors cursor-pointer ${
                 contentTypeFilter === key
                   ? 'bg-slate-900 border-slate-900 text-white dark:bg-white dark:border-white dark:text-slate-900'
-                  : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700'
+                  : 'border-slate-200/80 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700'
               }`}
             >
               {label} <span className="opacity-60">{count}</span>
             </button>
           ))}
 
-          <div className="h-4 w-[1px] bg-slate-200 dark:bg-slate-700 mx-1 hidden sm:block" />
+          <div className="h-3.5 w-[1px] bg-slate-200 dark:bg-slate-700 mx-0.5 hidden sm:block" />
 
           {/* Content Completion Filters */}
           <button
             onClick={() => setContentTypeFilter((contentTypeFilter === 'ready' ? 'all' : 'ready') as any)}
-            className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors cursor-pointer flex items-center gap-1 ${
+            className={`px-2 py-0.5 rounded-md text-[11px] font-medium border transition-colors cursor-pointer flex items-center gap-1 ${
               contentTypeFilter === 'ready'
                 ? 'bg-emerald-600 border-emerald-600 text-white'
                 : 'border-emerald-200 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30'
             }`}
           >
-            <CheckCircle2 size={11} />
+            <CheckCircle2 size={10} />
             <span>Has Content</span>
             <span className="opacity-70 font-semibold">{stats.readyCount}</span>
           </button>
 
           <button
             onClick={() => setContentTypeFilter((contentTypeFilter === 'needs_content' ? 'all' : 'needs_content') as any)}
-            className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors cursor-pointer flex items-center gap-1 ${
+            className={`px-2 py-0.5 rounded-md text-[11px] font-medium border transition-colors cursor-pointer flex items-center gap-1 ${
               contentTypeFilter === 'needs_content'
                 ? 'bg-amber-600 border-amber-600 text-white'
                 : 'border-amber-200 dark:border-amber-800/60 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30'
             }`}
           >
-            <AlertCircle size={11} />
+            <AlertCircle size={10} />
             <span>Needs Content</span>
             <span className="opacity-70 font-semibold">{stats.pendingCount}</span>
           </button>
@@ -2837,7 +2850,7 @@ Rules:
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search modules, chapters, classes, tags (#tag), or difficulty..."
-            className="w-full pl-9 pr-8 py-2 bg-transparent border border-slate-200 dark:border-slate-800 rounded-lg outline-none focus:border-slate-400 dark:focus:border-slate-600 transition-colors text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400"
+            className="w-full pl-8 pr-7 py-1.5 bg-transparent border border-slate-200 dark:border-slate-800 rounded-lg outline-none focus:border-slate-400 dark:focus:border-slate-600 transition-colors text-xs text-slate-800 dark:text-slate-200 placeholder:text-slate-400"
           />
           {searchQuery && (
             <button
@@ -2895,7 +2908,7 @@ Rules:
                 }}
               >
                 <div className="flex items-center gap-2">
-                  <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Structure</h3>
+                  <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Modules</h3>
                   <ChevronDown size={14} className={`text-slate-400 transition-transform lg:hidden ${showRoadmapMobile ? 'rotate-180' : ''}`} />
                 </div>
                 <span className="px-2.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-[11px] font-bold text-slate-655 dark:text-slate-450 rounded-full">{filteredModules.length}</span>

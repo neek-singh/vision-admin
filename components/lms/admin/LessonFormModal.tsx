@@ -9,6 +9,7 @@ import {
 import { supabase } from "@/lib/supabase";
 import MultiSelect from "@/components/ui/MultiSelect";
 import DOMPurify from "isomorphic-dompurify";
+import { enhanceCodeBlocks } from "@/lib/codeHighlighter";
 
 interface LessonFormModalProps {
   courseId: string;
@@ -278,6 +279,16 @@ export default function LessonFormModal({
     document.execCommand(command, false, value ?? undefined);
     syncEditorState();
   };
+
+  // Enhance code blocks with syntax highlighting and copy button in preview / split view
+  useEffect(() => {
+    if (editorViewMode !== 'edit') {
+      const timer = setTimeout(() => {
+        enhanceCodeBlocks();
+      }, 60);
+      return () => clearTimeout(timer);
+    }
+  }, [editorViewMode, liveHtml]);
 
   const formatHeading = (tag: 'h1' | 'h2' | 'h3' | 'p') => {
     editorRef.current?.focus();
