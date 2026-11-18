@@ -3,7 +3,8 @@ import { useState, useRef, useEffect } from "react";
 import { 
   X, Loader2, Plus, Trash2, GripVertical, Heading, FileText, Image, List, ArrowUp, ArrowDown, ChevronDown, FolderCode, Maximize2, Minimize2,
   Bold, Italic, Underline, Strikethrough, Heading1, Heading2, Heading3, ListOrdered, Quote, Code, Link2, Table, Sparkles, Eye, Columns, 
-  Lightbulb, AlertTriangle, Info, Clock, AlignLeft, AlignCenter, AlignRight, AlignJustify, Check, Upload, LayoutTemplate, HelpCircle, BookOpen, ExternalLink, RotateCcw, Redo2, RemoveFormatting, Search, MoreHorizontal
+  Lightbulb, AlertTriangle, Info, Clock, AlignLeft, AlignCenter, AlignRight, AlignJustify, Check, Upload, LayoutTemplate, HelpCircle, BookOpen, ExternalLink, RotateCcw, Redo2, RemoveFormatting, Search, MoreHorizontal,
+  BookmarkPlus, Library
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import MultiSelect from "@/components/ui/MultiSelect";
@@ -54,6 +55,7 @@ export default function LessonFormModal({
   mode
 }: LessonFormModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSavingToLibrary, setIsSavingToLibrary] = useState(false);
   const [isGlobal, setIsGlobal] = useState(
     initialData ? (!initialData.batches || initialData.batches.length === 0) : (mode === "global")
   );
@@ -66,8 +68,11 @@ export default function LessonFormModal({
     is_free: initialData?.is_free || false,
     is_locked: initialData?.is_locked || false,
     order_index: initialData?.order_index || 0,
-    batches: initialData?.batches || (mode === "batch" && selectedBatchId ? [selectedBatchId] : [])
+    batches: initialData?.batches || (mode === "batch" && selectedBatchId ? [selectedBatchId] : []),
+    difficulty: initialData?.difficulty || "beginner",
+    tags: Array.isArray(initialData?.tags) ? initialData.tags : []
   });
+  const [tagInput, setTagInput] = useState("");
 
   const isTypePreSelected = !!(initialData?.lesson_type || initialData?.type);
 
@@ -2029,6 +2034,8 @@ console.log("Config loaded:", appConfig.appName);</code></pre>
         batches: isGlobal ? [] : lesson.batches,
         course_id: courseId,
         lesson_type: lesson.type,
+        difficulty: lesson.difficulty || 'beginner',
+        tags: lesson.tags || [],
         order_index: isEditing ? lesson.order_index : (currentLessonsCount + 1)
       };
 
@@ -2053,6 +2060,43 @@ console.log("Config loaded:", appConfig.appName);</code></pre>
       console.error("Error saving lesson:", err);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleSaveToLibrary = async () => {
+    if (!lesson.title.trim()) {
+      alert("Please enter a class title before saving to library.");
+      return;
+    }
+    setIsSavingToLibrary(true);
+    try {
+      let finalNotesContent = "";
+      if (lesson.type === 'video') {
+        finalNotesContent = lesson.html_content;
+      } else if (lesson.type === 'notes' || lesson.type === 'assignment' || lesson.type === 'project') {
+        finalNotesContent = editorRef.current?.innerHTML || liveHtml || '';
+      } else if (lesson.type === 'mcq') {
+        finalNotesContent = `${generateHTMLFromQuestions(questions)}\n<!-- MCQ_QUESTIONS_JSON:${JSON.stringify(questions)} -->`;
+      }
+
+      const { error } = await supabase.from('lesson_library').insert({
+        title: lesson.title.trim(),
+        description: null,
+        lesson_type: lesson.type,
+        content_url: lesson.type === 'assignment' ? (lesson.pdf_url || "") : (lesson.content_url || ""),
+        notes_content: finalNotesContent || "",
+        tags: lesson.tags || [],
+        difficulty: lesson.difficulty || 'beginner',
+        category: "General"
+      });
+
+      if (error) throw error;
+      alert(`"${lesson.title}" saved to Lesson Library! It can now be reused in any course.`);
+    } catch (err: any) {
+      console.error("Save to library failed:", err);
+      alert("Failed to save to library: " + (err.message || err));
+    } finally {
+      setIsSavingToLibrary(false);
     }
   };
 
@@ -3108,19 +3152,99 @@ console.log("Config loaded:", appConfig.appName);</code></pre>
                   />
                 </div>
               )}
+
+              {/* Phase 2: Difficulty & Tags */}
+              <div className="pt-2 border-t border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-3 shrink-0">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Difficulty Level</label>
+                  <select
+                    value={lesson.difficulty}
+                    onChange={(e) => setLesson({ ...lesson, difficulty: e.target.value })}
+                    className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-xl outline-none focus:border-blue-500 text-xs font-semibold text-slate-800"
+                  >
+                    <option value="beginner">🟢 Beginner</option>
+                    <option value="intermediate">🟡 Intermediate</option>
+                    <option value="advanced">🔴 Advanced</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Lesson Tags</label>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="text"
+                      value={tagInput}
+                      onChange={(e) => setTagInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && tagInput.trim()) {
+                          e.preventDefault();
+                          const val = tagInput.trim().toLowerCase();
+                          if (!lesson.tags.includes(val)) {
+                            setLesson({ ...lesson, tags: [...lesson.tags, val] });
+                          }
+                          setTagInput("");
+                        }
+                      }}
+                      placeholder="Add tag & press Enter (e.g. lab, revision)"
+                      className="flex-1 px-3 py-1.5 bg-white border border-slate-300 rounded-xl outline-none focus:border-blue-500 text-xs text-slate-800"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (tagInput.trim()) {
+                          const val = tagInput.trim().toLowerCase();
+                          if (!lesson.tags.includes(val)) {
+                            setLesson({ ...lesson, tags: [...lesson.tags, val] });
+                          }
+                          setTagInput("");
+                        }
+                      }}
+                      className="px-2.5 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-semibold"
+                    >
+                      Add
+                    </button>
+                  </div>
+                  {lesson.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 pt-1">
+                      {lesson.tags.map((tag: string) => (
+                        <span key={tag} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                          #{tag}
+                          <button
+                            type="button"
+                            onClick={() => setLesson({ ...lesson, tags: lesson.tags.filter((t: string) => t !== tag) })}
+                            className="text-blue-500 hover:text-rose-500"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
-            <div className="pt-1.5 flex gap-2.5">
+            <div className="pt-1.5 flex gap-2">
               <button 
                 type="button"
                 onClick={onClose} 
-                className="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold uppercase tracking-wider rounded-xl border border-slate-300 transition-all cursor-pointer text-xs"
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold uppercase tracking-wider rounded-xl border border-slate-300 transition-all cursor-pointer text-xs"
               >
                 Cancel
               </button>
+              <button
+                type="button"
+                onClick={handleSaveToLibrary}
+                disabled={isSavingToLibrary}
+                className="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 font-bold uppercase tracking-wider rounded-xl border border-indigo-200 dark:border-indigo-800 transition-all cursor-pointer text-xs flex items-center justify-center gap-1.5"
+                title="Save this lesson to the central reusable Lesson Library"
+              >
+                {isSavingToLibrary ? <Loader2 size={13} className="animate-spin text-indigo-600" /> : <Library size={13} />}
+                <span>Save to Library</span>
+              </button>
               <button 
                 disabled={isSubmitting}
-                className="flex-[2] py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold uppercase tracking-wider rounded-xl transition-all shadow-md shadow-blue-500/20 flex items-center justify-center gap-2 cursor-pointer text-xs"
+                className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold uppercase tracking-wider rounded-xl transition-all shadow-md shadow-blue-500/20 flex items-center justify-center gap-2 cursor-pointer text-xs"
               >
                 {isSubmitting ? <Loader2 className="animate-spin" size={15} /> : (
                   lesson.type === 'assignment' 
