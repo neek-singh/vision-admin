@@ -380,17 +380,8 @@ function escapeAttr(str: string): string {
     .replace(/>/g, '&gt;');
 }
 
-// Global copy & scroll handlers accessible from inline onclick attributes
+// Global copy handler accessible from inline onclick attributes
 if (typeof window !== 'undefined') {
-  (window as any).__scrollCodeBlock = function (btn: HTMLElement, direction: number) {
-    if (!btn) return;
-    const card = btn.closest('.code-block-card') || btn.closest('pre') || btn.parentElement?.parentElement;
-    if (!card) return;
-    const container = card.querySelector('.code-body-container') as HTMLElement;
-    if (!container) return;
-    container.scrollBy({ left: direction * 150, behavior: 'smooth' });
-  };
-
   (window as any).__copyCodeBlock = async function (btn: HTMLElement) {
     if (!btn) return;
     const card = btn.closest('.code-block-card') || btn.closest('pre');
@@ -415,8 +406,103 @@ if (typeof window !== 'undefined') {
 }
 
 /**
+ * Attaches smooth touch dragging & momentum scrolling directly to code blocks
+ * so horizontal swipe works naturally on mobile touchscreens without bouncing back.
+ */
+export function bindTouchScroll(el: HTMLElement) {
+  if (!el || (el as any).__touchScrollBound) return;
+  (el as any).__touchScrollBound = true;
+
+  let startX = 0;
+  let startY = 0;
+  let startScrollLeft = 0;
+  let isHorizontal = false;
+  let isDecided = false;
+  let lastX = 0;
+  let lastTime = 0;
+  let velocityX = 0;
+  let animId: number | null = null;
+
+  const stopMomentum = () => {
+    if (animId !== null) {
+      cancelAnimationFrame(animId);
+      animId = null;
+    }
+  };
+
+  el.addEventListener(
+    'touchstart',
+    (e: TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      stopMomentum();
+      const touch = e.touches[0];
+      startX = touch.clientX;
+      startY = touch.clientY;
+      lastX = touch.clientX;
+      lastTime = performance.now();
+      startScrollLeft = el.scrollLeft;
+      isHorizontal = false;
+      isDecided = false;
+      velocityX = 0;
+    },
+    { passive: true }
+  );
+
+  el.addEventListener(
+    'touchmove',
+    (e: TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      const touch = e.touches[0];
+      const dx = touch.clientX - startX;
+      const dy = touch.clientY - startY;
+
+      if (!isDecided) {
+        if (Math.abs(dx) > 6 || Math.abs(dy) > 6) {
+          isDecided = true;
+          if (Math.abs(dx) > Math.abs(dy)) {
+            isHorizontal = true;
+          }
+        }
+      }
+
+      if (isHorizontal) {
+        if (e.cancelable) e.preventDefault();
+        el.scrollLeft = startScrollLeft - dx;
+
+        const now = performance.now();
+        const dt = now - lastTime;
+        if (dt > 10) {
+          velocityX = (touch.clientX - lastX) / dt;
+          lastX = touch.clientX;
+          lastTime = now;
+        }
+      }
+    },
+    { passive: false }
+  );
+
+  el.addEventListener(
+    'touchend',
+    () => {
+      if (isHorizontal && Math.abs(velocityX) > 0.1) {
+        let v = -velocityX * 16;
+        const friction = 0.94;
+        const step = () => {
+          if (Math.abs(v) < 0.5) return;
+          el.scrollLeft += v;
+          v *= friction;
+          animId = requestAnimationFrame(step);
+        };
+        animId = requestAnimationFrame(step);
+      }
+    },
+    { passive: true }
+  );
+}
+
+/**
  * Pre-renders an HTML string, turning any <pre> blocks into fully styled,
- * high-contrast code blocks with macOS header, language badge, scroll navigation, and copy button.
+ * high-contrast code blocks with macOS header, language badge, and copy button.
  * Safe for use inside dangerouslySetInnerHTML.
  */
 export function renderHighlightedHtml(html: string): string {
@@ -444,8 +530,6 @@ export function renderHighlightedHtml(html: string): string {
     const { html: highlightedCodeHtml, lang } = highlightSyntax(rawCode);
     const escapedRawCode = escapeAttr(rawCode);
     const copySvg = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>`;
-    const leftArrowSvg = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>`;
-    const rightArrowSvg = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>`;
 
     return `<div data-code-enhanced="true" data-code-ready="v3" data-raw-code="${escapedRawCode}" class="code-block-card not-prose" style="position:relative;background-color:#0d1117 !important;color:#f0f6fc !important;border-radius:12px;border:1px solid #30363d;overflow:hidden;margin:18px 0;box-shadow:0 8px 24px rgba(0,0,0,0.35);padding:0 !important;display:block;width:100% !important;max-width:100% !important;box-sizing:border-box !important;">` +
       `<div class="code-toolbar-header" style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background-color:#161b22;border-bottom:1px solid #30363d;user-select:none;width:100% !important;box-sizing:border-box !important;">` +
@@ -457,21 +541,11 @@ export function renderHighlightedHtml(html: string): string {
           `</div>` +
           `<span style="font-size:10px;font-weight:700;letter-spacing:0.08em;color:#8b949e;margin-left:4px;text-transform:uppercase;">${lang}</span>` +
         `</div>` +
-        `<div style="display:flex;align-items:center;gap:6px;">` +
-          `<div class="code-scroll-nav" style="display:inline-flex;align-items:center;gap:2px;background:rgba(255,255,255,0.06);border-radius:6px;padding:2px 3px;border:1px solid rgba(255,255,255,0.1);">` +
-            `<button type="button" aria-label="Scroll left" onclick="window.__scrollCodeBlock(this, -1)" style="background:none;border:none;color:#8b949e;cursor:pointer;padding:2px 5px;display:flex;align-items:center;justify-content:center;border-radius:4px;transition:color 0.15s ease;">` +
-              `${leftArrowSvg}` +
-            `</button>` +
-            `<button type="button" aria-label="Scroll right" onclick="window.__scrollCodeBlock(this, 1)" style="background:none;border:none;color:#8b949e;cursor:pointer;padding:2px 5px;display:flex;align-items:center;justify-content:center;border-radius:4px;transition:color 0.15s ease;">` +
-              `${rightArrowSvg}` +
-            `</button>` +
-          `</div>` +
-          `<button type="button" class="code-copy-btn" onclick="window.__copyCodeBlock(this)" style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;color:#cbd5e1;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.14);cursor:pointer;transition:all 0.15s ease;">` +
-            `${copySvg}<span>Copy</span>` +
-          `</button>` +
-        `</div>` +
+        `<button type="button" class="code-copy-btn" onclick="window.__copyCodeBlock(this)" style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;color:#cbd5e1;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.14);cursor:pointer;transition:all 0.15s ease;">` +
+          `${copySvg}<span>Copy</span>` +
+        `</button>` +
       `</div>` +
-      `<pre class="code-body-container" data-code-ready="v3" style="margin:0 !important;padding:14px 18px !important;overflow-x:auto !important;overflow-y:hidden !important;width:100% !important;max-width:100% !important;box-sizing:border-box !important;-webkit-overflow-scrolling:touch !important;touch-action:pan-x pinch-zoom !important;overscroll-behavior:none !important;background:transparent !important;border:none !important;border-radius:0 !important;">` +
+      `<pre class="code-body-container" data-code-ready="v3" style="margin:0 !important;padding:14px 18px !important;overflow-x:auto !important;overflow-y:hidden !important;width:100% !important;max-width:100% !important;min-width:0 !important;box-sizing:border-box !important;-webkit-overflow-scrolling:touch !important;overscroll-behavior-x:contain !important;touch-action:pan-x pan-y !important;background:transparent !important;border:none !important;border-radius:0 !important;">` +
         `<code style="display:block !important;width:max-content !important;min-width:100% !important;font-family:'JetBrains Mono','Fira Code','Cascadia Code',Menlo,Monaco,Consolas,monospace;font-size:13.5px;line-height:1.75;letter-spacing:0.02em;tab-size:2;color:#f0f6fc !important;background-color:transparent !important;white-space:pre !important;word-break:normal !important;word-wrap:normal !important;">${highlightedCodeHtml}</code>` +
       `</pre>` +
     `</div>`;
@@ -481,10 +555,15 @@ export function renderHighlightedHtml(html: string): string {
 export function enhanceCodeBlocks(container?: HTMLElement | Document | null) {
   if (typeof window === 'undefined') return;
   const root = container || document;
+
+  // Bind touch scroll to all code containers (including SSR / pre-rendered ones)
+  const containers = root.querySelectorAll<HTMLElement>('.code-body-container');
+  containers.forEach(bindTouchScroll);
+
   const preBlocks = root.querySelectorAll<HTMLElement>('.rich-content pre, article pre, .prose pre, .notes-content pre');
 
   preBlocks.forEach((pre) => {
-    // If inside an already enhanced card or has v3 ready, bind copy and skip
+    // If inside an already enhanced card or has v3 ready, bind copy and touch scroll, then skip
     if (
       pre.getAttribute('data-code-ready') === 'v3' ||
       pre.classList.contains('code-body-container') ||
@@ -496,6 +575,10 @@ export function enhanceCodeBlocks(container?: HTMLElement | Document | null) {
         const codeEl = card.querySelector('code');
         const raw = (card as HTMLElement).dataset.rawCode || (codeEl ? codeEl.textContent : '') || '';
         bindCopyBtn(existingBtn, raw);
+      }
+      const existingContainer = card.querySelector<HTMLElement>('.code-body-container');
+      if (existingContainer) {
+        bindTouchScroll(existingContainer);
       }
       return;
     }
@@ -564,49 +647,7 @@ export function enhanceCodeBlocks(container?: HTMLElement | Document | null) {
     leftSide.appendChild(dots);
     leftSide.appendChild(langBadge);
 
-    // Right side: Scroll buttons + Copy button
-    const rightSide = document.createElement('div');
-    rightSide.style.display = 'flex';
-    rightSide.style.alignItems = 'center';
-    rightSide.style.gap = '6px';
-
-    const scrollNav = document.createElement('div');
-    scrollNav.className = 'code-scroll-nav';
-    scrollNav.style.display = 'inline-flex';
-    scrollNav.style.alignItems = 'center';
-    scrollNav.style.gap = '2px';
-    scrollNav.style.background = 'rgba(255, 255, 255, 0.06)';
-    scrollNav.style.borderRadius = '6px';
-    scrollNav.style.padding = '2px 3px';
-    scrollNav.style.border = '1px solid rgba(255, 255, 255, 0.1)';
-
-    const btnLeft = document.createElement('button');
-    btnLeft.type = 'button';
-    btnLeft.setAttribute('aria-label', 'Scroll left');
-    btnLeft.style.background = 'none';
-    btnLeft.style.border = 'none';
-    btnLeft.style.color = '#8b949e';
-    btnLeft.style.cursor = 'pointer';
-    btnLeft.style.padding = '2px 5px';
-    btnLeft.style.display = 'flex';
-    btnLeft.style.alignItems = 'center';
-    btnLeft.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>`;
-
-    const btnRight = document.createElement('button');
-    btnRight.type = 'button';
-    btnRight.setAttribute('aria-label', 'Scroll right');
-    btnRight.style.background = 'none';
-    btnRight.style.border = 'none';
-    btnRight.style.color = '#8b949e';
-    btnRight.style.cursor = 'pointer';
-    btnRight.style.padding = '2px 5px';
-    btnRight.style.display = 'flex';
-    btnRight.style.alignItems = 'center';
-    btnRight.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>`;
-
-    scrollNav.appendChild(btnLeft);
-    scrollNav.appendChild(btnRight);
-
+    // Right side: Copy button
     const copyBtn = document.createElement('button');
     copyBtn.type = 'button';
     copyBtn.className = 'code-copy-btn';
@@ -629,11 +670,8 @@ export function enhanceCodeBlocks(container?: HTMLElement | Document | null) {
 
     bindCopyBtn(copyBtn, rawCode);
 
-    rightSide.appendChild(scrollNav);
-    rightSide.appendChild(copyBtn);
-
     header.appendChild(leftSide);
-    header.appendChild(rightSide);
+    header.appendChild(copyBtn);
 
     // Code container
     const codeContainer = document.createElement('pre');
@@ -647,13 +685,12 @@ export function enhanceCodeBlocks(container?: HTMLElement | Document | null) {
     codeContainer.style.setProperty('overflow-x', 'auto', 'important');
     codeContainer.style.setProperty('overflow-y', 'hidden', 'important');
     codeContainer.style.setProperty('-webkit-overflow-scrolling', 'touch', 'important');
-    codeContainer.style.setProperty('touch-action', 'pan-x pinch-zoom', 'important');
-    codeContainer.style.setProperty('overscroll-behavior', 'none', 'important');
+    codeContainer.style.setProperty('overscroll-behavior-x', 'contain', 'important');
+    codeContainer.style.setProperty('touch-action', 'pan-x pan-y', 'important');
     codeContainer.style.setProperty('background', 'transparent', 'important');
     codeContainer.style.setProperty('border', 'none', 'important');
 
-    btnLeft.onclick = () => codeContainer.scrollBy({ left: -140, behavior: 'smooth' });
-    btnRight.onclick = () => codeContainer.scrollBy({ left: 140, behavior: 'smooth' });
+    bindTouchScroll(codeContainer);
 
     const codeElement = document.createElement('code');
     codeElement.innerHTML = html;
