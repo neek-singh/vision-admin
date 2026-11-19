@@ -61,7 +61,7 @@ export default function ChapterFormModal({
         course_id: courseId,
         title: title.trim(),
         batches: isGlobal ? [] : batches,
-        order_index: isEditing ? initialData?.order_index : (currentChaptersCount + 1)
+        order_index: isEditing ? (initialData?.order_index ?? (currentChaptersCount + 1)) : (currentChaptersCount + 1)
       };
 
       let error;

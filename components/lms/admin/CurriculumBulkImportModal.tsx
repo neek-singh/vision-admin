@@ -427,6 +427,7 @@ export default function CurriculumBulkImportModal({
 
             if (lessonErr) {
               console.error("Error inserting lessons for chapter:", lessonErr);
+              throw new Error(`Failed to create classes for chapter "${ch.title}": ${lessonErr.message}`);
             }
           }
         }

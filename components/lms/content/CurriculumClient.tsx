@@ -84,7 +84,11 @@ export const isLessonContentReady = (l: any): boolean => {
     return Boolean((l.content_url && l.content_url.trim().length > 0) || (l.pdf_url && l.pdf_url.trim().length > 0) || (l.notes_content && l.notes_content.replace(/<[^>]*>/g, '').trim().length > 0));
   }
   if (type === 'mcq') {
-    return Boolean(l.notes_content && l.notes_content.includes('MCQ_QUESTIONS_JSON'));
+    return Boolean(
+      l.notes_content && 
+      l.notes_content.includes('MCQ_QUESTIONS_JSON') && 
+      !l.notes_content.includes('MCQ_QUESTIONS_JSON:[]')
+    );
   }
   return false;
 };
@@ -316,7 +320,7 @@ export default function CourseContentManagement({
         else if (type === 'project') projectsCount++;
         else if (type === 'mcq') mcqsCount++;
         if (l.is_free) freeCount++;
-        else lockedCount++;
+        if (l.is_locked) lockedCount++;
 
         if (isLessonContentReady(l)) {
           readyCount++;
@@ -343,7 +347,7 @@ export default function CourseContentManagement({
           else if (type === 'project') projectsCount++;
           else if (type === 'mcq') mcqsCount++;
           if (l.is_free) freeCount++;
-          else lockedCount++;
+          if (l.is_locked) lockedCount++;
 
           if (isLessonContentReady(l)) {
             readyCount++;
@@ -392,7 +396,7 @@ export default function CourseContentManagement({
           if (contentTypeFilter === 'project' && lessonType !== 'project') return false;
           if (contentTypeFilter === 'mcq' && lessonType !== 'mcq') return false;
           if (contentTypeFilter === 'free' && !l.is_free) return false;
-          if (contentTypeFilter === 'locked' && l.is_free) return false;
+          if (contentTypeFilter === 'locked' && !l.is_locked) return false;
           if (contentTypeFilter === 'ready' && !isLessonContentReady(l)) return false;
           if (contentTypeFilter === 'needs_content' && isLessonContentReady(l)) return false;
 
@@ -425,7 +429,7 @@ export default function CourseContentManagement({
         if (contentTypeFilter === 'project' && lessonType !== 'project') return false;
         if (contentTypeFilter === 'mcq' && lessonType !== 'mcq') return false;
         if (contentTypeFilter === 'free' && !l.is_free) return false;
-        if (contentTypeFilter === 'locked' && l.is_free) return false;
+        if (contentTypeFilter === 'locked' && !l.is_locked) return false;
         if (contentTypeFilter === 'ready' && !isLessonContentReady(l)) return false;
         if (contentTypeFilter === 'needs_content' && isLessonContentReady(l)) return false;
 
@@ -1231,11 +1235,23 @@ export default function CourseContentManagement({
     setDeletingId(id);
     try {
       if (currentMode === "global") {
+        if (table === "lms_modules") {
+          await supabase.from("lessons").delete().eq("module_id", id);
+          await supabase.from("lms_chapters").delete().eq("module_id", id);
+        } else if (table === "lms_chapters") {
+          await supabase.from("lessons").delete().eq("chapter_id", id);
+        }
         const { error } = await supabase.from(table).delete().eq("id", id);
         if (error) throw error;
       } else if (currentMode === "batch" && selectedBatchId) {
         const batchesList = itemData.batches || [];
         if (batchesList.length === 1 && batchesList[0] === selectedBatchId) {
+          if (table === "lms_modules") {
+            await supabase.from("lessons").delete().eq("module_id", id);
+            await supabase.from("lms_chapters").delete().eq("module_id", id);
+          } else if (table === "lms_chapters") {
+            await supabase.from("lessons").delete().eq("chapter_id", id);
+          }
           const { error } = await supabase.from(table).delete().eq("id", id);
           if (error) throw error;
         } else if (batchesList.length > 1) {
@@ -1248,8 +1264,20 @@ export default function CourseContentManagement({
             .filter((b: any) => b.course_id === currentCourseId && b.id !== selectedBatchId)
             .map((b: any) => b.id);
           
-          const { error } = await supabase.from(table).update({ batches: otherBatches }).eq("id", id);
-          if (error) throw error;
+          if (otherBatches.length > 0) {
+            const { error } = await supabase.from(table).update({ batches: otherBatches }).eq("id", id);
+            if (error) throw error;
+          } else {
+            // No other batches in course, delete item completely
+            if (table === "lms_modules") {
+              await supabase.from("lessons").delete().eq("module_id", id);
+              await supabase.from("lms_chapters").delete().eq("module_id", id);
+            } else if (table === "lms_chapters") {
+              await supabase.from("lessons").delete().eq("chapter_id", id);
+            }
+            const { error } = await supabase.from(table).delete().eq("id", id);
+            if (error) throw error;
+          }
         }
       }
       handleRefresh();
@@ -1776,7 +1804,7 @@ export default function CourseContentManagement({
               is_free: lesson.is_free,
               is_locked: lesson.is_locked,
               order_index: lesson.order_index,
-              batches: lesson.batches
+              batches: targetId === currentCourseId ? (lesson.batches || []) : []
             }));
 
             const { error: lessonsError } = await supabase
@@ -1805,7 +1833,7 @@ export default function CourseContentManagement({
           is_free: lesson.is_free,
           is_locked: lesson.is_locked,
           order_index: lesson.order_index,
-          batches: lesson.batches
+          batches: targetId === currentCourseId ? (lesson.batches || []) : []
         }));
 
         const { error: lessonsError } = await supabase
@@ -1877,7 +1905,7 @@ export default function CourseContentManagement({
           currentChaptersCount={chapterModal.currentChaptersCount || 0}
           selectedBatchId={selectedBatchId}
           mode={currentMode}
-          availableBatches={availableBatches}
+          availableBatches={courseBatches}
         />
       )}
 
@@ -1944,7 +1972,7 @@ export default function CourseContentManagement({
       {isFullScreen && (
         <button
           onClick={() => setIsFullScreen(false)}
-          className="fixed top-8 right-8 z-[110] p-3 bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 rounded-xl text-slate-400 hover:text-rose-600 dark:hover:text-rose-455 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+          className="fixed top-8 right-8 z-[110] p-3 bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 rounded-xl text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition-all hover:scale-105 active:scale-95 cursor-pointer"
           title="Exit Fullscreen"
         >
           <X size={20} />
@@ -2911,7 +2939,7 @@ Rules:
                   <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Modules</h3>
                   <ChevronDown size={14} className={`text-slate-400 transition-transform lg:hidden ${showRoadmapMobile ? 'rotate-180' : ''}`} />
                 </div>
-                <span className="px-2.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-[11px] font-bold text-slate-655 dark:text-slate-450 rounded-full">{filteredModules.length}</span>
+                <span className="px-2.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-[11px] font-bold text-slate-600 dark:text-slate-400 rounded-full">{filteredModules.length}</span>
               </div>
               <div className={`p-2 max-h-[60vh] overflow-y-auto custom-scrollbar space-y-0.5 lg:block ${showRoadmapMobile ? 'block' : 'hidden'}`}>
                 {filteredModules.map((module) => (
@@ -2944,7 +2972,7 @@ Rules:
           {loading ? (
             <div className="flex flex-col items-center justify-center py-32 space-y-4">
               <Loader2 className="animate-spin text-blue-600" size={40} />
-              <p className="text-xs font-semibold text-slate-450 dark:text-slate-500 uppercase tracking-widest animate-pulse">Building Curriculum Tree...</p>
+              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest animate-pulse">Building Curriculum Tree...</p>
             </div>
           ) : modules.length === 0 ? (
             <div className="py-16 text-center flex flex-col items-center gap-4">
@@ -2953,7 +2981,7 @@ Rules:
               </div>
               <div className="space-y-2 max-w-sm">
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white">Your Curriculum is Empty</h3>
-                <p className="text-sm text-slate-400 dark:text-slate-550">Get started by creating your first course module. You can then add chapters and classes to it.</p>
+                <p className="text-sm text-slate-400 dark:text-slate-500">Get started by creating your first course module. You can then add chapters and classes to it.</p>
               </div>
               <button
                 onClick={() => setModuleModal({ show: true, isEditing: false })}
@@ -3505,12 +3533,12 @@ Rules:
                                                 <button
                                                   onClick={(e) => { e.stopPropagation(); toggleLessonField(lesson.id, 'is_locked', lesson.is_locked); }}
                                                   className={`px-1.5 py-0.5 rounded-md border text-[10px] font-medium transition-colors flex items-center gap-1 cursor-pointer ${lesson.is_locked
-                                                    ? 'bg-rose-50 hover:bg-rose-100 border-rose-200 text-rose-700 dark:bg-rose-950/30 dark:border-rose-900/50 dark:text-rose-455'
-                                                    : 'bg-blue-50 hover:bg-blue-105 border-blue-200 text-blue-707 dark:bg-blue-950/30 dark:border-blue-900/50 dark:text-blue-400'
+                                                    ? 'bg-rose-50 hover:bg-rose-100 border-rose-200 text-rose-700 dark:bg-rose-950/30 dark:border-rose-900/50 dark:text-rose-400'
+                                                    : 'bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700 dark:bg-blue-950/30 dark:border-blue-900/50 dark:text-blue-400'
                                                     }`}
                                                   title={lesson.is_locked ? "Click to unlock class" : "Click to lock class"}
                                                 >
-                                                  {lesson.is_locked ? <Lock size={10} className="text-rose-600 dark:text-rose-455" /> : <Unlock size={10} className="text-blue-600 dark:text-blue-400" />}
+                                                  {lesson.is_locked ? <Lock size={10} className="text-rose-600 dark:text-rose-400" /> : <Unlock size={10} className="text-blue-600 dark:text-blue-400" />}
                                                   {lesson.is_locked ? "Locked" : "Unlocked"}
                                                 </button>
                                               </div>
@@ -3519,13 +3547,13 @@ Rules:
                                               <div className="flex items-center gap-1 sm:opacity-0 sm:group-hover/lesson:opacity-100 transition-opacity">
                                                 <button onClick={(e) => { e.stopPropagation(); moveItem('lesson', lesson.id, 'up', chapter.id); }} className="w-7 h-7 rounded-md flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-all cursor-pointer" title="Move Up"><ArrowUp size={12} /></button>
                                                 <button onClick={(e) => { e.stopPropagation(); moveItem('lesson', lesson.id, 'down', chapter.id); }} className="w-7 h-7 rounded-md flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-all cursor-pointer" title="Move Down"><ArrowDown size={12} /></button>
-                                                <button onClick={(e) => { e.stopPropagation(); setPreviewLesson(lesson); }} className="w-7 h-7 rounded-md flex items-center justify-center text-slate-400 dark:text-slate-555 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all cursor-pointer" title="Preview Class"><Eye size={12} /></button>
-                                                <button onClick={(e) => { e.stopPropagation(); handleSaveLessonToLibrary(lesson); }} className="w-7 h-7 rounded-md flex items-center justify-center text-slate-400 dark:text-slate-555 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all cursor-pointer" title="Save to Shared Library"><BookmarkPlus size={12} /></button>
-                                                <button onClick={(e) => { e.stopPropagation(); setLessonModal({ show: true, moduleId: module.id, chapterId: chapter.id, isEditing: true, lessonId: lesson.id, initialData: lesson }); }} className="w-7 h-7 rounded-md flex items-center justify-center text-slate-400 dark:text-slate-555 hover:text-blue-600 dark:hover:text-blue-400 transition-all cursor-pointer" title="Edit Class"><Edit2 size={12} /></button>
+                                                <button onClick={(e) => { e.stopPropagation(); setPreviewLesson(lesson); }} className="w-7 h-7 rounded-md flex items-center justify-center text-slate-400 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all cursor-pointer" title="Preview Class"><Eye size={12} /></button>
+                                                <button onClick={(e) => { e.stopPropagation(); handleSaveLessonToLibrary(lesson); }} className="w-7 h-7 rounded-md flex items-center justify-center text-slate-400 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all cursor-pointer" title="Save to Shared Library"><BookmarkPlus size={12} /></button>
+                                                <button onClick={(e) => { e.stopPropagation(); setLessonModal({ show: true, moduleId: module.id, chapterId: chapter.id, isEditing: true, lessonId: lesson.id, initialData: lesson }); }} className="w-7 h-7 rounded-md flex items-center justify-center text-slate-400 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all cursor-pointer" title="Edit Class"><Edit2 size={12} /></button>
                                                 <button
                                                   onClick={(e) => { e.stopPropagation(); handleDeleteItem(lesson.id, "lessons", lesson.title, lesson); }}
                                                   disabled={deletingId === lesson.id}
-                                                  className="w-7 h-7 rounded-md flex items-center justify-center text-slate-400 dark:text-slate-555 hover:text-rose-600 hover:border-rose-100 hover:bg-rose-50 dark:hover:text-rose-455 dark:hover:border-rose-900/40 dark:hover:bg-rose-950/30 transition-all cursor-pointer disabled:opacity-50"
+                                                  className="w-7 h-7 rounded-md flex items-center justify-center text-slate-400 dark:text-slate-400 hover:text-rose-600 hover:border-rose-100 hover:bg-rose-50 dark:hover:text-rose-400 dark:hover:border-rose-900/40 dark:hover:bg-rose-950/30 transition-all cursor-pointer disabled:opacity-50"
                                                   title="Delete Class"
                                                 >
                                                   {deletingId === lesson.id ? (
@@ -3840,12 +3868,12 @@ Rules:
                                       <button
                                         onClick={(e) => { e.stopPropagation(); toggleLessonField(lesson.id, 'is_locked', lesson.is_locked); }}
                                         className={`px-1.5 py-0.5 rounded-md border text-[10px] font-medium transition-colors flex items-center gap-1 cursor-pointer ${lesson.is_locked
-                                          ? 'bg-rose-50 hover:bg-rose-100 border-rose-200 text-rose-700 dark:bg-rose-950/30 dark:border-rose-900/50 dark:text-rose-455'
-                                          : 'bg-blue-50 hover:bg-blue-105 border-blue-200 text-blue-700 dark:bg-blue-950/30 dark:border-blue-900/50 dark:text-blue-400'
+                                          ? 'bg-rose-50 hover:bg-rose-100 border-rose-200 text-rose-700 dark:bg-rose-950/30 dark:border-rose-900/50 dark:text-rose-400'
+                                          : 'bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700 dark:bg-blue-950/30 dark:border-blue-900/50 dark:text-blue-400'
                                           }`}
                                         title={lesson.is_locked ? "Click to unlock class" : "Click to lock class"}
                                       >
-                                        {lesson.is_locked ? <Lock size={10} className="text-rose-600 dark:text-rose-455" /> : <Unlock size={10} className="text-blue-600 dark:text-blue-400" />}
+                                        {lesson.is_locked ? <Lock size={10} className="text-rose-600 dark:text-rose-400" /> : <Unlock size={10} className="text-blue-600 dark:text-blue-400" />}
                                         {lesson.is_locked ? "Locked" : "Unlocked"}
                                       </button>
                                     </div>
@@ -3854,13 +3882,13 @@ Rules:
                                     <div className="flex items-center gap-1 sm:opacity-0 sm:group-hover/lesson:opacity-100 transition-opacity">
                                       <button onClick={(e) => { e.stopPropagation(); moveItem('lesson', lesson.id, 'up', module.id); }} className="w-7 h-7 rounded-md flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-all cursor-pointer" title="Move Up"><ArrowUp size={12} /></button>
                                       <button onClick={(e) => { e.stopPropagation(); moveItem('lesson', lesson.id, 'down', module.id); }} className="w-7 h-7 rounded-md flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-all cursor-pointer" title="Move Down"><ArrowDown size={12} /></button>
-                                      <button onClick={(e) => { e.stopPropagation(); setPreviewLesson(lesson); }} className="w-7 h-7 rounded-md flex items-center justify-center text-slate-400 dark:text-slate-555 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all cursor-pointer" title="Preview Class"><Eye size={12} /></button>
-                                      <button onClick={(e) => { e.stopPropagation(); handleSaveLessonToLibrary(lesson); }} className="w-7 h-7 rounded-md flex items-center justify-center text-slate-400 dark:text-slate-555 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all cursor-pointer" title="Save to Shared Library"><BookmarkPlus size={12} /></button>
-                                      <button onClick={(e) => { e.stopPropagation(); setLessonModal({ show: true, moduleId: module.id, isEditing: true, lessonId: lesson.id, initialData: lesson }); }} className="w-7 h-7 rounded-md flex items-center justify-center text-slate-400 dark:text-slate-555 hover:text-blue-600 dark:hover:text-blue-400 transition-all cursor-pointer" title="Edit Class"><Edit2 size={12} /></button>
+                                      <button onClick={(e) => { e.stopPropagation(); setPreviewLesson(lesson); }} className="w-7 h-7 rounded-md flex items-center justify-center text-slate-400 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all cursor-pointer" title="Preview Class"><Eye size={12} /></button>
+                                      <button onClick={(e) => { e.stopPropagation(); handleSaveLessonToLibrary(lesson); }} className="w-7 h-7 rounded-md flex items-center justify-center text-slate-400 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all cursor-pointer" title="Save to Shared Library"><BookmarkPlus size={12} /></button>
+                                      <button onClick={(e) => { e.stopPropagation(); setLessonModal({ show: true, moduleId: module.id, isEditing: true, lessonId: lesson.id, initialData: lesson }); }} className="w-7 h-7 rounded-md flex items-center justify-center text-slate-400 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all cursor-pointer" title="Edit Class"><Edit2 size={12} /></button>
                                       <button
                                         onClick={(e) => { e.stopPropagation(); handleDeleteItem(lesson.id, "lessons", lesson.title, lesson); }}
                                         disabled={deletingId === lesson.id}
-                                        className="w-7 h-7 rounded-md flex items-center justify-center text-slate-400 dark:text-slate-555 hover:text-rose-600 hover:border-rose-100 hover:bg-rose-50 dark:hover:text-rose-455 dark:hover:border-rose-900/40 dark:hover:bg-rose-950/30 transition-all cursor-pointer disabled:opacity-50"
+                                        className="w-7 h-7 rounded-md flex items-center justify-center text-slate-400 dark:text-slate-400 hover:text-rose-600 hover:border-rose-100 hover:bg-rose-50 dark:hover:text-rose-400 dark:hover:border-rose-900/40 dark:hover:bg-rose-950/30 transition-all cursor-pointer disabled:opacity-50"
                                         title="Delete Class"
                                       >
                                         {deletingId === lesson.id ? (

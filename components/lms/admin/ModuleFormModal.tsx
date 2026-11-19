@@ -155,7 +155,7 @@ export default function ModuleFormModal({
         subtitle: null,
         batch: mode === "batch" ? batchName : null,
         batches: isGlobal ? [] : batches,
-        order_index: isEditing ? initialData?.order_index : (currentModulesCount + 1)
+        order_index: isEditing ? (initialData?.order_index ?? (currentModulesCount + 1)) : (currentModulesCount + 1)
       };
 
       if (isEditing && moduleId) {
@@ -244,7 +244,7 @@ export default function ModuleFormModal({
 
       onSuccess();
     } catch (err: any) {
-      console.error("Error saving module:", err);
+      console.warn("Error saving module:", err);
       alert("Error saving module: " + (err.message || err));
     } finally {
       setIsSubmitting(false);

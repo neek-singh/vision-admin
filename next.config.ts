@@ -1,4 +1,10 @@
 import type { NextConfig } from "next";
+import dns from "node:dns";
+
+// Prefer IPv4 to prevent ConnectTimeoutError on networks with dead NAT64 IPv6 routes
+if (typeof dns.setDefaultResultOrder === "function") {
+  dns.setDefaultResultOrder("ipv4first");
+}
 
 const nextConfig: NextConfig = {
   cacheComponents: true,

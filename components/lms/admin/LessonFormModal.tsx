@@ -2068,7 +2068,7 @@ console.log("Config loaded:", appConfig.appName);</code></pre>
         alert("Error saving: " + error.message);
       }
     } catch (err) {
-      console.error("Error saving lesson:", err);
+      console.warn("Error saving lesson:", err);
     } finally {
       setIsSubmitting(false);
     }
