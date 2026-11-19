@@ -29,9 +29,12 @@ import {
   GripVertical,
   Copy,
   AlertTriangle,
-  ExternalLink
+  ExternalLink,
+  CalendarCheck,
+  Check,
+  Loader2
 } from "lucide-react";
-import { createSchedule, deleteSchedule, getCurriculumTopics, updateScheduleDate, duplicateSchedule } from "@/app/actions/lms/schedule";
+import { createSchedule, createBulkSchedule, deleteSchedule, getCurriculumTopics, updateScheduleDate, duplicateSchedule } from "@/app/actions/lms/schedule";
 
 const TYPE_CFG: Record<string, { bg: string, text: string, border: string, icon: any, label: string, accent: string }> = {
   class: {
@@ -341,6 +344,286 @@ export default function ScheduleClient({
       .forEach(s => map.set(`${s.type}:${s.title}`, s.id));
     return map;
   }, [schedules, selectedCourseId, selectedBatch]);
+
+  // Bulk Schedule state
+  const [showBulkModal, setShowBulkModal] = useState(false);
+  const [bulkBatch, setBulkBatch] = useState("");
+  const [bulkStartDate, setBulkStartDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    const yr = d.getFullYear();
+    const mo = String(d.getMonth() + 1).padStart(2, '0');
+    const da = String(d.getDate()).padStart(2, '0');
+    return `${yr}-${mo}-${da}`;
+  });
+  const [bulkStartTime, setBulkStartTime] = useState("09:00");
+  const [bulkEndTime, setBulkEndTime] = useState("10:30");
+  const [bulkDays, setBulkDays] = useState<number[]>([1, 2, 3, 4, 5, 6]); // 1=Mon .. 6=Sat (0=Sun off)
+  const [bulkSkipHolidays, setBulkSkipHolidays] = useState(true);
+  const [bulkScope, setBulkScope] = useState<'unscheduled' | 'all' | 'module'>('unscheduled');
+  const [bulkSelectedModuleId, setBulkSelectedModuleId] = useState<string>('all');
+  const [bulkExcludedIds, setBulkExcludedIds] = useState<Set<string>>(new Set());
+  const [bulkLoading, setBulkLoading] = useState(false);
+
+  // Sync batch & default timings when Bulk modal opens
+  useEffect(() => {
+    if (showBulkModal) {
+      const target = (selectedBatch !== "All Batches")
+        ? selectedBatch
+        : (courseBatches[0]?.title || "");
+      setBulkBatch(target);
+      if (target) {
+        const { startTime, endTime } = getBatchTimings(target);
+        if (startTime) setBulkStartTime(startTime);
+        if (endTime) setBulkEndTime(endTime);
+      }
+      setBulkExcludedIds(new Set());
+    }
+  }, [showBulkModal, selectedBatch, courseBatches]);
+
+  const handleBulkBatchChange = (newBatch: string) => {
+    setBulkBatch(newBatch);
+    const { startTime, endTime } = getBatchTimings(newBatch);
+    if (startTime) setBulkStartTime(startTime);
+    if (endTime) setBulkEndTime(endTime);
+  };
+
+  // Set of dates that are recorded holidays
+  const holidayDatesSet = useMemo(() => {
+    const set = new Set<string>();
+    schedules.forEach(s => {
+      if (s.type === 'holiday') {
+        if (s.date) set.add(s.date);
+        if (s.event_date) set.add(s.event_date);
+      }
+    });
+    return set;
+  }, [schedules]);
+
+  // Flatten all candidate lessons from curriculum with their scheduled status
+  const allCandidateLessons = useMemo(() => {
+    const list: Array<{
+      id: string;
+      moduleId: string;
+      moduleTitle: string;
+      chapterTitle: string | null;
+      lessonTitle: string;
+      fullTitle: string;
+      type: 'class' | 'assignment' | 'project' | 'quiz';
+      isScheduled: boolean;
+      order_index: number;
+    }> = [];
+
+    const sortedModules = [...(curriculum.modules || [])].sort(
+      (a, b) => (a.order_index || 0) - (b.order_index || 0)
+    );
+
+    const targetBatchId = batchesList.find(b => b.title === bulkBatch)?.id;
+
+    for (const mod of sortedModules) {
+      if (bulkBatch && bulkBatch !== "All Batches" && targetBatchId) {
+        const isAssigned = mod.batches?.includes(targetBatchId);
+        const isGlobal = !mod.batches || mod.batches.length === 0;
+        if (!isAssigned && !isGlobal) continue;
+      }
+
+      // Chapters
+      const sortedChapters = [...(mod.lms_chapters || [])].sort(
+        (a, b) => (a.order_index || 0) - (b.order_index || 0)
+      );
+
+      for (const chap of sortedChapters) {
+        if (bulkBatch && bulkBatch !== "All Batches" && targetBatchId) {
+          const isAssigned = chap.batches?.includes(targetBatchId);
+          const isGlobal = !chap.batches || chap.batches.length === 0;
+          if (!isAssigned && !isGlobal) continue;
+        }
+
+        const sortedChapLessons = [...(chap.lessons || [])].sort(
+          (a, b) => (a.order_index || 0) - (b.order_index || 0)
+        );
+
+        for (const lesson of sortedChapLessons) {
+          if (bulkBatch && bulkBatch !== "All Batches" && targetBatchId) {
+            const isAssigned = lesson.batches?.includes(targetBatchId);
+            const isGlobal = !lesson.batches || lesson.batches.length === 0;
+            if (!isAssigned && !isGlobal) continue;
+          }
+
+          const scheduleType = getLessonScheduleType(lesson.lesson_type || lesson.type);
+          const fullTitle = getFullTitle(mod.title, chap.title, lesson.title);
+          const isScheduled = schedules.some(
+            s => s.course_id === selectedCourseId &&
+                 (bulkBatch === "All Batches" || s.batch === bulkBatch) &&
+                 s.type === scheduleType &&
+                 s.title === fullTitle
+          );
+
+          list.push({
+            id: lesson.id,
+            moduleId: mod.id,
+            moduleTitle: mod.title,
+            chapterTitle: chap.title,
+            lessonTitle: lesson.title,
+            fullTitle,
+            type: scheduleType,
+            isScheduled,
+            order_index: lesson.order_index || 0
+          });
+        }
+      }
+
+      // Direct module lessons
+      const sortedModLessons = [...(mod.lessons || [])]
+        .filter((l: any) => !l.chapter_id)
+        .sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+
+      for (const lesson of sortedModLessons) {
+        if (bulkBatch && bulkBatch !== "All Batches" && targetBatchId) {
+          const isAssigned = lesson.batches?.includes(targetBatchId);
+          const isGlobal = !lesson.batches || lesson.batches.length === 0;
+          if (!isAssigned && !isGlobal) continue;
+        }
+
+        const scheduleType = getLessonScheduleType(lesson.lesson_type || lesson.type);
+        const fullTitle = getFullTitle(mod.title, null, lesson.title);
+        const isScheduled = schedules.some(
+          s => s.course_id === selectedCourseId &&
+               (bulkBatch === "All Batches" || s.batch === bulkBatch) &&
+               s.type === scheduleType &&
+               s.title === fullTitle
+        );
+
+        list.push({
+          id: lesson.id,
+          moduleId: mod.id,
+          moduleTitle: mod.title,
+          chapterTitle: null,
+          lessonTitle: lesson.title,
+          fullTitle,
+          type: scheduleType,
+          isScheduled,
+          order_index: lesson.order_index || 0
+        });
+      }
+    }
+
+    return list;
+  }, [curriculum.modules, bulkBatch, batchesList, schedules, selectedCourseId]);
+
+  // Candidate lessons filtered by current scope selection
+  const scopedCandidateLessons = useMemo(() => {
+    if (bulkScope === 'unscheduled') {
+      return allCandidateLessons.filter(l => !l.isScheduled);
+    }
+    if (bulkScope === 'module' && bulkSelectedModuleId !== 'all') {
+      return allCandidateLessons.filter(l => l.moduleId === bulkSelectedModuleId);
+    }
+    return allCandidateLessons;
+  }, [allCandidateLessons, bulkScope, bulkSelectedModuleId]);
+
+  // Preview items with auto-computed dates
+  const bulkPreviewItems = useMemo(() => {
+    if (!bulkStartDate || scopedCandidateLessons.length === 0 || bulkDays.length === 0) {
+      return [];
+    }
+
+    const [yStr, mStr, dStr] = bulkStartDate.split('-');
+    let curr = new Date(Number(yStr), Number(mStr) - 1, Number(dStr));
+    const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+    const items: Array<{
+      lesson: typeof scopedCandidateLessons[0];
+      dateStr: string;
+      dayName: string;
+      formattedDate: string;
+      startTime: string;
+      endTime: string;
+      checked: boolean;
+    }> = [];
+
+    for (const lesson of scopedCandidateLessons) {
+      let safetyCounter = 0;
+      while (safetyCounter < 400) {
+        safetyCounter++;
+        const dayOfWeek = curr.getDay();
+        const y = curr.getFullYear();
+        const m = String(curr.getMonth() + 1).padStart(2, '0');
+        const d = String(curr.getDate()).padStart(2, '0');
+        const dateStr = `${y}-${m}-${d}`;
+
+        const isWorkingDay = bulkDays.includes(dayOfWeek);
+        const isHoliday = bulkSkipHolidays && holidayDatesSet.has(dateStr);
+
+        if (isWorkingDay && !isHoliday) {
+          const dayName = DAY_NAMES[dayOfWeek];
+          const formattedDate = curr.toLocaleDateString("en-US", {
+            day: "numeric",
+            month: "short",
+            weekday: "short"
+          });
+
+          items.push({
+            lesson,
+            dateStr,
+            dayName,
+            formattedDate,
+            startTime: bulkStartTime,
+            endTime: bulkEndTime,
+            checked: !bulkExcludedIds.has(lesson.id)
+          });
+
+          // Advance to next day for next lesson
+          curr.setDate(curr.getDate() + 1);
+          break;
+        }
+
+        // Advance to next day and continue searching
+        curr.setDate(curr.getDate() + 1);
+      }
+    }
+
+    return items;
+  }, [scopedCandidateLessons, bulkStartDate, bulkDays, bulkSkipHolidays, holidayDatesSet, bulkStartTime, bulkEndTime, bulkExcludedIds]);
+
+  const handleBulkScheduleSubmit = async () => {
+    const activeItems = bulkPreviewItems.filter(p => p.checked);
+    if (activeItems.length === 0) {
+      alert("Please select at least one lesson to schedule.");
+      return;
+    }
+    if (!bulkBatch || bulkBatch === "All Batches") {
+      alert("Please choose a specific batch for scheduling.");
+      return;
+    }
+
+    setBulkLoading(true);
+    try {
+      const payload = activeItems.map(item => ({
+        course_id: selectedCourseId,
+        batch: bulkBatch,
+        type: item.lesson.type,
+        title: item.lesson.fullTitle,
+        description: `Lesson: ${item.lesson.lessonTitle}`,
+        date: item.dateStr,
+        start_time: item.startTime,
+        end_time: item.endTime
+      }));
+
+      const res = await createBulkSchedule(payload);
+      if (res.success) {
+        alert(`Success! Scheduled ${res.count} lessons successfully for "${bulkBatch}".`);
+        setShowBulkModal(false);
+        router.refresh();
+      } else {
+        alert(res.error || "Failed to schedule lessons");
+      }
+    } catch (err: any) {
+      alert(err?.message || "An unexpected error occurred");
+    } finally {
+      setBulkLoading(false);
+    }
+  };
 
   // Drag-and-Drop Handlers
   const handleSidebarDragStart = (e: React.DragEvent, item: {
@@ -755,6 +1038,16 @@ export default function ScheduleClient({
             </div>
 
             <div className="flex items-center gap-1.5 flex-1 md:flex-initial justify-end">
+              <button
+                type="button"
+                onClick={() => setShowBulkModal(true)}
+                className="min-h-[34px] px-2.5 sm:px-3 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-semibold text-xs transition-all flex items-center gap-1.5 shadow-sm shadow-blue-500/25 cursor-pointer shrink-0"
+                title="Schedule multiple lessons automatically across upcoming dates"
+              >
+                <Sparkles size={13} className="shrink-0 text-amber-300" />
+                <span>Bulk Schedule</span>
+              </button>
+
               <Link
                 href="/calendar"
                 className="min-h-[34px] px-2.5 sm:px-3.5 py-1.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-xl font-medium text-xs transition-colors flex items-center gap-1 cursor-pointer shrink-0"
@@ -1618,6 +1911,402 @@ export default function ScheduleClient({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Schedule Modal */}
+      {showBulkModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex items-center justify-center p-3 sm:p-5 animate-in fade-in duration-150">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden border border-slate-200 dark:border-slate-800 flex flex-col max-h-[92vh] animate-in zoom-in-95 duration-150">
+            
+            {/* Modal Header */}
+            <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0 bg-slate-50/50 dark:bg-slate-800/30">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-blue-600/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                  <Sparkles size={18} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    Bulk Schedule Lessons
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300">
+                      Smart Scheduler
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Automatically calculate dates and schedule multiple lessons in order
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowBulkModal(false)}
+                className="min-h-[36px] min-w-[36px] flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                aria-label="Close"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="flex-1 overflow-y-auto p-5 space-y-5">
+              
+              {/* Configuration Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                
+                {/* Target Batch */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                    <Users size={13} className="text-blue-500" />
+                    Target Batch *
+                  </label>
+                  <select
+                    value={bulkBatch}
+                    onChange={(e) => handleBulkBatchChange(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 text-xs font-medium outline-none focus:border-blue-500 dark:focus:border-blue-400 cursor-pointer"
+                  >
+                    {courseBatches.length === 0 ? (
+                      <option value="">No batches available for this course</option>
+                    ) : (
+                      courseBatches.map((b: any, i: number) => (
+                        <option key={i} value={b.title}>
+                          {b.title} {b.timing ? `(${b.timing})` : ''}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                </div>
+
+                {/* Start Date */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                    <Calendar size={13} className="text-blue-500" />
+                    Schedule Start Date *
+                  </label>
+                  <input
+                    type="date"
+                    value={bulkStartDate}
+                    onChange={(e) => setBulkStartDate(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 text-xs font-medium outline-none focus:border-blue-500 dark:focus:border-blue-400 cursor-pointer"
+                  />
+                </div>
+
+                {/* Timings */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                    <Clock size={13} className="text-blue-500" />
+                    Daily Class Timings
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <span className="text-[10px] text-slate-400 block mb-0.5">Start Time</span>
+                      <input
+                        type="time"
+                        value={bulkStartTime}
+                        onChange={(e) => setBulkStartTime(e.target.value)}
+                        className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 text-xs font-medium outline-none"
+                      />
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block mb-0.5">End Time</span>
+                      <input
+                        type="time"
+                        value={bulkEndTime}
+                        onChange={(e) => setBulkEndTime(e.target.value)}
+                        className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 text-xs font-medium outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Working Days */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                      <CalendarDays size={13} className="text-blue-500" />
+                      Working Class Days
+                    </label>
+                    <div className="flex items-center gap-1.5 text-[10px]">
+                      <button
+                        type="button"
+                        onClick={() => setBulkDays([1, 2, 3, 4, 5, 6])}
+                        className="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer font-medium"
+                      >
+                        Mon-Sat
+                      </button>
+                      <span className="text-slate-300 dark:text-slate-600">•</span>
+                      <button
+                        type="button"
+                        onClick={() => setBulkDays([1, 2, 3, 4, 5])}
+                        className="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer font-medium"
+                      >
+                        Mon-Fri
+                      </button>
+                      <span className="text-slate-300 dark:text-slate-600">•</span>
+                      <button
+                        type="button"
+                        onClick={() => setBulkDays([1, 3, 5])}
+                        className="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer font-medium"
+                      >
+                        MWF
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {[
+                      { d: 1, label: "M", title: "Monday" },
+                      { d: 2, label: "T", title: "Tuesday" },
+                      { d: 3, label: "W", title: "Wednesday" },
+                      { d: 4, label: "T", title: "Thursday" },
+                      { d: 5, label: "F", title: "Friday" },
+                      { d: 6, label: "S", title: "Saturday" },
+                      { d: 0, label: "S", title: "Sunday" },
+                    ].map((item) => {
+                      const active = bulkDays.includes(item.d);
+                      return (
+                        <button
+                          key={item.d}
+                          type="button"
+                          title={item.title}
+                          onClick={() => {
+                            if (active) {
+                              if (bulkDays.length > 1) {
+                                setBulkDays(bulkDays.filter(x => x !== item.d));
+                              }
+                            } else {
+                              setBulkDays([...bulkDays, item.d].sort());
+                            }
+                          }}
+                          className={`flex-1 h-8 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                            active
+                              ? "bg-blue-600 text-white shadow-sm"
+                              : "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                          }`}
+                        >
+                          {item.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Options Row: Skip Holidays & Scope */}
+              <div className="bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={bulkSkipHolidays}
+                      onChange={(e) => setBulkSkipHolidays(e.target.checked)}
+                      className="w-4 h-4 rounded text-blue-600 border-slate-300 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700 cursor-pointer"
+                    />
+                    <span className="text-xs font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                      <Flag size={12} className="text-rose-500" />
+                      Auto-skip holidays in calendar ({holidayDatesSet.size} recorded)
+                    </span>
+                  </label>
+
+                  {/* Scope Filter Buttons */}
+                  <div className="flex items-center gap-1 bg-white dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setBulkScope('unscheduled')}
+                      className={`px-2.5 py-1 rounded-md font-medium transition-all cursor-pointer ${
+                        bulkScope === 'unscheduled'
+                          ? 'bg-blue-600 text-white shadow-sm'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                      }`}
+                    >
+                      Unscheduled ({allCandidateLessons.filter(l => !l.isScheduled).length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBulkScope('all')}
+                      className={`px-2.5 py-1 rounded-md font-medium transition-all cursor-pointer ${
+                        bulkScope === 'all'
+                          ? 'bg-blue-600 text-white shadow-sm'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                      }`}
+                    >
+                      All ({allCandidateLessons.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBulkScope('module')}
+                      className={`px-2.5 py-1 rounded-md font-medium transition-all cursor-pointer ${
+                        bulkScope === 'module'
+                          ? 'bg-blue-600 text-white shadow-sm'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                      }`}
+                    >
+                      By Module
+                    </button>
+                  </div>
+                </div>
+
+                {bulkScope === 'module' && (
+                  <div className="pt-2 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center gap-2">
+                    <span className="text-xs text-slate-500 font-medium shrink-0">Choose Module:</span>
+                    <select
+                      value={bulkSelectedModuleId}
+                      onChange={(e) => setBulkSelectedModuleId(e.target.value)}
+                      className="flex-1 px-2.5 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-medium text-slate-800 dark:text-slate-200 outline-none"
+                    >
+                      <option value="all">Select a Module...</option>
+                      {(curriculum.modules || []).map((m: any) => (
+                        <option key={m.id} value={m.id}>{m.title}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              {/* Live Preview Section */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                    <CalendarCheck size={14} className="text-blue-500" />
+                    Schedule Preview ({bulkPreviewItems.filter(p => p.checked).length} of {bulkPreviewItems.length} Lessons Selected)
+                  </h4>
+                  <div className="flex items-center gap-2 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setBulkExcludedIds(new Set())}
+                      className="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer font-medium"
+                    >
+                      Select All
+                    </button>
+                    <span className="text-slate-300 dark:text-slate-600">•</span>
+                    <button
+                      type="button"
+                      onClick={() => setBulkExcludedIds(new Set(scopedCandidateLessons.map(l => l.id)))}
+                      className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:underline cursor-pointer font-medium"
+                    >
+                      Deselect All
+                    </button>
+                  </div>
+                </div>
+
+                {/* Preview Scrollable List */}
+                <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-slate-50/50 dark:bg-slate-900/50">
+                  {bulkPreviewItems.length === 0 ? (
+                    <div className="p-8 text-center text-slate-400 dark:text-slate-600">
+                      <AlertTriangle size={24} className="mx-auto mb-2 opacity-50 text-amber-500" />
+                      <p className="text-xs font-medium">No lessons available for the chosen criteria.</p>
+                      <p className="text-[11px] mt-0.5">Try switching scope to "All Lessons" or picking another module.</p>
+                    </div>
+                  ) : (
+                    <div className="max-h-72 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/80">
+                      {bulkPreviewItems.map((item, idx) => (
+                        <div
+                          key={item.lesson.id}
+                          onClick={() => {
+                            setBulkExcludedIds(prev => {
+                              const next = new Set(prev);
+                              if (next.has(item.lesson.id)) {
+                                next.delete(item.lesson.id);
+                              } else {
+                                next.add(item.lesson.id);
+                              }
+                              return next;
+                            });
+                          }}
+                          className={`px-3 py-2.5 flex items-center justify-between gap-3 text-xs transition-colors cursor-pointer select-none ${
+                            item.checked
+                              ? "bg-white dark:bg-slate-900 hover:bg-blue-50/40 dark:hover:bg-blue-950/20"
+                              : "bg-slate-100/50 dark:bg-slate-900/20 opacity-50 hover:opacity-75"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                            <input
+                              type="checkbox"
+                              checked={item.checked}
+                              onChange={() => {}}
+                              className="w-4 h-4 rounded text-blue-600 border-slate-300 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700 cursor-pointer shrink-0"
+                            />
+                            <span className="text-[11px] font-mono text-slate-400 dark:text-slate-500 w-5 text-right shrink-0">
+                              #{idx + 1}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                                  {item.lesson.moduleTitle}
+                                </span>
+                                {item.lesson.chapterTitle && (
+                                  <span className="text-[10px] text-slate-400 dark:text-slate-500">
+                                    › {item.lesson.chapterTitle}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate mt-0.5">
+                                {item.lesson.lessonTitle}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Date & Time Badge */}
+                          <div className="shrink-0 text-right flex items-center gap-2">
+                            <div className="px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-900/40 text-blue-700 dark:text-blue-300 text-right">
+                              <div className="text-[11px] font-bold leading-tight">
+                                {item.formattedDate}
+                              </div>
+                              <div className="text-[9px] text-blue-600/80 dark:text-blue-400/80 leading-tight">
+                                {item.startTime}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-5 py-3.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0 bg-slate-50/50 dark:bg-slate-800/30">
+              <p className="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">
+                {bulkPreviewItems.filter(p => p.checked).length > 0 ? (
+                  <>
+                    Scheduling <strong>{bulkPreviewItems.filter(p => p.checked).length}</strong> classes from{" "}
+                    <strong>{bulkPreviewItems[0]?.formattedDate}</strong> to{" "}
+                    <strong>{bulkPreviewItems[bulkPreviewItems.length - 1]?.formattedDate}</strong>
+                  </>
+                ) : (
+                  "Select lessons to schedule"
+                )}
+              </p>
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                <button
+                  type="button"
+                  onClick={() => setShowBulkModal(false)}
+                  className="flex-1 sm:flex-initial min-h-[38px] px-4 py-2 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={bulkLoading || bulkPreviewItems.filter(p => p.checked).length === 0}
+                  onClick={handleBulkScheduleSubmit}
+                  className="flex-1 sm:flex-initial min-h-[38px] px-5 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-sm shadow-blue-500/25 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {bulkLoading ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin shrink-0" />
+                      Scheduling...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={14} className="shrink-0 text-amber-300" />
+                      Confirm & Schedule {bulkPreviewItems.filter(p => p.checked).length} Lessons
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
           </div>
         </div>
       )}

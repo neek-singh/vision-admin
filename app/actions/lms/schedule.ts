@@ -89,6 +89,92 @@ export async function createSchedule(data: {
   }
 }
 
+export async function createBulkSchedule(items: Array<{
+  course_id?: string;
+  batch?: string;
+  type: 'class' | 'test' | 'assignment' | 'project' | 'quiz' | 'holiday' | 'event';
+  title: string;
+  description?: string;
+  date: string;
+  start_time?: string;
+  end_time?: string;
+}>) {
+  try {
+    if (!items || items.length === 0) {
+      return { error: "No items provided for scheduling" };
+    }
+    const { supabase } = await requireAdmin();
+
+    const scheduleRecords: any[] = [];
+    const eventRecords: any[] = [];
+
+    for (const item of items) {
+      if (item.type === 'holiday' || item.type === 'event') {
+        eventRecords.push({
+          course_id: item.course_id || null,
+          type: item.type,
+          title: item.title,
+          description: item.description || null,
+          event_date: item.date,
+          start_time: item.start_time || null,
+          end_time: item.end_time || null,
+          location: item.type === 'holiday' ? 'Institute-Wide' : 'Online'
+        });
+      } else {
+        scheduleRecords.push({
+          course_id: item.course_id || null,
+          batch: item.batch,
+          type: item.type,
+          title: item.title,
+          description: item.description || null,
+          date: item.date,
+          start_time: item.start_time || null,
+          end_time: item.end_time || null
+        });
+      }
+    }
+
+    if (scheduleRecords.length > 0) {
+      const { error } = await supabase.from("schedules").insert(scheduleRecords);
+      if (error) {
+        console.error("Bulk schedule insert error:", error);
+        return { error: `Failed to insert schedules: ${error.message}` };
+      }
+    }
+
+    if (eventRecords.length > 0) {
+      const { error } = await supabase.from("events").insert(eventRecords);
+      if (error) {
+        console.error("Bulk event insert error:", error);
+        return { error: `Failed to insert events: ${error.message}` };
+      }
+    }
+
+    // Trigger single consolidated notification to related batch students
+    try {
+      const sampleItem = items[0];
+      const studentIds = await getStudentIdsForBatch(sampleItem.batch, sampleItem.course_id);
+      if (studentIds.length > 0) {
+        await notifyStudents(studentIds, {
+          title: "Nayi Classes Schedule Huin 📅",
+          body: `Aapke batch ke liye ${items.length} nayi classes schedule ki gayi hain.`,
+          url: "/student/schedule",
+          type: "schedule"
+        });
+      }
+    } catch (notifErr) {
+      console.error("[createBulkSchedule] Failed to notify students:", notifErr);
+    }
+
+    revalidatePath("/schedule");
+    revalidatePath("/calendar");
+    return { success: true, count: items.length };
+  } catch (err: unknown) {
+    console.error("createBulkSchedule error:", err);
+    return { error: err instanceof Error ? err.message : "Unauthorized" };
+  }
+}
+
 export async function deleteSchedule(id: string) {
   try {
     const { supabase } = await requireAdmin();
