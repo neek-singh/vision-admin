@@ -344,7 +344,9 @@ body {
   border-color: #334155 !important;
 }
 
-.rich-content pre {
+.rich-content pre,
+.prose pre,
+article pre {
   background: #0d1117 !important;
   color: #f0f6fc !important;
   padding: 14px 18px !important;
@@ -357,7 +359,9 @@ body {
   line-height: 1.75 !important;
   letter-spacing: 0.02em !important;
 }
-.rich-content pre code {
+.rich-content pre code,
+.prose pre code,
+article pre code {
   background: transparent !important;
   color: #f0f6fc !important;
   padding: 0 !important;

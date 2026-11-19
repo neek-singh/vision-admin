@@ -1,4 +1,4 @@
-// Utility for colorful syntax highlighting and copy button on code blocks
+// Utility for colorful syntax highlighting, high-visibility contrast, and copy button on code blocks
 
 function escapeHtml(str: string): string {
   return str
@@ -41,7 +41,7 @@ export function detectLanguage(code: string): string {
   if (/^<!DOCTYPE/i.test(trimmed) || /<\/?(html|head|body|div|span|p|a|h[1-6]|table|tr|td|th|form|input|button|script|style|meta|link)/i.test(trimmed)) {
     return 'html';
   }
-  if (/(@media|@keyframes|font-size:|background-color:|\.[a-zA-Z0-9_-]+\s*\{|#[a-zA-Z0-9_-]+\s*\{|::?[a-zA-Z0-9_-]+|\[href)/.test(trimmed)) {
+  if (/(@media|@keyframes|font-size:|background-color:|\.[a-zA-Z0-9_-]+\s*\{|#[a-zA-Z0-9_-]+\s*\{|::?[a-zA-Z0-9_-]+|\[href|text-align:)/.test(trimmed)) {
     return 'css';
   }
   if (/(def\s+[a-zA-Z_]|import\s+[a-zA-Z_]|from\s+[a-zA-Z_]|print\(|elif\s+|if\s+__name__)/.test(trimmed)) {
@@ -54,91 +54,6 @@ export function detectLanguage(code: string): string {
     return 'sql';
   }
   return 'code';
-}
-
-function highlightHtml(code: string): { html: string; lang: string } {
-  const tokenRegex = /(<!--[\s\S]*?-->)|(<!DOCTYPE[\s\S]*?>)|(<\/?[a-zA-Z0-9\-]+)([\s\S]*?)(\/?>)/gi;
-  
-  let result = '';
-  let lastIndex = 0;
-  let match: RegExpExecArray | null;
-
-  while ((match = tokenRegex.exec(code)) !== null) {
-    result += escapeHtml(code.slice(lastIndex, match.index));
-    lastIndex = tokenRegex.lastIndex;
-
-    const [, comment, doctype, tagStart, tagAttrs, tagEnd] = match;
-
-    if (comment) {
-      result += `<span style="color:#8b949e !important;font-style:italic;">${escapeHtml(comment)}</span>`;
-    } else if (doctype) {
-      result += `<span style="color:#ff7b72 !important;font-weight:600;">${escapeHtml(doctype)}</span>`;
-    } else if (tagStart) {
-      const isClose = tagStart.startsWith('</');
-      const tagName = isClose ? tagStart.slice(2) : tagStart.slice(1);
-      const openBracket = isClose ? '&lt;/' : '&lt;';
-
-      let renderedAttrs = '';
-      if (tagAttrs) {
-        const attrRegex = /([a-zA-Z0-9\-:]+)(?:(=)("[^"]*"|'[^']*'|[^\s>]+))?/g;
-        let attrMatch: RegExpExecArray | null;
-        let lastAttrIndex = 0;
-
-        while ((attrMatch = attrRegex.exec(tagAttrs)) !== null) {
-          renderedAttrs += escapeHtml(tagAttrs.slice(lastAttrIndex, attrMatch.index));
-          lastAttrIndex = attrRegex.lastIndex;
-
-          const attrName = attrMatch[1];
-          const eq = attrMatch[2];
-          const attrVal = attrMatch[3];
-
-          renderedAttrs += `<span style="color:#d2a8ff !important;">${escapeHtml(attrName)}</span>`;
-          if (eq && attrVal !== undefined) {
-            renderedAttrs += `<span style="color:#e6edf3 !important;">=</span>`;
-            renderedAttrs += `<span style="color:#a5d6ff !important;">${escapeHtml(attrVal)}</span>`;
-          }
-        }
-        renderedAttrs += escapeHtml(tagAttrs.slice(lastAttrIndex));
-      }
-
-      const closeBracket = tagEnd === '/>' ? '/&gt;' : '&gt;';
-      result += `<span style="color:#79c0ff !important;">${openBracket}</span><span style="color:#7ee787 !important;font-weight:600;">${escapeHtml(tagName)}</span>${renderedAttrs}<span style="color:#79c0ff !important;">${closeBracket}</span>`;
-    }
-  }
-
-  result += escapeHtml(code.slice(lastIndex));
-  return { html: result, lang: 'HTML' };
-}
-
-function highlightJs(code: string): { html: string; lang: string } {
-  const tokenRegex = /(\/\*[\s\S]*?\*\/|\/\/.*$)|(`(?:\\`|[\s\S])*?`|"(?:\\"|[^"\n])*"|'(?:\\'|[^'\n])*')|(\b(?:const|let|var|function|return|if|else|for|while|do|switch|case|break|continue|new|this|typeof|instanceof|import|export|from|default|class|extends|try|catch|finally|throw|async|await|yield)\b)|(\b(?:console|window|document|Math|JSON|Array|Object|String|Number|Boolean|Promise|setTimeout|setInterval)\b)|(\b(?:true|false|null|undefined|NaN)\b)|(\b\d+(?:\.\d+)?\b)/gm;
-
-  let result = '';
-  let lastIndex = 0;
-  let match: RegExpExecArray | null;
-
-  while ((match = tokenRegex.exec(code)) !== null) {
-    result += escapeHtml(code.slice(lastIndex, match.index));
-    lastIndex = tokenRegex.lastIndex;
-
-    const [token, comment, str, keyword, builtin, literal, num] = match;
-    if (comment) {
-      result += `<span style="color:#8b949e !important;font-style:italic;">${escapeHtml(token)}</span>`;
-    } else if (str) {
-      result += `<span style="color:#a5d6ff !important;">${escapeHtml(token)}</span>`;
-    } else if (keyword) {
-      result += `<span style="color:#ff7b72 !important;font-weight:600;">${escapeHtml(token)}</span>`;
-    } else if (builtin) {
-      result += `<span style="color:#79c0ff !important;">${escapeHtml(token)}</span>`;
-    } else if (literal) {
-      result += `<span style="color:#79c0ff !important;font-weight:600;">${escapeHtml(token)}</span>`;
-    } else if (num) {
-      result += `<span style="color:#fb923c !important;">${escapeHtml(token)}</span>`;
-    }
-  }
-
-  result += escapeHtml(code.slice(lastIndex));
-  return { html: result, lang: 'JAVASCRIPT' };
 }
 
 function highlightCss(code: string): { html: string; lang: string } {
@@ -194,7 +109,7 @@ function highlightCss(code: string): { html: string; lang: string } {
     } else if (colon) {
       result += `<span style="color:#8b949e !important;">${escapeHtml(colon)}</span>`;
       if (val) {
-        const valRegex = /("(?:\\"|[^"\n])*"|'(?:\\'|[^'\n])*')|(\b\d+(?:\.\d+)?(?:px|rem|em|%|vh|vw|pt|s|ms|deg|fr)?\b)|(#[0-9a-fA-F]{3,8}\b)|(\b(?:none|crimson|red|blue|green|white|black|transparent|inherit|initial|unset|solid|dashed|dotted|block|flex|grid|inline|relative|absolute|fixed|sticky)\b)/g;
+        const valRegex = /("(?:\\"|[^"\n])*"|'(?:\\'|[^'\n])*')|(\b\d+(?:\.\d+)?(?:px|rem|em|%|vh|vw|pt|s|ms|deg|fr)?\b)|(#[0-9a-fA-F]{3,8}\b)|(\b(?:none|crimson|red|blue|green|white|black|transparent|inherit|initial|unset|solid|dashed|dotted|block|flex|grid|inline|relative|absolute|fixed|sticky|center|left|right|justify|bold|normal|italic|underline|hidden|visible|auto|pointer|cursor|uppercase|lowercase|capitalize|sans-serif|serif|monospace)\b)/g;
         let vHtml = '';
         let vLastIndex = 0;
         let vMatch: RegExpExecArray | null;
@@ -219,12 +134,106 @@ function highlightCss(code: string): { html: string; lang: string } {
         result += `<span style="color:#8b949e !important;">${escapeHtml(semi)}</span>`;
       }
     } else if (brace) {
-      result += `<span style="color:#e6edf3 !important;">${escapeHtml(brace)}</span>`;
+      result += `<span style="color:#e6edf3 !important;font-weight:600;">${escapeHtml(brace)}</span>`;
     }
   }
 
   result += escapeHtml(code.slice(lastIndex));
   return { html: result, lang: 'CSS' };
+}
+
+function highlightJs(code: string): { html: string; lang: string } {
+  const tokenRegex = /(\/\*[\s\S]*?\*\/|\/\/.*$)|(`(?:\\`|[\s\S])*?`|"(?:\\"|[^"\n])*"|'(?:\\'|[^'\n])*')|(\b(?:const|let|var|function|return|if|else|for|while|do|switch|case|break|continue|new|this|typeof|instanceof|import|export|from|default|class|extends|try|catch|finally|throw|async|await|yield)\b)|(\b(?:console|window|document|Math|JSON|Array|Object|String|Number|Boolean|Promise|setTimeout|setInterval)\b)|(\b(?:true|false|null|undefined|NaN)\b)|(\b\d+(?:\.\d+)?\b)/gm;
+
+  let result = '';
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = tokenRegex.exec(code)) !== null) {
+    result += escapeHtml(code.slice(lastIndex, match.index));
+    lastIndex = tokenRegex.lastIndex;
+
+    const [token, comment, str, keyword, builtin, literal, num] = match;
+    if (comment) {
+      result += `<span style="color:#8b949e !important;font-style:italic;">${escapeHtml(token)}</span>`;
+    } else if (str) {
+      result += `<span style="color:#a5d6ff !important;">${escapeHtml(token)}</span>`;
+    } else if (keyword) {
+      result += `<span style="color:#ff7b72 !important;font-weight:600;">${escapeHtml(token)}</span>`;
+    } else if (builtin) {
+      result += `<span style="color:#79c0ff !important;">${escapeHtml(token)}</span>`;
+    } else if (literal) {
+      result += `<span style="color:#79c0ff !important;font-weight:600;">${escapeHtml(token)}</span>`;
+    } else if (num) {
+      result += `<span style="color:#fb923c !important;">${escapeHtml(token)}</span>`;
+    }
+  }
+
+  result += escapeHtml(code.slice(lastIndex));
+  return { html: result, lang: 'JAVASCRIPT' };
+}
+
+function highlightHtml(code: string): { html: string; lang: string } {
+  // Tokenize comments, DOCTYPE, embedded <style>...</style>, embedded <script>...</script>, and HTML tags
+  const tokenRegex = /(<!--[\s\S]*?-->)|(<!DOCTYPE[\s\S]*?>)|(<style\b[^>]*>)([\s\S]*?)(<\/style>)|(<script\b[^>]*>)([\s\S]*?)(<\/script>)|(<\/?[a-zA-Z0-9\-]+)([\s\S]*?)(\/?>)/gi;
+  
+  let result = '';
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = tokenRegex.exec(code)) !== null) {
+    result += escapeHtml(code.slice(lastIndex, match.index));
+    lastIndex = tokenRegex.lastIndex;
+
+    const [, comment, doctype, styleOpen, styleBody, styleClose, scriptOpen, scriptBody, scriptClose, tagStart, tagAttrs, tagEnd] = match;
+
+    if (comment) {
+      result += `<span style="color:#8b949e !important;font-style:italic;">${escapeHtml(comment)}</span>`;
+    } else if (doctype) {
+      result += `<span style="color:#ff7b72 !important;font-weight:600;">${escapeHtml(doctype)}</span>`;
+    } else if (styleOpen) {
+      result += `<span style="color:#79c0ff !important;">&lt;</span><span style="color:#7ee787 !important;font-weight:600;">style</span><span style="color:#79c0ff !important;">&gt;</span>`;
+      result += highlightCss(styleBody).html;
+      result += `<span style="color:#79c0ff !important;">&lt;/</span><span style="color:#7ee787 !important;font-weight:600;">style</span><span style="color:#79c0ff !important;">&gt;</span>`;
+    } else if (scriptOpen) {
+      result += `<span style="color:#79c0ff !important;">&lt;</span><span style="color:#7ee787 !important;font-weight:600;">script</span><span style="color:#79c0ff !important;">&gt;</span>`;
+      result += highlightJs(scriptBody).html;
+      result += `<span style="color:#79c0ff !important;">&lt;/</span><span style="color:#7ee787 !important;font-weight:600;">script</span><span style="color:#79c0ff !important;">&gt;</span>`;
+    } else if (tagStart) {
+      const isClose = tagStart.startsWith('</');
+      const tagName = isClose ? tagStart.slice(2) : tagStart.slice(1);
+      const openBracket = isClose ? '&lt;/' : '&lt;';
+
+      let renderedAttrs = '';
+      if (tagAttrs) {
+        const attrRegex = /([a-zA-Z0-9\-:]+)(?:(=)("[^"]*"|'[^']*'|[^\s>]+))?/g;
+        let attrMatch: RegExpExecArray | null;
+        let lastAttrIndex = 0;
+
+        while ((attrMatch = attrRegex.exec(tagAttrs)) !== null) {
+          renderedAttrs += escapeHtml(tagAttrs.slice(lastAttrIndex, attrMatch.index));
+          lastAttrIndex = attrRegex.lastIndex;
+
+          const attrName = attrMatch[1];
+          const eq = attrMatch[2];
+          const attrVal = attrMatch[3];
+
+          renderedAttrs += `<span style="color:#d2a8ff !important;">${escapeHtml(attrName)}</span>`;
+          if (eq && attrVal !== undefined) {
+            renderedAttrs += `<span style="color:#e6edf3 !important;">=</span>`;
+            renderedAttrs += `<span style="color:#a5d6ff !important;">${escapeHtml(attrVal)}</span>`;
+          }
+        }
+        renderedAttrs += escapeHtml(tagAttrs.slice(lastAttrIndex));
+      }
+
+      const closeBracket = tagEnd === '/>' ? '/&gt;' : '&gt;';
+      result += `<span style="color:#79c0ff !important;">${openBracket}</span><span style="color:#7ee787 !important;font-weight:600;">${escapeHtml(tagName)}</span>${renderedAttrs}<span style="color:#79c0ff !important;">${closeBracket}</span>`;
+    }
+  }
+
+  result += escapeHtml(code.slice(lastIndex));
+  return { html: result, lang: 'HTML' };
 }
 
 function highlightPython(code: string): { html: string; lang: string } {
@@ -357,34 +366,30 @@ export function enhanceCodeBlocks(container?: HTMLElement | Document | null) {
   const preBlocks = root.querySelectorAll<HTMLElement>('.rich-content pre, article pre, .prose pre, .notes-content pre');
 
   preBlocks.forEach((pre) => {
-    // If already enhanced with v2, just ensure copy button handler is bound
+    // If already enhanced with v3, just ensure copy button handler is bound
     const existingBtn = pre.querySelector<HTMLButtonElement>('.code-copy-btn');
-    if (pre.getAttribute('data-code-ready') === 'v2' && existingBtn) {
+    if (pre.getAttribute('data-code-ready') === 'v3' && existingBtn) {
       const codeEl = pre.querySelector('code');
       const raw = pre.dataset.rawCode || (codeEl ? codeEl.textContent : '') || '';
       bindCopyBtn(existingBtn, raw);
       return;
     }
 
-    // If pre contains a previously saved header toolbar from database, remove it to get clean code
-    const existingHeader = pre.querySelector('.code-toolbar-header');
-    if (existingHeader) {
-      existingHeader.remove();
-    }
-
+    // Extract raw text: If pre had an existing header or nested divs from a previously saved session in DB,
+    // grab the text directly from the code element
     const codeEl = pre.querySelector('code');
     const rawCode = (codeEl ? codeEl.textContent : pre.textContent) || '';
     if (!rawCode.trim()) return;
 
     pre.setAttribute('data-code-enhanced', 'true');
-    pre.setAttribute('data-code-ready', 'v2');
+    pre.setAttribute('data-code-ready', 'v3');
     pre.dataset.rawCode = rawCode;
 
     const { html, lang } = highlightSyntax(rawCode);
 
     pre.style.position = 'relative';
-    pre.style.backgroundColor = '#0d1117';
-    pre.style.color = '#f0f6fc';
+    pre.style.setProperty('background-color', '#0d1117', 'important');
+    pre.style.setProperty('color', '#f0f6fc', 'important');
     pre.style.borderRadius = '12px';
     pre.style.border = '1px solid #30363d';
     pre.style.overflow = 'hidden';
@@ -479,7 +484,8 @@ export function enhanceCodeBlocks(container?: HTMLElement | Document | null) {
     codeElement.style.lineHeight = '1.75';
     codeElement.style.letterSpacing = '0.02em';
     codeElement.style.tabSize = '2';
-    codeElement.style.color = '#f0f6fc';
+    codeElement.style.setProperty('color', '#f0f6fc', 'important');
+    codeElement.style.setProperty('background-color', 'transparent', 'important');
     codeElement.style.whiteSpace = 'pre';
     codeContainer.appendChild(codeElement);
 

@@ -10,6 +10,7 @@ import { supabase } from "@/lib/supabase";
 import MultiSelect from "@/components/ui/MultiSelect";
 import DOMPurify from "isomorphic-dompurify";
 import { enhanceCodeBlocks } from "@/lib/codeHighlighter";
+import { calculateReadingStats, ReadingStats } from "@/lib/readingTime";
 
 interface LessonFormModalProps {
   courseId: string;
@@ -71,7 +72,8 @@ export default function LessonFormModal({
     order_index: initialData?.order_index || 0,
     batches: initialData?.batches || (mode === "batch" && selectedBatchId ? [selectedBatchId] : []),
     difficulty: initialData?.difficulty || "beginner",
-    tags: Array.isArray(initialData?.tags) ? initialData.tags : []
+    tags: Array.isArray(initialData?.tags) ? initialData.tags : [],
+    duration: initialData?.duration || (initialData?.duration_mins ? String(initialData.duration_mins) : "")
   });
   const [tagInput, setTagInput] = useState("");
 
@@ -234,15 +236,23 @@ export default function LessonFormModal({
   // ── Upgraded Rich Text Editor State ──
   const [editorViewMode, setEditorViewMode] = useState<'edit' | 'split' | 'preview'>('edit');
   const [liveHtml, setLiveHtml] = useState<string>(initialHtmlRef.current);
-  const [editorStats, setEditorStats] = useState(() => {
-    const text = (initialHtmlRef.current || '').replace(/<[^>]*>/g, ' ').trim();
-    const words = text ? (text.match(/\S+/g) || []).length : 0;
-    return {
-      words,
-      chars: text.length,
-      readingTime: Math.max(1, Math.ceil(words / 180))
-    };
+  const [editorStats, setEditorStats] = useState<ReadingStats>(() => {
+    return calculateReadingStats(initialHtmlRef.current, {
+      lessonType: lesson.type,
+      questionCount: questions?.length || 0
+    });
   });
+
+  // Keep stats in sync when questions change in quiz mode
+  useEffect(() => {
+    if (lesson.type === 'mcq') {
+      const stats = calculateReadingStats('', {
+        lessonType: 'mcq',
+        questionCount: questions.length
+      });
+      setEditorStats(stats);
+    }
+  }, [lesson.type, questions.length]);
 
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [imageTab, setImageTab] = useState<'url' | 'upload'>('url');
@@ -264,14 +274,12 @@ export default function LessonFormModal({
   const syncEditorState = () => {
     if (!editorRef.current) return;
     const html = editorRef.current.innerHTML;
-    const text = (editorRef.current.innerText || '').trim();
-    const words = text ? (text.match(/\S+/g) || []).length : 0;
     setLiveHtml(html);
-    setEditorStats({
-      words,
-      chars: text.length,
-      readingTime: Math.max(1, Math.ceil(words / 180))
+    const stats = calculateReadingStats(html, {
+      lessonType: lesson.type,
+      questionCount: questions?.length || 0
     });
+    setEditorStats(stats);
   };
 
   const execCmd = (command: string, value?: string) => {
@@ -2031,6 +2039,12 @@ console.log("Config loaded:", appConfig.appName);</code></pre>
         finalNotesContent = `${generateHTMLFromQuestions(questions)}\n<!-- MCQ_QUESTIONS_JSON:${JSON.stringify(questions)} -->`;
       }
 
+      const parsedDurationNum = parseInt(String(lesson.duration || '').trim(), 10);
+      const calculatedDuration = editorStats.readingTime || 5;
+      const finalDuration = (!isNaN(parsedDurationNum) && parsedDurationNum > 0)
+        ? parsedDurationNum
+        : calculatedDuration;
+
       const payload = {
         module_id: moduleId,
         chapter_id: chapterId || initialData?.chapter_id || null,
@@ -2040,7 +2054,8 @@ console.log("Config loaded:", appConfig.appName);</code></pre>
         content_url: lesson.type === 'assignment' ? lesson.pdf_url : lesson.content_url,
         notes_content: finalNotesContent,
         pdf_url: (lesson.type === 'assignment' || lesson.type === 'video') ? lesson.pdf_url : null,
-        duration: null,
+        duration: String(finalDuration),
+        duration_mins: finalDuration,
         is_free: lesson.is_free,
         batches: isGlobal ? [] : lesson.batches,
         course_id: courseId,
@@ -2313,12 +2328,15 @@ console.log("Config loaded:", appConfig.appName);</code></pre>
                   </button>
 
                   {/* Reading stats */}
-                  <div className="hidden lg:flex items-center gap-1.5 px-2 py-1 bg-slate-100 rounded-lg border border-slate-200 text-[10px] text-slate-600">
-                    <span className="flex items-center gap-1 font-mono text-slate-700">
+                  <div 
+                    className="flex items-center gap-1.5 px-2 py-1 bg-slate-100 hover:bg-slate-200/70 transition-colors rounded-lg border border-slate-200 text-[10px] text-slate-600 cursor-help"
+                    title={editorStats.summaryTooltip}
+                  >
+                    <span className="flex items-center gap-1 font-mono font-bold text-slate-700">
                       <Clock size={10} className="text-blue-600" /> ~{editorStats.readingTime}m
                     </span>
                     <span className="text-slate-300">•</span>
-                    <span className="font-mono text-slate-700">{editorStats.words}w</span>
+                    <span className="font-mono text-slate-600 font-medium">{editorStats.words}w</span>
                   </div>
                 </>
               )}
@@ -2974,7 +2992,10 @@ console.log("Config loaded:", appConfig.appName);</code></pre>
                           <strong className="text-slate-800">{editorStats.chars}</strong> chars
                         </span>
                         <span className="text-slate-300">•</span>
-                        <span className="flex items-center gap-1 font-mono text-blue-600">
+                        <span 
+                          className="flex items-center gap-1 font-mono text-blue-600 cursor-help"
+                          title={editorStats.summaryTooltip}
+                        >
                           <Clock size={10} /> ~{editorStats.readingTime} min read
                         </span>
                       </div>
@@ -3164,8 +3185,8 @@ console.log("Config loaded:", appConfig.appName);</code></pre>
                 </div>
               )}
 
-              {/* Phase 2: Difficulty & Tags */}
-              <div className="pt-2 border-t border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-3 shrink-0">
+              {/* Phase 2: Difficulty, Duration & Tags */}
+              <div className="pt-2 border-t border-slate-200 grid grid-cols-1 sm:grid-cols-3 gap-3 shrink-0">
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Difficulty Level</label>
                   <select
@@ -3177,6 +3198,34 @@ console.log("Config loaded:", appConfig.appName);</code></pre>
                     <option value="intermediate">🟡 Intermediate</option>
                     <option value="advanced">🔴 Advanced</option>
                   </select>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Duration (Mins)</label>
+                    <button
+                      type="button"
+                      onClick={() => setLesson({ ...lesson, duration: String(editorStats.readingTime) })}
+                      className="text-[9px] font-bold text-blue-600 hover:text-blue-700 flex items-center gap-0.5 cursor-pointer"
+                      title="Set to auto-calculated reading time"
+                    >
+                      <Sparkles size={9} /> Auto (~{editorStats.readingTime}m)
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="1"
+                      max="600"
+                      value={lesson.duration}
+                      onChange={(e) => setLesson({ ...lesson, duration: e.target.value })}
+                      placeholder={`Auto (~${editorStats.readingTime}m)`}
+                      className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-xl outline-none focus:border-blue-500 text-xs font-semibold text-slate-800 pr-10"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-medium pointer-events-none">
+                      min
+                    </span>
+                  </div>
                 </div>
 
                 <div className="space-y-1">
