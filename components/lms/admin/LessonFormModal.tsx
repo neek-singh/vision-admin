@@ -9,7 +9,7 @@ import {
 import { supabase } from "@/lib/supabase";
 import MultiSelect from "@/components/ui/MultiSelect";
 import DOMPurify from "isomorphic-dompurify";
-import { enhanceCodeBlocks } from "@/lib/codeHighlighter";
+import { enhanceCodeBlocks, renderHighlightedHtml } from "@/lib/codeHighlighter";
 import { calculateReadingStats, ReadingStats } from "@/lib/readingTime";
 
 interface LessonFormModalProps {
@@ -2965,7 +2965,7 @@ console.log("Config loaded:", appConfig.appName);</code></pre>
                               </h2>
                               {liveHtml && liveHtml.trim() ? (
                                 <div 
-                                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(liveHtml) }} 
+                                  dangerouslySetInnerHTML={{ __html: renderHighlightedHtml(DOMPurify.sanitize(liveHtml)) }} 
                                   className="rich-content text-sm text-slate-800 leading-relaxed"
                                 />
                               ) : (
