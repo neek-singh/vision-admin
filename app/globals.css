@@ -68,9 +68,9 @@ body {
   color: #000000 !important; /* pure black */
 }
 
-/* Dark modal editor — force all text white */
-.dark-modal .rich-content,
-.dark-modal .rich-content * {
+/* Dark modal editor — force text white (excluding pre/code blocks and their syntax highlights) */
+.dark-modal .rich-content:not(pre):not(code),
+.dark-modal .rich-content *:not(pre):not(pre *):not(code):not(code *):not(button):not(button *) {
   color: #cbd5e1 !important;
 }
 .dark-modal .rich-content h1,
@@ -345,22 +345,26 @@ body {
 }
 
 .rich-content pre {
-  background: #020617 !important;
-  color: #e2e8f0 !important;
-  padding: 1rem 1.25rem !important;
-  border-radius: 0.75rem !important;
-  font-family: monospace !important;
-  font-size: 0.85em !important;
+  background: #0d1117 !important;
+  color: #f0f6fc !important;
+  padding: 14px 18px !important;
+  border-radius: 12px !important;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Menlo, Monaco, Consolas, monospace !important;
+  font-size: 13.5px !important;
   overflow-x: auto !important;
-  margin: 1rem 0 !important;
-  border: 1px solid #334155 !important;
-  line-height: 1.6 !important;
+  margin: 1.25rem 0 !important;
+  border: 1px solid #30363d !important;
+  line-height: 1.75 !important;
+  letter-spacing: 0.02em !important;
 }
 .rich-content pre code {
   background: transparent !important;
-  color: inherit !important;
+  color: #f0f6fc !important;
   padding: 0 !important;
   border: none !important;
+  font-family: inherit !important;
+  font-size: inherit !important;
+  line-height: inherit !important;
 }
 
 /* Callouts / Alert Boxes */

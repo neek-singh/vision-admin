@@ -38,17 +38,17 @@ async function copyToClipboard(text: string): Promise<boolean> {
 
 export function detectLanguage(code: string): string {
   const trimmed = code.trim();
-  if (/^<!DOCTYPE/i.test(trimmed) || /<\/?(html|head|body|div|span|p|a|h[1-6]|table|tr|td|form|input|button|script|style|meta|link)/i.test(trimmed)) {
+  if (/^<!DOCTYPE/i.test(trimmed) || /<\/?(html|head|body|div|span|p|a|h[1-6]|table|tr|td|th|form|input|button|script|style|meta|link)/i.test(trimmed)) {
     return 'html';
+  }
+  if (/(@media|@keyframes|font-size:|background-color:|\.[a-zA-Z0-9_-]+\s*\{|#[a-zA-Z0-9_-]+\s*\{|::?[a-zA-Z0-9_-]+|\[href)/.test(trimmed)) {
+    return 'css';
   }
   if (/(def\s+[a-zA-Z_]|import\s+[a-zA-Z_]|from\s+[a-zA-Z_]|print\(|elif\s+|if\s+__name__)/.test(trimmed)) {
     return 'python';
   }
   if (/(\bconst\s+|\blet\s+|\bvar\s+|\bfunction\s*\(|\bconsole\.log\(|=>|import\s+.*from)/.test(trimmed)) {
     return 'javascript';
-  }
-  if (/(\.[a-zA-Z0-9_-]+\s*\{|#[a-zA-Z0-9_-]+\s*\{|@media|@keyframes|font-size:|background-color:)/.test(trimmed)) {
-    return 'css';
   }
   if (/(SELECT\s+.*FROM|INSERT\s+INTO|UPDATE\s+.*SET|CREATE\s+TABLE|DELETE\s+FROM)/i.test(trimmed)) {
     return 'sql';
@@ -70,9 +70,9 @@ function highlightHtml(code: string): { html: string; lang: string } {
     const [, comment, doctype, tagStart, tagAttrs, tagEnd] = match;
 
     if (comment) {
-      result += `<span style="color:#64748b;font-style:italic;">${escapeHtml(comment)}</span>`;
+      result += `<span style="color:#8b949e !important;font-style:italic;">${escapeHtml(comment)}</span>`;
     } else if (doctype) {
-      result += `<span style="color:#94a3b8;font-weight:600;">${escapeHtml(doctype)}</span>`;
+      result += `<span style="color:#ff7b72 !important;font-weight:600;">${escapeHtml(doctype)}</span>`;
     } else if (tagStart) {
       const isClose = tagStart.startsWith('</');
       const tagName = isClose ? tagStart.slice(2) : tagStart.slice(1);
@@ -92,17 +92,17 @@ function highlightHtml(code: string): { html: string; lang: string } {
           const eq = attrMatch[2];
           const attrVal = attrMatch[3];
 
-          renderedAttrs += `<span style="color:#c084fc;">${escapeHtml(attrName)}</span>`;
+          renderedAttrs += `<span style="color:#d2a8ff !important;">${escapeHtml(attrName)}</span>`;
           if (eq && attrVal !== undefined) {
-            renderedAttrs += `<span style="color:#94a3b8;">=</span>`;
-            renderedAttrs += `<span style="color:#34d399;">${escapeHtml(attrVal)}</span>`;
+            renderedAttrs += `<span style="color:#e6edf3 !important;">=</span>`;
+            renderedAttrs += `<span style="color:#a5d6ff !important;">${escapeHtml(attrVal)}</span>`;
           }
         }
         renderedAttrs += escapeHtml(tagAttrs.slice(lastAttrIndex));
       }
 
       const closeBracket = tagEnd === '/>' ? '/&gt;' : '&gt;';
-      result += `<span style="color:#38bdf8;">${openBracket}</span><span style="color:#38bdf8;font-weight:600;">${escapeHtml(tagName)}</span>${renderedAttrs}<span style="color:#38bdf8;">${closeBracket}</span>`;
+      result += `<span style="color:#79c0ff !important;">${openBracket}</span><span style="color:#7ee787 !important;font-weight:600;">${escapeHtml(tagName)}</span>${renderedAttrs}<span style="color:#79c0ff !important;">${closeBracket}</span>`;
     }
   }
 
@@ -123,17 +123,17 @@ function highlightJs(code: string): { html: string; lang: string } {
 
     const [token, comment, str, keyword, builtin, literal, num] = match;
     if (comment) {
-      result += `<span style="color:#64748b;font-style:italic;">${escapeHtml(token)}</span>`;
+      result += `<span style="color:#8b949e !important;font-style:italic;">${escapeHtml(token)}</span>`;
     } else if (str) {
-      result += `<span style="color:#34d399;">${escapeHtml(token)}</span>`;
+      result += `<span style="color:#a5d6ff !important;">${escapeHtml(token)}</span>`;
     } else if (keyword) {
-      result += `<span style="color:#f43f5e;font-weight:600;">${escapeHtml(token)}</span>`;
+      result += `<span style="color:#ff7b72 !important;font-weight:600;">${escapeHtml(token)}</span>`;
     } else if (builtin) {
-      result += `<span style="color:#38bdf8;">${escapeHtml(token)}</span>`;
+      result += `<span style="color:#79c0ff !important;">${escapeHtml(token)}</span>`;
     } else if (literal) {
-      result += `<span style="color:#a78bfa;font-weight:600;">${escapeHtml(token)}</span>`;
+      result += `<span style="color:#79c0ff !important;font-weight:600;">${escapeHtml(token)}</span>`;
     } else if (num) {
-      result += `<span style="color:#fb923c;">${escapeHtml(token)}</span>`;
+      result += `<span style="color:#fb923c !important;">${escapeHtml(token)}</span>`;
     }
   }
 
@@ -142,7 +142,8 @@ function highlightJs(code: string): { html: string; lang: string } {
 }
 
 function highlightCss(code: string): { html: string; lang: string } {
-  const tokenRegex = /(\/\*[\s\S]*?\*\/)|([a-zA-Z\-]+)(?=\s*:)|(:\s*)([^;]+)(;)/g;
+  // Tokenize comments, strings, selectors, property declarations, and punctuation
+  const tokenRegex = /(\/\*[\s\S]*?\*\/)|("(?:\\"|[^"\n])*"|'(?:\\'|[^'\n])*')|((?:^|[\n;}])\s*[^;{}]+(?=\{))|([a-zA-Z\-]+)(?=\s*:)|(:\s*)([^;}\n]+)(;)?|([{};])/g;
 
   let result = '';
   let lastIndex = 0;
@@ -152,13 +153,73 @@ function highlightCss(code: string): { html: string; lang: string } {
     result += escapeHtml(code.slice(lastIndex, match.index));
     lastIndex = tokenRegex.lastIndex;
 
-    const [token, comment, prop, colon, val, semi] = match;
+    const [, comment, str, selectorBlock, prop, colon, val, semi, brace] = match;
+
     if (comment) {
-      result += `<span style="color:#64748b;font-style:italic;">${escapeHtml(token)}</span>`;
+      result += `<span style="color:#8b949e !important;font-style:italic;">${escapeHtml(comment)}</span>`;
+    } else if (str) {
+      result += `<span style="color:#a5d6ff !important;">${escapeHtml(str)}</span>`;
+    } else if (selectorBlock) {
+      // Fine-grained selector sub-tokens: tags, classes, IDs, pseudo-classes, pseudo-elements, attributes
+      const selRegex = /(\/\*[\s\S]*?\*\/)|(\.[a-zA-Z0-9_\-]+)|(#[a-zA-Z0-9_\-]+)|(::?[a-zA-Z0-9_\-]+(?:\([^)]*\))?)|(\[[^\]]+\])|(\b(?:a|div|span|p|h[1-6]|ul|ol|li|table|tr|td|th|form|input|button|body|html|img|header|footer|nav|section|article|main)\b)|([,>+~])/g;
+      
+      let selHtml = '';
+      let sLastIndex = 0;
+      let sMatch: RegExpExecArray | null;
+      while ((sMatch = selRegex.exec(selectorBlock)) !== null) {
+        selHtml += escapeHtml(selectorBlock.slice(sLastIndex, sMatch.index));
+        sLastIndex = selRegex.lastIndex;
+
+        const [, sComm, sClass, sId, sPseudo, sAttr, sTag, sComb] = sMatch;
+        if (sComm) {
+          selHtml += `<span style="color:#8b949e !important;font-style:italic;">${escapeHtml(sComm)}</span>`;
+        } else if (sClass) {
+          selHtml += `<span style="color:#d2a8ff !important;font-weight:600;">${escapeHtml(sClass)}</span>`;
+        } else if (sId) {
+          selHtml += `<span style="color:#f472b6 !important;font-weight:600;">${escapeHtml(sId)}</span>`;
+        } else if (sPseudo) {
+          selHtml += `<span style="color:#c084fc !important;">${escapeHtml(sPseudo)}</span>`;
+        } else if (sAttr) {
+          selHtml += `<span style="color:#fb923c !important;">${escapeHtml(sAttr)}</span>`;
+        } else if (sTag) {
+          selHtml += `<span style="color:#79c0ff !important;font-weight:600;">${escapeHtml(sTag)}</span>`;
+        } else if (sComb) {
+          selHtml += `<span style="color:#e6edf3 !important;">${escapeHtml(sComb)}</span>`;
+        }
+      }
+      selHtml += escapeHtml(selectorBlock.slice(sLastIndex));
+      result += selHtml;
     } else if (prop) {
-      result += `<span style="color:#c084fc;">${escapeHtml(prop)}</span>`;
+      result += `<span style="color:#79c0ff !important;">${escapeHtml(prop)}</span>`;
     } else if (colon) {
-      result += `<span style="color:#94a3b8;">${colon}</span><span style="color:#34d399;">${escapeHtml(val)}</span><span style="color:#94a3b8;">${semi}</span>`;
+      result += `<span style="color:#8b949e !important;">${escapeHtml(colon)}</span>`;
+      if (val) {
+        const valRegex = /("(?:\\"|[^"\n])*"|'(?:\\'|[^'\n])*')|(\b\d+(?:\.\d+)?(?:px|rem|em|%|vh|vw|pt|s|ms|deg|fr)?\b)|(#[0-9a-fA-F]{3,8}\b)|(\b(?:none|crimson|red|blue|green|white|black|transparent|inherit|initial|unset|solid|dashed|dotted|block|flex|grid|inline|relative|absolute|fixed|sticky)\b)/g;
+        let vHtml = '';
+        let vLastIndex = 0;
+        let vMatch: RegExpExecArray | null;
+        while ((vMatch = valRegex.exec(val)) !== null) {
+          vHtml += escapeHtml(val.slice(vLastIndex, vMatch.index));
+          vLastIndex = valRegex.lastIndex;
+          const [, vStr, vNum, vHex, vKw] = vMatch;
+          if (vStr) {
+            vHtml += `<span style="color:#a5d6ff !important;">${escapeHtml(vStr)}</span>`;
+          } else if (vNum) {
+            vHtml += `<span style="color:#fb923c !important;">${escapeHtml(vNum)}</span>`;
+          } else if (vHex) {
+            vHtml += `<span style="color:#7ee787 !important;font-weight:600;">${escapeHtml(vHex)}</span>`;
+          } else if (vKw) {
+            vHtml += `<span style="color:#7ee787 !important;">${escapeHtml(vKw)}</span>`;
+          }
+        }
+        vHtml += escapeHtml(val.slice(vLastIndex));
+        result += vHtml;
+      }
+      if (semi) {
+        result += `<span style="color:#8b949e !important;">${escapeHtml(semi)}</span>`;
+      }
+    } else if (brace) {
+      result += `<span style="color:#e6edf3 !important;">${escapeHtml(brace)}</span>`;
     }
   }
 
@@ -167,7 +228,7 @@ function highlightCss(code: string): { html: string; lang: string } {
 }
 
 function highlightPython(code: string): { html: string; lang: string } {
-  const tokenRegex = /(#.*$)|("(?:\\"|[^"\n])*"|'(?:\\'|[^'\n])*'|"""[\s\S]*?"""|'''[\s\S]*?''')|(\b(?:def|class|if|elif|else|while|for|in|return|import|from|as|try|except|finally|raise|with|lambda|yield)\b)|(\b(?:True|False|None)\b)|(\b(?:print|len|range|str|int|float|list|dict|set|tuple|type|input|open)\b)|(\b\d+(?:\.\d+)?\b)/gm;
+  const tokenRegex = /(#.*$)|("""[\s\S]*?"""|'''[\s\S]*?'''|"(?:\\"|[^"\n])*"|'(?:\\'|[^'\n])*')|(\b(?:def|class|if|elif|else|while|for|in|return|import|from|as|try|except|finally|raise|with|lambda|yield)\b)|(\b(?:True|False|None)\b)|(\b(?:print|len|range|str|int|float|list|dict|set|tuple|type|input|open)\b)|(\b\d+(?:\.\d+)?\b)/gm;
 
   let result = '';
   let lastIndex = 0;
@@ -179,17 +240,17 @@ function highlightPython(code: string): { html: string; lang: string } {
 
     const [token, comment, str, keyword, literal, builtin, num] = match;
     if (comment) {
-      result += `<span style="color:#64748b;font-style:italic;">${escapeHtml(token)}</span>`;
+      result += `<span style="color:#8b949e !important;font-style:italic;">${escapeHtml(token)}</span>`;
     } else if (str) {
-      result += `<span style="color:#34d399;">${escapeHtml(token)}</span>`;
+      result += `<span style="color:#a5d6ff !important;">${escapeHtml(token)}</span>`;
     } else if (keyword) {
-      result += `<span style="color:#f43f5e;font-weight:600;">${escapeHtml(token)}</span>`;
+      result += `<span style="color:#ff7b72 !important;font-weight:600;">${escapeHtml(token)}</span>`;
     } else if (literal) {
-      result += `<span style="color:#a78bfa;font-weight:600;">${escapeHtml(token)}</span>`;
+      result += `<span style="color:#79c0ff !important;font-weight:600;">${escapeHtml(token)}</span>`;
     } else if (builtin) {
-      result += `<span style="color:#38bdf8;">${escapeHtml(token)}</span>`;
+      result += `<span style="color:#79c0ff !important;">${escapeHtml(token)}</span>`;
     } else if (num) {
-      result += `<span style="color:#fb923c;">${escapeHtml(token)}</span>`;
+      result += `<span style="color:#fb923c !important;">${escapeHtml(token)}</span>`;
     }
   }
 
@@ -210,18 +271,42 @@ function highlightSql(code: string): { html: string; lang: string } {
 
     const [token, comment, str, keyword, num] = match;
     if (comment) {
-      result += `<span style="color:#64748b;font-style:italic;">${escapeHtml(token)}</span>`;
+      result += `<span style="color:#8b949e !important;font-style:italic;">${escapeHtml(token)}</span>`;
     } else if (str) {
-      result += `<span style="color:#34d399;">${escapeHtml(token)}</span>`;
+      result += `<span style="color:#a5d6ff !important;">${escapeHtml(token)}</span>`;
     } else if (keyword) {
-      result += `<span style="color:#38bdf8;font-weight:600;">${escapeHtml(token.toUpperCase())}</span>`;
+      result += `<span style="color:#ff7b72 !important;font-weight:600;">${escapeHtml(token.toUpperCase())}</span>`;
     } else if (num) {
-      result += `<span style="color:#fb923c;">${escapeHtml(token)}</span>`;
+      result += `<span style="color:#fb923c !important;">${escapeHtml(token)}</span>`;
     }
   }
 
   result += escapeHtml(code.slice(lastIndex));
   return { html: result, lang: 'SQL' };
+}
+
+function highlightGeneric(code: string): { html: string; lang: string } {
+  const tokenRegex = /(\/\*[\s\S]*?\*\/|\/\/.*$|#.*$)|("(?:\\"|[^"\n])*"|'(?:\\'|[^'\n])*')|(\b\d+(?:\.\d+)?\b)/gm;
+  let result = '';
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = tokenRegex.exec(code)) !== null) {
+    result += escapeHtml(code.slice(lastIndex, match.index));
+    lastIndex = tokenRegex.lastIndex;
+
+    const [token, comment, str, num] = match;
+    if (comment) {
+      result += `<span style="color:#8b949e !important;font-style:italic;">${escapeHtml(token)}</span>`;
+    } else if (str) {
+      result += `<span style="color:#a5d6ff !important;">${escapeHtml(token)}</span>`;
+    } else if (num) {
+      result += `<span style="color:#fb923c !important;">${escapeHtml(token)}</span>`;
+    }
+  }
+
+  result += escapeHtml(code.slice(lastIndex));
+  return { html: result, lang: 'CODE' };
 }
 
 export function highlightSyntax(rawCode: string, forcedLang?: string): { html: string; lang: string } {
@@ -231,20 +316,39 @@ export function highlightSyntax(rawCode: string, forcedLang?: string): { html: s
   if (lang === 'html') {
     return highlightHtml(cleanCode);
   }
+  if (lang === 'css') {
+    return highlightCss(cleanCode);
+  }
   if (lang === 'python') {
     return highlightPython(cleanCode);
   }
   if (lang === 'javascript') {
     return highlightJs(cleanCode);
   }
-  if (lang === 'css') {
-    return highlightCss(cleanCode);
-  }
   if (lang === 'sql') {
     return highlightSql(cleanCode);
   }
 
-  return { html: escapeHtml(cleanCode), lang: 'CODE' };
+  return highlightGeneric(cleanCode);
+}
+
+function bindCopyBtn(btn: HTMLButtonElement, codeText: string) {
+  const copySvg = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>`;
+  const checkSvg = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+
+  btn.onclick = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const ok = await copyToClipboard(codeText);
+    if (ok) {
+      btn.innerHTML = `${checkSvg}<span style="color:#34d399 !important;">Copied!</span>`;
+      btn.style.borderColor = 'rgba(52, 211, 153, 0.5)';
+      setTimeout(() => {
+        btn.innerHTML = `${copySvg}<span>Copy</span>`;
+        btn.style.borderColor = 'rgba(255, 255, 255, 0.12)';
+      }, 2000);
+    }
+  };
 }
 
 export function enhanceCodeBlocks(container?: HTMLElement | Document | null) {
@@ -253,33 +357,50 @@ export function enhanceCodeBlocks(container?: HTMLElement | Document | null) {
   const preBlocks = root.querySelectorAll<HTMLElement>('.rich-content pre, article pre, .prose pre, .notes-content pre');
 
   preBlocks.forEach((pre) => {
-    if (pre.getAttribute('data-code-enhanced') === 'true') return;
-    pre.setAttribute('data-code-enhanced', 'true');
+    // If already enhanced with v2, just ensure copy button handler is bound
+    const existingBtn = pre.querySelector<HTMLButtonElement>('.code-copy-btn');
+    if (pre.getAttribute('data-code-ready') === 'v2' && existingBtn) {
+      const codeEl = pre.querySelector('code');
+      const raw = pre.dataset.rawCode || (codeEl ? codeEl.textContent : '') || '';
+      bindCopyBtn(existingBtn, raw);
+      return;
+    }
+
+    // If pre contains a previously saved header toolbar from database, remove it to get clean code
+    const existingHeader = pre.querySelector('.code-toolbar-header');
+    if (existingHeader) {
+      existingHeader.remove();
+    }
 
     const codeEl = pre.querySelector('code');
     const rawCode = (codeEl ? codeEl.textContent : pre.textContent) || '';
     if (!rawCode.trim()) return;
 
+    pre.setAttribute('data-code-enhanced', 'true');
+    pre.setAttribute('data-code-ready', 'v2');
+    pre.dataset.rawCode = rawCode;
+
     const { html, lang } = highlightSyntax(rawCode);
 
     pre.style.position = 'relative';
     pre.style.backgroundColor = '#0d1117';
-    pre.style.color = '#e2e8f0';
+    pre.style.color = '#f0f6fc';
     pre.style.borderRadius = '12px';
-    pre.style.border = '1px solid #21262d';
+    pre.style.border = '1px solid #30363d';
     pre.style.overflow = 'hidden';
     pre.style.padding = '0';
     pre.style.margin = '18px 0';
-    pre.style.boxShadow = '0 10px 25px -5px rgba(0, 0, 0, 0.3)';
+    pre.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.35)';
 
     // Header Toolbar
     const header = document.createElement('div');
+    header.className = 'code-toolbar-header';
     header.style.display = 'flex';
     header.style.alignItems = 'center';
     header.style.justifyContent = 'space-between';
     header.style.padding = '8px 14px';
     header.style.backgroundColor = '#161b22';
-    header.style.borderBottom = '1px solid #21262d';
+    header.style.borderBottom = '1px solid #30363d';
     header.style.userSelect = 'none';
 
     // Left side: macOS dots + language badge
@@ -293,9 +414,9 @@ export function enhanceCodeBlocks(container?: HTMLElement | Document | null) {
     dots.style.alignItems = 'center';
     dots.style.gap = '6px';
     dots.innerHTML = `
-      <span style="width:10px;height:10px;border-radius:50%;background:#ef4444;display:inline-block;opacity:0.85;"></span>
-      <span style="width:10px;height:10px;border-radius:50%;background:#eab308;display:inline-block;opacity:0.85;"></span>
-      <span style="width:10px;height:10px;border-radius:50%;background:#22c55e;display:inline-block;opacity:0.85;"></span>
+      <span style="width:10px;height:10px;border-radius:50%;background:#ff5f56;display:inline-block;opacity:0.95;"></span>
+      <span style="width:10px;height:10px;border-radius:50%;background:#ffbd2e;display:inline-block;opacity:0.95;"></span>
+      <span style="width:10px;height:10px;border-radius:50%;background:#27c93f;display:inline-block;opacity:0.95;"></span>
     `;
 
     const langBadge = document.createElement('span');
@@ -303,7 +424,7 @@ export function enhanceCodeBlocks(container?: HTMLElement | Document | null) {
     langBadge.style.fontSize = '10px';
     langBadge.style.fontWeight = '700';
     langBadge.style.letterSpacing = '0.08em';
-    langBadge.style.color = '#94a3b8';
+    langBadge.style.color = '#8b949e';
     langBadge.style.marginLeft = '4px';
 
     leftSide.appendChild(dots);
@@ -312,6 +433,7 @@ export function enhanceCodeBlocks(container?: HTMLElement | Document | null) {
     // Right side: Copy Button
     const copyBtn = document.createElement('button');
     copyBtn.type = 'button';
+    copyBtn.className = 'code-copy-btn';
     copyBtn.setAttribute('aria-label', 'Copy code to clipboard');
     copyBtn.style.display = 'inline-flex';
     copyBtn.style.alignItems = 'center';
@@ -327,8 +449,6 @@ export function enhanceCodeBlocks(container?: HTMLElement | Document | null) {
     copyBtn.style.transition = 'all 0.15s ease';
 
     const copySvg = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>`;
-    const checkSvg = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
-
     copyBtn.innerHTML = `${copySvg}<span>Copy</span>`;
 
     copyBtn.onmouseenter = () => {
@@ -340,45 +460,28 @@ export function enhanceCodeBlocks(container?: HTMLElement | Document | null) {
       copyBtn.style.color = '#cbd5e1';
     };
 
-    copyBtn.onclick = async (e) => {
-      e.stopPropagation();
-      const ok = await copyToClipboard(rawCode);
-      if (ok) {
-        copyBtn.innerHTML = `${checkSvg}<span style="color:#34d399;">Copied!</span>`;
-        copyBtn.style.borderColor = 'rgba(52, 211, 153, 0.5)';
-        setTimeout(() => {
-          copyBtn.innerHTML = `${copySvg}<span>Copy</span>`;
-          copyBtn.style.borderColor = 'rgba(255, 255, 255, 0.12)';
-        }, 2000);
-      }
-    };
+    bindCopyBtn(copyBtn, rawCode);
 
     header.appendChild(leftSide);
     header.appendChild(copyBtn);
 
     // Code container
     const codeContainer = document.createElement('div');
+    codeContainer.className = 'code-body-container';
     codeContainer.style.padding = '14px 18px';
     codeContainer.style.overflowX = 'auto';
 
-    if (codeEl) {
-      codeEl.innerHTML = html;
-      codeEl.style.display = 'block';
-      codeEl.style.fontFamily = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace';
-      codeEl.style.fontSize = '13px';
-      codeEl.style.lineHeight = '1.65';
-      codeEl.style.whiteSpace = 'pre';
-      codeContainer.appendChild(codeEl);
-    } else {
-      const newCode = document.createElement('code');
-      newCode.innerHTML = html;
-      newCode.style.display = 'block';
-      newCode.style.fontFamily = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace';
-      newCode.style.fontSize = '13px';
-      newCode.style.lineHeight = '1.65';
-      newCode.style.whiteSpace = 'pre';
-      codeContainer.appendChild(newCode);
-    }
+    const codeElement = document.createElement('code');
+    codeElement.innerHTML = html;
+    codeElement.style.display = 'block';
+    codeElement.style.fontFamily = "'JetBrains Mono', 'Fira Code', 'Cascadia Code', Menlo, Monaco, Consolas, monospace";
+    codeElement.style.fontSize = '13.5px';
+    codeElement.style.lineHeight = '1.75';
+    codeElement.style.letterSpacing = '0.02em';
+    codeElement.style.tabSize = '2';
+    codeElement.style.color = '#f0f6fc';
+    codeElement.style.whiteSpace = 'pre';
+    codeContainer.appendChild(codeElement);
 
     pre.innerHTML = '';
     pre.appendChild(header);
