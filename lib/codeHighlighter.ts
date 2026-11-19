@@ -436,8 +436,8 @@ export function renderHighlightedHtml(html: string): string {
     const escapedRawCode = escapeAttr(rawCode);
     const copySvg = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>`;
 
-    return `<pre data-code-enhanced="true" data-code-ready="v3" data-raw-code="${escapedRawCode}" class="not-prose" style="position:relative;background-color:#0d1117 !important;color:#f0f6fc !important;border-radius:12px;border:1px solid #30363d;overflow:hidden;margin:18px 0;box-shadow:0 8px 24px rgba(0,0,0,0.35);padding:0 !important;display:block;">` +
-      `<div class="code-toolbar-header" style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background-color:#161b22;border-bottom:1px solid #30363d;user-select:none;">` +
+    return `<pre data-code-enhanced="true" data-code-ready="v3" data-raw-code="${escapedRawCode}" class="not-prose" style="position:relative;background-color:#0d1117 !important;color:#f0f6fc !important;border-radius:12px;border:1px solid #30363d;overflow:hidden;margin:18px 0;box-shadow:0 8px 24px rgba(0,0,0,0.35);padding:0 !important;display:block;width:100% !important;max-width:100% !important;box-sizing:border-box !important;">` +
+      `<div class="code-toolbar-header" style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background-color:#161b22;border-bottom:1px solid #30363d;user-select:none;width:100% !important;box-sizing:border-box !important;">` +
         `<div style="display:flex;align-items:center;gap:8px;">` +
           `<div style="display:flex;align-items:center;gap:6px;">` +
             `<span style="width:10px;height:10px;border-radius:50%;background:#ff5f56;display:inline-block;opacity:0.95;"></span>` +
@@ -450,8 +450,8 @@ export function renderHighlightedHtml(html: string): string {
           `${copySvg}<span>Copy</span>` +
         `</button>` +
       `</div>` +
-      `<div class="code-body-container" style="padding:14px 18px;overflow-x:auto;">` +
-        `<code style="display:block;font-family:'JetBrains Mono','Fira Code','Cascadia Code',Menlo,Monaco,Consolas,monospace;font-size:13.5px;line-height:1.75;letter-spacing:0.02em;tab-size:2;color:#f0f6fc !important;background-color:transparent !important;white-space:pre;">${highlightedCodeHtml}</code>` +
+      `<div class="code-body-container" style="padding:14px 18px;overflow-x:auto !important;overflow-y:hidden !important;width:100% !important;max-width:100% !important;box-sizing:border-box !important;-webkit-overflow-scrolling:touch !important;touch-action:pan-x pan-y !important;overscroll-behavior-x:contain !important;">` +
+        `<code style="display:block !important;width:max-content !important;min-width:100% !important;font-family:'JetBrains Mono','Fira Code','Cascadia Code',Menlo,Monaco,Consolas,monospace;font-size:13.5px;line-height:1.75;letter-spacing:0.02em;tab-size:2;color:#f0f6fc !important;background-color:transparent !important;white-space:pre !important;word-break:normal !important;word-wrap:normal !important;">${highlightedCodeHtml}</code>` +
       `</div>` +
     `</pre>`;
   });
@@ -485,6 +485,9 @@ export function enhanceCodeBlocks(container?: HTMLElement | Document | null) {
     const { html, lang } = highlightSyntax(rawCode);
 
     pre.style.position = 'relative';
+    pre.style.width = '100%';
+    pre.style.maxWidth = '100%';
+    pre.style.boxSizing = 'border-box';
     pre.style.setProperty('background-color', '#0d1117', 'important');
     pre.style.setProperty('color', '#f0f6fc', 'important');
     pre.style.borderRadius = '12px';
@@ -504,6 +507,8 @@ export function enhanceCodeBlocks(container?: HTMLElement | Document | null) {
     header.style.backgroundColor = '#161b22';
     header.style.borderBottom = '1px solid #30363d';
     header.style.userSelect = 'none';
+    header.style.width = '100%';
+    header.style.boxSizing = 'border-box';
 
     // Left side: macOS dots + language badge
     const leftSide = document.createElement('div');
@@ -571,11 +576,20 @@ export function enhanceCodeBlocks(container?: HTMLElement | Document | null) {
     const codeContainer = document.createElement('div');
     codeContainer.className = 'code-body-container';
     codeContainer.style.padding = '14px 18px';
-    codeContainer.style.overflowX = 'auto';
+    codeContainer.style.width = '100%';
+    codeContainer.style.maxWidth = '100%';
+    codeContainer.style.boxSizing = 'border-box';
+    codeContainer.style.setProperty('overflow-x', 'auto', 'important');
+    codeContainer.style.setProperty('overflow-y', 'hidden', 'important');
+    codeContainer.style.setProperty('-webkit-overflow-scrolling', 'touch', 'important');
+    codeContainer.style.setProperty('touch-action', 'pan-x pan-y', 'important');
+    codeContainer.style.setProperty('overscroll-behavior-x', 'contain', 'important');
 
     const codeElement = document.createElement('code');
     codeElement.innerHTML = html;
     codeElement.style.display = 'block';
+    codeElement.style.width = 'max-content';
+    codeElement.style.minWidth = '100%';
     codeElement.style.fontFamily = "'JetBrains Mono', 'Fira Code', 'Cascadia Code', Menlo, Monaco, Consolas, monospace";
     codeElement.style.fontSize = '13.5px';
     codeElement.style.lineHeight = '1.75';
@@ -583,7 +597,9 @@ export function enhanceCodeBlocks(container?: HTMLElement | Document | null) {
     codeElement.style.tabSize = '2';
     codeElement.style.setProperty('color', '#f0f6fc', 'important');
     codeElement.style.setProperty('background-color', 'transparent', 'important');
-    codeElement.style.whiteSpace = 'pre';
+    codeElement.style.setProperty('white-space', 'pre', 'important');
+    codeElement.style.setProperty('word-break', 'normal', 'important');
+    codeElement.style.setProperty('word-wrap', 'normal', 'important');
     codeContainer.appendChild(codeElement);
 
     pre.innerHTML = '';

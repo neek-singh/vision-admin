@@ -367,6 +367,9 @@ article pre[data-code-enhanced="true"],
 pre[data-code-enhanced="true"] {
   padding: 0 !important;
   overflow: hidden !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
   background-color: #0d1117 !important;
   border: 1px solid #30363d !important;
   border-radius: 12px !important;
@@ -381,6 +384,8 @@ pre[data-code-enhanced="true"] {
   background-color: #161b22 !important;
   border-bottom: 1px solid #30363d !important;
   user-select: none !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
 }
 
 .code-copy-btn {
@@ -406,7 +411,58 @@ pre[data-code-enhanced="true"] {
 .code-body-container {
   padding: 14px 18px !important;
   overflow-x: auto !important;
+  overflow-y: hidden !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  -webkit-overflow-scrolling: touch !important;
+  touch-action: pan-x pan-y !important;
+  overscroll-behavior-x: contain !important;
 }
+
+.code-body-container code {
+  display: block !important;
+  width: max-content !important;
+  min-width: 100% !important;
+  white-space: pre !important;
+  word-break: normal !important;
+  word-wrap: normal !important;
+  overflow-wrap: normal !important;
+}
+
+/* Custom Scrollbar for Code Blocks */
+.code-body-container::-webkit-scrollbar,
+.rich-content pre::-webkit-scrollbar,
+.prose pre::-webkit-scrollbar,
+article pre::-webkit-scrollbar {
+  height: 6px !important;
+  width: 6px !important;
+}
+
+.code-body-container::-webkit-scrollbar-track,
+.rich-content pre::-webkit-scrollbar-track,
+.prose pre::-webkit-scrollbar-track,
+article pre::-webkit-scrollbar-track {
+  background: #161b22 !important;
+  border-radius: 0 0 10px 10px !important;
+}
+
+.code-body-container::-webkit-scrollbar-thumb,
+.rich-content pre::-webkit-scrollbar-thumb,
+.prose pre::-webkit-scrollbar-thumb,
+article pre::-webkit-scrollbar-thumb {
+  background: #30363d !important;
+  border-radius: 4px !important;
+}
+
+.code-body-container::-webkit-scrollbar-thumb:hover,
+.rich-content pre::-webkit-scrollbar-thumb:hover,
+.prose pre::-webkit-scrollbar-thumb:hover,
+article pre::-webkit-scrollbar-thumb:hover {
+  background: #484f58 !important;
+}
+
 .rich-content pre code,
 .prose pre code,
 article pre code {
